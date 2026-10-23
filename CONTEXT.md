@@ -35,6 +35,7 @@ _Avoid_: Link, reference, resource
 A short, skim-friendly text field on a Note. If the user saves a Note without one, the Coach writes it.
 
 **Coach**:
+The full agent that lives inside the app (same session, same domain functions) and has the same access to the digital brain as the user, subject to write caps, revision checks, and operation ledgers.
 The full agent that has the same access to the digital brain as the user, subject to write caps, revision checks, and operation ledgers.
 _Avoid_: Assistant, bot, AI
 
