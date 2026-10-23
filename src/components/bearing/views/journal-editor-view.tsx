@@ -65,6 +65,7 @@ export function JournalEditorView() {
   const del = useDeleteItem();
   const { data: domData } = useDomains();
 
+  const [revision, setRevision] = useState<number>(0);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [domainId, setDomainId] = useState("");
@@ -92,9 +93,10 @@ export function JournalEditorView() {
 
   // Load existing item or initialize new
   const loadKey = journalEditId || "new";
-  if (loadKey !== lastKey) {
+  if (loadKey !== lastKey && (!journalEditId || existingItem)) {
     setLastKey(loadKey);
     if (journalEditId && existingItem) {
+      setRevision(existingItem.revision);
       setTitle(existingItem.title || "");
       setContent(existingItem.content || "");
       setDomainId(existingItem.domainId || "");
@@ -147,6 +149,7 @@ export function JournalEditorView() {
       if (journalEditId) {
         await update.mutateAsync({
           id: journalEditId,
+          revision,
           title: title.trim(),
           content,
           domainId: domainId || null,
@@ -176,12 +179,12 @@ export function JournalEditorView() {
   async function handleDelete() {
     if (!journalEditId) return;
     try {
-      await del.mutateAsync(journalEditId);
+      await del.mutateAsync({ id: journalEditId, revision });
       localStorage.removeItem("lifeos-journal-draft");
-      notify.success("Journal entry deleted");
+      notify.success("Journal entry archived");
       setView("mind_soul");
     } catch (e: any) {
-      notify.error(e.message || "Failed to delete");
+      notify.error(e.message || "Failed to archive");
     }
   }
 
@@ -248,15 +251,15 @@ export function JournalEditorView() {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete this journal entry?</AlertDialogTitle>
+                  <AlertDialogTitle>Archive this journal entry?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently remove &ldquo;{title || "Untitled entry"}&rdquo; and all its data. This action cannot be undone.
+                    This will mark &ldquo;{title || "Untitled entry"}&rdquo; as archived.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={handleDelete} className="bg-rose-500 hover:bg-rose-600">
-                    Delete
+                    Archive
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

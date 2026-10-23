@@ -1,3 +1,6 @@
+import type { Prisma } from "@prisma/client";
+import { ItemDomain } from "@/lib/domain/item";
+import { LinkDomain } from "@/lib/domain/link";
 // bearing.now — seed script
 // Run with: bun run src/lib/seed.ts
 import { PrismaClient } from "@prisma/client";
@@ -116,10 +119,10 @@ async function main() {
   const pmap = Object.fromEntries(projects.map((p) => [p.name, p.id]));
 
   // Helper to create item + metadata
-  async function item(data: Record<string, any>) {
+  async function item(data: Omit<Prisma.ItemCreateManyInput, "metadata" | "revision"> & { metadata?: unknown }) {
     const meta = data.metadata ? { metadata: JSON.stringify(data.metadata) } : {};
     const { metadata, ...rest } = data;
-    return db.item.create({ data: { ...rest, ...meta } as any });
+    return (await ItemDomain.create({ ...rest, ...meta })).value;
   }
 
   // ── Tasks (Time & Action) ──
@@ -234,13 +237,13 @@ async function main() {
   const halfGoal = await db.item.findFirst({ where: { title: "Run a half-marathon" } });
   const healthProject = await db.project.findFirst({ where: { name: "Health Transformation" } });
   if (debtJournal && financialVision) {
-    await db.link.create({ data: { fromId: debtJournal.id, toId: financialVision.id, type: LinkType.parse("related_to"), note: "journal references the vision" } }).catch(() => {});
+    await LinkDomain.create({ fromId: debtJournal.id, toId: financialVision.id, type: LinkType.parse("related_to"), note: "journal references the vision" }, debtJournal.revision).catch(() => {});
   }
   if (halfGoal && runHabit) {
-    await db.link.create({ data: { fromId: halfGoal.id, toId: runHabit.id, type: LinkType.parse("related_to"), note: "habit supports this goal" } }).catch(() => {});
+    await LinkDomain.create({ fromId: halfGoal.id, toId: runHabit.id, type: LinkType.parse("related_to"), note: "habit supports this goal" }, halfGoal.revision).catch(() => {});
   }
   if (medHabit && writeHabit) {
-    await db.link.create({ data: { fromId: medHabit.id, toId: writeHabit.id, type: LinkType.parse("related_to") } }).catch(() => {});
+    await LinkDomain.create({ fromId: medHabit.id, toId: writeHabit.id, type: LinkType.parse("related_to") }, medHabit.revision).catch(() => {});
   }
 
   // ── Reviews ──

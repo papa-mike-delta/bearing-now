@@ -70,8 +70,7 @@ export function BucketList() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  update.mutate({ id: item.id, status: "done" });
-                  notify.success("Achieved!");
+                  update.mutate({ id: item.id, revision: item.revision, status: "done" }, { onSuccess: () => notify.success("Achieved!") });
                 }}
                 className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border-2 border-purple-400/50 transition-all hover:border-purple-500 hover:bg-purple-500/10"
                 title="Mark as done"

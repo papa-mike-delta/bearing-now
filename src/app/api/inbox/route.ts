@@ -1,5 +1,6 @@
+import { ItemDomain } from "@/lib/domain/item";
 import { db } from "@/lib/db";
-import { ok, parseBody, parseMeta, parseListMeta } from "@/lib/api";
+import { ok, domainResponse, parseBody, parseMeta, parseListMeta } from "@/lib/api";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -20,17 +21,14 @@ export async function POST(req: NextRequest) {
   const title = (body.title || body.text || "").trim();
   if (!title) return ok({ error: "title required" }, { status: 400 });
 
-  const item = await db.item.create({
-    data: {
-      title,
-      type: body.type || "note",
-      status: "inbox",
-      content: body.content,
-      domainId: body.domainId,
-      projectId: body.projectId,
-      ...(body.metadata ? { metadata: JSON.stringify(body.metadata) } : {}),
-    },
-    include: { domain: true, project: { select: { id: true, name: true, color: true } } },
+  const result = await ItemDomain.create({
+    title,
+    type: body.type || "note",
+    status: "inbox",
+    content: body.content,
+    domainId: body.domainId,
+    projectId: body.projectId,
+    ...(body.metadata ? { metadata: JSON.stringify(body.metadata) } : {}),
   });
-  return ok(parseMeta(item as any));
+  return domainResponse(result, parseMeta);
 }

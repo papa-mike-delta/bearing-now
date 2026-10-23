@@ -1,3 +1,4 @@
+import type { DomainResult } from "@/lib/domain/result";
 // bearing.now — shared server-side helpers
 import { NextResponse } from "next/server";
 
@@ -37,4 +38,10 @@ export function parseMeta(item: any) {
 
 export function parseListMeta(items: any[]) {
   return items.map(parseMeta);
+}
+
+export function domainResponse<T>(result: DomainResult<T>, serialize: (value: T) => unknown = (value) => value) {
+  if (result.ok) return ok(serialize(result.value));
+  if ("conflict" in result) return ok(result, { status: 409 });
+  return bad(result.error);
 }

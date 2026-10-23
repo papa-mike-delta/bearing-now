@@ -42,6 +42,7 @@ export function ItemDetailSheet() {
   const [linkSearch, setLinkSearch] = useState("");
   const [editingContent, setEditingContent] = useState(false);
   const [contentDraft, setContentDraft] = useState("");
+  const [contentRevision, setContentRevision] = useState<number>(0);
 
   const { data: searchResults } = useItems(linkSearch ? { q: linkSearch } : {});
   const linkResults = searchResults?.items ?? [];
@@ -53,30 +54,30 @@ export function ItemDetailSheet() {
   const isDone = item?.status === "done";
 
   async function saveContent() {
-    await update.mutateAsync({ id: item.id, content: contentDraft });
+    await update.mutateAsync({ id: item.id, revision: contentRevision, content: contentDraft });
     setEditingContent(false);
     notify.success("Notes saved");
   }
 
   async function addLink(toId: string) {
-    await createLink.mutateAsync({ fromId: item.id, toId, type: "related_to" });
+    await createLink.mutateAsync({ fromId: item.id, revision: item.revision, toId, type: "related_to" });
     setLinkSearch("");
     notify.success("Connected");
   }
 
-  async function removeLink(linkId: string, direction: "out" | "in", type: string) {
+  async function removeLink(linkId: string, direction: "out" | "in", type: string, revision: number) {
     if (direction === "out") {
-      await deleteLink.mutateAsync({ fromId: item.id, toId: linkId, type });
+      await deleteLink.mutateAsync({ fromId: item.id, revision, toId: linkId, type });
     } else {
-      await deleteLink.mutateAsync({ fromId: linkId, toId: item.id, type });
+      await deleteLink.mutateAsync({ fromId: linkId, revision, toId: item.id, type });
     }
     notify.success("Link removed");
   }
 
   async function handleDelete() {
-    await del.mutateAsync(item.id);
+    await del.mutateAsync({ id: item.id, revision: item.revision });
     closeItemDetail();
-    notify.success("Deleted");
+    notify.success("Archived");
   }
 
   return (
@@ -212,7 +213,7 @@ export function ItemDetailSheet() {
                     content={item.content}
                     editing={editingContent}
                     draft={contentDraft}
-                    onEdit={() => { setContentDraft(item.content || ""); setEditingContent(true); }}
+                    onEdit={() => { setContentRevision(item.revision); setContentDraft(item.content || ""); setEditingContent(true); }}
                     onCancel={() => setEditingContent(false)}
                     onSave={saveContent}
                     onChange={setContentDraft}
@@ -228,7 +229,7 @@ export function ItemDetailSheet() {
                     </h4>
                     {!editingContent ? (
                       <button
-                        onClick={() => { setContentDraft(item.content || ""); setEditingContent(true); }}
+                        onClick={() => { setContentRevision(item.revision); setContentDraft(item.content || ""); setEditingContent(true); }}
                         className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
                       >
                         <Icon name="Pencil" className="h-3 w-3" /> Edit
@@ -327,7 +328,7 @@ export function ItemDetailSheet() {
                           type={m.name}
                           direction="out"
                           onClick={() => useBearing.getState().openItemDetail(l.to.id)}
-                          onRemove={() => removeLink(l.to.id, "out", l.type)}
+                          onRemove={() => removeLink(l.to.id, "out", l.type, item.revision)}
                         />
                       );
                     })}
@@ -342,7 +343,7 @@ export function ItemDetailSheet() {
                           type={m.name}
                           direction="in"
                           onClick={() => useBearing.getState().openItemDetail(l.from.id)}
-                          onRemove={() => removeLink(l.from.id, "in", l.type)}
+                          onRemove={() => removeLink(l.from.id, "in", l.type, l.from.revision)}
                         />
                       );
                     })}
@@ -372,7 +373,7 @@ export function ItemDetailSheet() {
                   <Button
                     size="sm"
                     variant={isDone ? "outline" : "default"}
-                    onClick={() => { update.mutate({ id: item.id, status: isDone ? "active" : "done" }); notify.success(isDone ? "Reopened" : "Completed"); }}
+                    onClick={() => { update.mutate({ id: item.id, revision: item.revision, status: isDone ? "active" : "done" }, { onSuccess: () => notify.success(isDone ? "Reopened" : "Completed") }); }}
                     className="gap-1.5"
                   >
                     <Icon name={isDone ? "RotateCcw" : "Check"} className="h-3.5 w-3.5" />
@@ -396,14 +397,14 @@ export function ItemDetailSheet() {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete this item?</AlertDialogTitle>
+                      <AlertDialogTitle>Archive this item?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will permanently remove &ldquo;{item.title}&rdquo; and all its connections. This cannot be undone.
+                        This will mark &ldquo;{item.title}&rdquo; as archived.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDelete} className="bg-rose-500 hover:bg-rose-600">Delete</AlertDialogAction>
+                      <AlertDialogAction onClick={handleDelete} className="bg-rose-500 hover:bg-rose-600">Archive</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
@@ -738,24 +739,23 @@ function JournalEditor({
 // ── Reading progress updater (for books) ──
 function ReadingProgressUpdater({ item, currentPage, totalPages, accentColor }: { item: any; currentPage: number; totalPages: number; accentColor: string }) {
   const update = useUpdateItem();
-  const [pageInput, setPageInput] = useState(String(currentPage));
+  const [pageDraft, setPageDraft] = useState<{ value: string; revision: number } | null>(null);
+  const pageInput = pageDraft?.value ?? String(currentPage);
 
-  function updatePage(val: number) {
+  function updatePage(val: number, revision = item.revision) {
+    if (update.isPending) return;
     const clamped = Math.max(0, Math.min(totalPages, val));
     const newMeta = { ...item.metadata, currentPage: clamped };
     const isFinished = clamped >= totalPages;
     update.mutate({
       id: item.id,
-      metadata: newMeta,
+      revision,
+      metadata: { ...newMeta, ...(isFinished ? { status: "finished" } : {}) },
       ...(isFinished ? { status: "done" } : {}),
-      ...(isFinished ? {} : {}),
-    });
-    // also update bookmark status to finished if done
-    if (isFinished) {
-      update.mutate({ id: item.id, metadata: { ...newMeta, status: "finished" }, status: "done" });
-      notify.success("Finished reading!");
-    }
-    setPageInput(String(clamped));
+    }, { onSuccess: () => {
+      setPageDraft(null);
+      if (isFinished) notify.success("Finished reading!");
+    } });
   }
 
   return (
@@ -765,16 +765,13 @@ function ReadingProgressUpdater({ item, currentPage, totalPages, accentColor }: 
         min={0}
         max={totalPages}
         value={pageInput}
-        onChange={(e) => setPageInput(e.target.value)}
+        onChange={(e) => setPageDraft({ value: e.target.value, revision: pageDraft?.revision ?? item.revision })}
         onBlur={(e) => {
           const v = Number(e.target.value);
-          if (!isNaN(v) && v !== currentPage) updatePage(v);
+          if (!isNaN(v) && v !== currentPage) updatePage(v, pageDraft?.revision ?? item.revision);
         }}
         onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            const v = Number((e.target as HTMLInputElement).value);
-            if (!isNaN(v) && v !== currentPage) updatePage(v);
-          }
+          if (e.key === "Enter") e.currentTarget.blur();
         }}
         className="h-7 w-16 rounded-md border border-border/60 bg-background px-2 text-xs tabular-nums outline-none focus:border-primary/40"
       />

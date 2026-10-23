@@ -61,6 +61,7 @@ export function InboxView() {
     if (!s) return;
     await update.mutateAsync({
       id: itemId,
+      revision: items.find((i) => i.id === itemId)?.revision,
       type: s.suggestedType,
       domainId: s.suggestedDomainId,
       projectId: s.suggestedProjectId,
@@ -85,13 +86,13 @@ export function InboxView() {
 
   async function processAll(field: "domainId" | "projectId" | "type" | "status", value: string) {
     const ids = selected.size ? Array.from(selected) : items.map((i) => i.id);
-    await Promise.all(ids.map((id) => update.mutateAsync({ id, [field]: value || null })));
+    await Promise.all(items.filter((item) => ids.includes(item.id)).map((item) => update.mutateAsync({ id: item.id, revision: item.revision, [field]: value || null })));
     setSelected(new Set());
     notify.success(`Processed ${ids.length} item${ids.length > 1 ? "s" : ""}`);
   }
 
   async function clearInbox() {
-    await Promise.all(items.map((i) => update.mutateAsync({ id: i.id, status: "active" })));
+    await Promise.all(items.map((i) => update.mutateAsync({ id: i.id, revision: i.revision, status: "active" })));
     notify.success("Inbox cleared — all items activated");
   }
 
@@ -228,7 +229,7 @@ export function InboxView() {
                   </div>
                   <div className="flex flex-shrink-0 gap-1">
                     <button
-                      onClick={() => { update.mutate({ id: item.id, status: "active" }); notify.success("Activated"); }}
+                      onClick={() => { update.mutate({ id: item.id, revision: item.revision, status: "active" }, { onSuccess: () => notify.success("Activated") }); }}
                       className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500"
                       title="Activate"
                     >
@@ -242,9 +243,9 @@ export function InboxView() {
                       <Icon name="Pencil" className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => { del.mutate(item.id); notify.success("Deleted"); }}
+                      onClick={() => { del.mutate({ id: item.id, revision: item.revision }, { onSuccess: () => notify.success("Archived") }); }}
                       className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500"
-                      title="Delete"
+                      title="Archive"
                     >
                       <Icon name="Trash2" className="h-4 w-4" />
                     </button>

@@ -1,5 +1,6 @@
+import { ItemDomain } from "@/lib/domain/item";
 import { db } from "@/lib/db";
-import { ok, notFound, parseBody, parseMeta } from "@/lib/api";
+import { ok, domainResponse, notFound, parseBody, parseMeta } from "@/lib/api";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +54,11 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   // unlink items first
-  await db.item.updateMany({ where: { projectId: id }, data: { projectId: null, revision: { increment: 1 } } });
+  const items = await db.item.findMany({ where: { projectId: id } });
+  for (const item of items) {
+    const result = await ItemDomain.update(item.id, item.revision, { projectId: null });
+    if (!result.ok) return domainResponse(result);
+  }
   await db.project.delete({ where: { id } }).catch(() => {});
   return ok({ deleted: true });
 }

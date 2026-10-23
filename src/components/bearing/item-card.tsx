@@ -27,7 +27,7 @@ export function ItemCard({ item, onClick, compact, showProject, className }: Ite
 
   function toggleDone(e: React.MouseEvent) {
     e.stopPropagation();
-    update.mutate({ id: item.id, status: done ? "active" : "done" }); notify.success(done ? "Reopened" : "Completed");
+    update.mutate({ id: item.id, revision: item.revision, status: done ? "active" : "done" }, { onSuccess: () => notify.success(done ? "Reopened" : "Completed") });
   }
 
   return (
