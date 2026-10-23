@@ -14,6 +14,8 @@ import { motion } from "framer-motion";
 import { notify } from "@/lib/toast";
 import QRCode from "qrcode";
 import { useTheme } from "next-themes";
+import { useQueryClient } from "@tanstack/react-query";
+import { themeOverrideKey } from "@/components/theme-override";
 import { requestNotificationPermission, sendNotification } from "../notifications";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -35,6 +37,9 @@ export function SettingsView() {
   const { theme = "system", setTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [prefs, setPrefs] = useState<any>(null);
+  const queryClient = useQueryClient();
+  const [themeInput, setThemeInput] = useState("");
+  const [themeSaving, setThemeSaving] = useState(false);
 
   // 2FA
   const [twoFAEnabled, setTwoFAEnabled] = useState(false);
@@ -102,6 +107,27 @@ export function SettingsView() {
   function applyTheme(t: "light" | "dark" | "system") {
     setTheme(t);
     notify.success(`Theme: ${t}`);
+  }
+
+  async function saveThemeOverride(reset = false) {
+    setThemeSaving(true);
+    try {
+      const res = await fetch("/api/preferences/theme", {
+        method: reset ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        ...(reset ? {} : { body: JSON.stringify({ input: themeInput }) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unable to import theme.");
+      await queryClient.cancelQueries({ queryKey: themeOverrideKey });
+      queryClient.setQueryData(themeOverrideKey, data);
+      setThemeInput("");
+      notify.success(reset ? "Imported theme reset" : "Theme imported");
+    } catch (error) {
+      notify.error(error instanceof Error ? error.message : "Unable to import theme.");
+    } finally {
+      setThemeSaving(false);
+    }
   }
 
   async function startQrLogin() {
@@ -326,6 +352,15 @@ export function SettingsView() {
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="light">Light</SelectItem><SelectItem value="dark">Dark</SelectItem><SelectItem value="system">System</SelectItem></SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="theme-import" className="block text-xs font-medium text-muted-foreground">Import theme</Label>
+            <p id="theme-import-help" className="text-xs text-muted-foreground">Paste a ui.shadcn.com/create URL or exported CSS/JSON with light and dark variants.</p>
+            <Textarea id="theme-import" aria-describedby="theme-import-help" value={themeInput} onChange={(e) => setThemeInput(e.target.value)} placeholder="https://ui.shadcn.com/create?theme=blue" rows={5} maxLength={100000} disabled={themeSaving} />
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => saveThemeOverride()} disabled={themeSaving || !themeInput.trim()}>{themeSaving ? "Saving…" : "Import theme"}</Button>
+              <Button size="sm" variant="outline" onClick={() => saveThemeOverride(true)} disabled={themeSaving}>Reset imported theme</Button>
+            </div>
           </div>
           <div className="flex items-center justify-between rounded-xl border border-border/40 p-3">
             <div className="flex items-center gap-3">

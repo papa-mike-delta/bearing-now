@@ -1,0 +1,47 @@
+import { db } from "@/lib/db";
+import { ok, bad, parseBody, getUserFromRequest } from "@/lib/auth-utils";
+import { ThemeOverride } from "@/lib/theme-override";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(req: Request) {
+  const session = await getUserFromRequest(req);
+  if (!session) return bad("Unauthorized", 401);
+
+  const setting = await db.setting.findUnique({ where: { id: `theme-${session.userId}` } });
+  try {
+    return ok({ css: setting ? ThemeOverride.serialize(JSON.parse(setting.value)) : "" });
+  } catch {
+    return bad("Stored theme is invalid. Import a new theme or reset it.");
+  }
+}
+
+export async function POST(req: Request) {
+  const session = await getUserFromRequest(req);
+  if (!session) return bad("Unauthorized", 401);
+
+  const body = await parseBody<{ input?: unknown } | null>(req);
+  if (typeof body?.input !== "string") return bad("Provide a theme URL, CSS, or JSON.");
+
+  let theme;
+  let css: string;
+  try {
+    theme = await ThemeOverride.parse(body.input);
+    css = ThemeOverride.serialize(theme);
+  } catch (error) {
+    return bad(error instanceof Error ? error.message : "Unable to import theme.");
+  }
+
+  const id = `theme-${session.userId}`;
+  const value = JSON.stringify(theme);
+  await db.setting.upsert({ where: { id }, update: { value }, create: { id, value } });
+  return ok({ css });
+}
+
+export async function DELETE(req: Request) {
+  const session = await getUserFromRequest(req);
+  if (!session) return bad("Unauthorized", 401);
+
+  await db.setting.deleteMany({ where: { id: `theme-${session.userId}` } });
+  return ok({ css: "" });
+}
