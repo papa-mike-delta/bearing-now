@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Shell } from "@/components/life-os/shell";
+import { Shell } from "@/components/bearing/shell";
 
 export const metadata: Metadata = {
   title: "Dashboard",

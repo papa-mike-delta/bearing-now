@@ -1,4 +1,4 @@
-// Life OS — shared constants
+// Bearing — shared constants
 
 export type DomainKey =
   | "mind_soul"

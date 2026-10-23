@@ -24,7 +24,7 @@ If applicable, add screenshots.
 ## Environment
 - OS: [e.g., macOS, Windows, iOS]
 - Browser: [e.g., Chrome, Safari]
-- Life OS version: [e.g., from package.json]
+- Bearing version: [e.g., from package.json]
 
 ## Additional context
 Any other context about the problem.

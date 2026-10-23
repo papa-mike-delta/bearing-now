@@ -1,5 +1,5 @@
 /**
- * Centralized toast notification utility for Life OS.
+ * Centralized toast notification utility for Bearing.
  *
  * Wraps `sonner` with semantic helpers so every user action
  * gets consistent, accessible feedback.

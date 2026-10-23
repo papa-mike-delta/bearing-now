@@ -1,4 +1,4 @@
-# Contributing to Life OS
+# Contributing to Bearing
 
 Thank you for your interest in contributing! This document outlines how to get started.
 

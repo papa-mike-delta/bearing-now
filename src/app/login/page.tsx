@@ -114,7 +114,7 @@ export default function LoginPage() {
           >
             <Brain className="h-8 w-8 text-white" />
           </motion.div>
-          <h1 className="text-3xl font-bold tracking-tight">Life OS</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Bearing</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">Your digital brain, secured.</p>
         </div>
 
@@ -329,7 +329,7 @@ export default function LoginPage() {
                 >
                   <Check className="h-8 w-8" strokeWidth={3} />
                 </motion.div>
-                <h2 className="text-xl font-bold">Welcome to Life OS</h2>
+                <h2 className="text-xl font-bold">Welcome to Bearing</h2>
                 <p className="mt-1.5 text-sm text-muted-foreground">Opening your digital brain…</p>
                 <Loader2 className="mx-auto mt-4 h-5 w-5 animate-spin text-muted-foreground" />
               </motion.div>

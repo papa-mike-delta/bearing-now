@@ -1,6 +1,6 @@
 {
-  "name": "Life OS — Your Digital Brain",
-  "short_name": "Life OS",
+  "name": "Bearing — Your Digital Brain",
+  "short_name": "Bearing",
   "description": "An open-source, self-hostable personal operating system and digital brain for tasks, notes, journals, habits, finances, calendar planning, and reflections.",
   "id": "/",
   "start_url": "/app",

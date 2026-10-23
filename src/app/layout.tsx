@@ -46,7 +46,7 @@ export const metadata: Metadata = {
         url: siteConfig.ogImage,
         width: 2058,
         height: 1338,
-        alt: "Life OS public landing page and app preview",
+        alt: "Bearing public landing page and app preview",
       },
     ],
   },
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Life OS",
+    title: "Bearing",
   },
 };
 

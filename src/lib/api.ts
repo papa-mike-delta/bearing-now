@@ -1,4 +1,4 @@
-// Life OS — shared server-side helpers
+// Bearing — shared server-side helpers
 import { NextResponse } from "next/server";
 
 export function ok(data: unknown, init?: ResponseInit) {

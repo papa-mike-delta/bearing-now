@@ -1,20 +1,20 @@
 export const siteConfig = {
-  name: "Life OS",
-  title: "Life OS - Open-Source Digital Brain and Personal Operating System",
+  name: "Bearing",
+  title: "Bearing - Open-Source Digital Brain and Personal Operating System",
   description:
-    "Life OS is an open-source, self-hostable second brain, habit tracker, journal app, task manager, calendar planner, finance tracker, and personal knowledge management system.",
+    "Bearing is an open-source, self-hostable second brain, habit tracker, journal app, task manager, calendar planner, finance tracker, and personal knowledge management system.",
   author: "karim-coder",
-  repositoryUrl: "https://github.com/karim-coder/life-os",
+  repositoryUrl: "https://github.com/papa-mike-delta/bearing-now",
   ogImage:
-    "https://raw.githubusercontent.com/karim-coder/life-os/main/public/screenshots/landing.jpg",
+    "https://raw.githubusercontent.com/papa-mike-delta/bearing-now/main/public/screenshots/landing.jpg",
   screenshotUrls: [
-    "https://raw.githubusercontent.com/karim-coder/life-os/main/public/screenshots/landing.jpg",
-    "https://raw.githubusercontent.com/karim-coder/life-os/main/public/screenshots/dashboard.jpeg",
-    "https://raw.githubusercontent.com/karim-coder/life-os/main/public/screenshots/brain-graph.jpeg",
-    "https://raw.githubusercontent.com/karim-coder/life-os/main/public/screenshots/insight.jpeg",
+    "https://raw.githubusercontent.com/papa-mike-delta/bearing-now/main/public/screenshots/landing.jpg",
+    "https://raw.githubusercontent.com/papa-mike-delta/bearing-now/main/public/screenshots/dashboard.jpeg",
+    "https://raw.githubusercontent.com/papa-mike-delta/bearing-now/main/public/screenshots/brain-graph.jpeg",
+    "https://raw.githubusercontent.com/papa-mike-delta/bearing-now/main/public/screenshots/insight.jpeg",
   ],
   keywords: [
-    "Life OS",
+    "Bearing",
     "life operating system",
     "digital brain",
     "second brain",
