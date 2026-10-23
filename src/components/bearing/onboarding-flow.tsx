@@ -18,7 +18,7 @@ const STEPS = [
     icon: "Brain",
     color: "#a78bfa",
     title: "Welcome to your Digital Brain",
-    desc: "Bearing connects everything — tasks, notes, journals, habits, finances, and more — into one interconnected system. Nothing lives in isolation.",
+    desc: "bearing.now connects everything — tasks, notes, journals, habits, finances, and more — into one interconnected system. Nothing lives in isolation.",
   },
   {
     icon: "Zap",
@@ -84,7 +84,7 @@ export function OnboardingFlow() {
     <Dialog open={open} onOpenChange={(o) => { if (!o) skip(); }}>
       <DialogContent className="max-w-md overflow-hidden p-0">
         <DialogHeader className="sr-only">
-          <DialogTitle>Welcome to Bearing</DialogTitle>
+          <DialogTitle>Welcome to bearing.now</DialogTitle>
           <DialogDescription>A quick tour of your digital brain.</DialogDescription>
         </DialogHeader>
 

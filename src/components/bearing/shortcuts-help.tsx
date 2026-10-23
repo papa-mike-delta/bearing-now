@@ -75,7 +75,7 @@ export function ShortcutsHelp() {
             <Icon name="Keyboard" className="h-5 w-5 text-violet-500" />
             Keyboard Shortcuts
           </DialogTitle>
-          <DialogDescription>Navigate your Bearing at the speed of thought.</DialogDescription>
+          <DialogDescription>Navigate your bearing.now at the speed of thought.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           {SHORTCUT_GROUPS.map((group) => (

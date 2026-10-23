@@ -1,4 +1,4 @@
-// Bearing — seed script
+// bearing.now — seed script
 // Run with: bun run src/lib/seed.ts
 import { PrismaClient } from "@prisma/client";
 import { DOMAINS } from "./constants";
@@ -13,7 +13,7 @@ function daysFromNow(n: number, h = 9, m = 0) {
 }
 
 async function main() {
-  console.log("🌱 Seeding Bearing…");
+  console.log("🌱 Seeding bearing.now…");
 
   // Domains
   for (const dom of DOMAINS) {

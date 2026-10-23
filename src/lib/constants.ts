@@ -1,4 +1,4 @@
-// Bearing — shared constants
+// bearing.now — shared constants
 
 export type DomainKey =
   | "mind_soul"

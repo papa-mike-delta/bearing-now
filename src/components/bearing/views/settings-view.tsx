@@ -332,7 +332,7 @@ export function SettingsView() {
               <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600"><Icon name="Bell" className="h-4 w-4" /></span>
               <div><p className="text-sm font-medium">Browser notifications</p><p className="text-[11px] text-muted-foreground">Overdue & due task alerts</p></div>
             </div>
-            <Button size="sm" variant="outline" onClick={async () => { const g = await requestNotificationPermission(); if (g) { notify.success("Notifications enabled"); sendNotification("Bearing", "Enabled!"); } else notify.error("Permission denied"); }}>Enable</Button>
+            <Button size="sm" variant="outline" onClick={async () => { const g = await requestNotificationPermission(); if (g) { notify.success("Notifications enabled"); sendNotification("bearing.now", "Enabled!"); } else notify.error("Permission denied"); }}>Enable</Button>
           </div>
         </div>
       </SectionCard>
@@ -350,7 +350,7 @@ export function SettingsView() {
 
           <div className="rounded-lg border border-border/40 p-3">
             <p className="mb-2 text-xs font-medium">Want to use a cloud database?</p>
-            <p className="text-[11px] text-muted-foreground">Bearing supports any PostgreSQL database. To switch:</p>
+            <p className="text-[11px] text-muted-foreground">bearing.now supports any PostgreSQL database. To switch:</p>
             <ol className="mt-1.5 space-y-1 text-[11px] text-muted-foreground">
               <li>1. Create a free database on <a href="https://neon.tech" target="_blank" className="text-blue-500 hover:underline">Neon</a> or <a href="https://supabase.com" target="_blank" className="text-blue-500 hover:underline">Supabase</a></li>
               <li>2. Set <code className="rounded bg-muted px-1">DATABASE_URL</code> in your <code className="rounded bg-muted px-1">.env</code> file</li>

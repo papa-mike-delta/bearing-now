@@ -24,7 +24,7 @@ If applicable, add screenshots.
 ## Environment
 - OS: [e.g., macOS, Windows, iOS]
 - Browser: [e.g., Chrome, Safari]
-- Bearing version: [e.g., from package.json]
+- bearing.now version: [e.g., from package.json]
 
 ## Additional context
 Any other context about the problem.

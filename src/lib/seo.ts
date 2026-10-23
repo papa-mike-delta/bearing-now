@@ -1,8 +1,8 @@
 export const siteConfig = {
-  name: "Bearing",
-  title: "Bearing - Open-Source Digital Brain and Personal Operating System",
+  name: "bearing.now",
+  title: "bearing.now - Open-Source Digital Brain and Personal Operating System",
   description:
-    "Bearing is an open-source, self-hostable second brain, habit tracker, journal app, task manager, calendar planner, finance tracker, and personal knowledge management system.",
+    "bearing.now is an open-source, self-hostable second brain, habit tracker, journal app, task manager, calendar planner, finance tracker, and personal knowledge management system.",
   author: "karim-coder",
   repositoryUrl: "https://github.com/papa-mike-delta/bearing-now",
   ogImage:
@@ -14,7 +14,7 @@ export const siteConfig = {
     "https://raw.githubusercontent.com/papa-mike-delta/bearing-now/main/public/screenshots/insight.jpeg",
   ],
   keywords: [
-    "Bearing",
+    "bearing.now",
     "life operating system",
     "digital brain",
     "second brain",

@@ -139,7 +139,7 @@ function Footer({ onQuickCapture, onCommand }: { onQuickCapture: () => void; onC
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
         <div className="flex items-center gap-1.5">
           <Icon name="Brain" className="h-3.5 w-3.5 text-emerald-500" />
-          <span className="font-medium">Bearing</span>
+          <span className="font-medium">bearing.now</span>
           <span className="text-muted-foreground/60">·</span>
           <span>Your digital brain, interconnected.</span>
         </div>

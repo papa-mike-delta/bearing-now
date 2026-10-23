@@ -48,7 +48,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <Icon name="Brain" className="h-5 w-5 text-white" />
         </div>
         <div>
-          <div className="text-sm font-semibold leading-none tracking-tight">Bearing</div>
+          <div className="text-sm font-semibold leading-none tracking-tight">bearing.now</div>
           <div className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Digital Brain</div>
         </div>
       </div>
@@ -158,7 +158,7 @@ export function Sidebar() {
         <SheetContent side="left" className="w-72 p-0">
           <SheetHeader className="sr-only">
             <SheetTitle>Navigation</SheetTitle>
-            <SheetDescription>Navigate between Bearing views and life domains.</SheetDescription>
+            <SheetDescription>Navigate between bearing.now views and life domains.</SheetDescription>
           </SheetHeader>
           <div className="flex h-full flex-col">
             <SidebarContent onNavigate={closeMobile} />

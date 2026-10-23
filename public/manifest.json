@@ -1,6 +1,6 @@
 {
-  "name": "Bearing — Your Digital Brain",
-  "short_name": "Bearing",
+  "name": "bearing.now — Your Digital Brain",
+  "short_name": "bearing.now",
   "description": "An open-source, self-hostable personal operating system and digital brain for tasks, notes, journals, habits, finances, calendar planning, and reflections.",
   "id": "/",
   "start_url": "/app",

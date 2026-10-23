@@ -86,8 +86,8 @@ function base32Decode(secret: string): Buffer {
 
 // Generate an otpauth:// URI for QR code
 export function generateOTPAuthURL(email: string, secret: string): string {
-  const label = encodeURIComponent(`Bearing:${email}`);
-  const issuer = encodeURIComponent("Bearing");
+  const label = encodeURIComponent(`bearing.now:${email}`);
+  const issuer = encodeURIComponent("bearing.now");
   return `otpauth://totp/${label}?secret=${secret}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`;
 }
 

@@ -1,4 +1,4 @@
-// Bearing — shared server-side helpers
+// bearing.now — shared server-side helpers
 import { NextResponse } from "next/server";
 
 export function ok(data: unknown, init?: ResponseInit) {

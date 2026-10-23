@@ -51,7 +51,7 @@ export const metadata: Metadata = {
         url: siteConfig.ogImage,
         width: 2058,
         height: 1338,
-        alt: "Bearing public landing page and app preview",
+        alt: "bearing.now public landing page and app preview",
       },
     ],
   },
@@ -113,7 +113,7 @@ export default function LandingPage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-lg shadow-emerald-500/20">
               <Brain className="h-5 w-5 text-white" />
             </div>
-            <span className="text-lg font-bold tracking-tight">Bearing</span>
+            <span className="text-lg font-bold tracking-tight">bearing.now</span>
           </div>
           <div className="hidden items-center gap-8 md:flex">
             <SmoothScrollLink href="#features" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Features</SmoothScrollLink>
@@ -122,7 +122,7 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" className="gap-1.5 px-3" asChild>
-              <a href={siteConfig.repositoryUrl} target="_blank" rel="noreferrer" aria-label="View Bearing on GitHub">
+              <a href={siteConfig.repositoryUrl} target="_blank" rel="noreferrer" aria-label="View bearing.now on GitHub">
                 <Github className="h-4 w-4" />
                 <span className="hidden sm:inline">GitHub</span>
               </a>
@@ -160,7 +160,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl">
-            Bearing is a personal operating system where tasks, notes, journals, habits, and finances
+            bearing.now is a personal operating system where tasks, notes, journals, habits, and finances
             aren't isolated silos — they're a <span className="font-medium text-foreground">digital brain</span> where everything links together.
           </p>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
@@ -201,7 +201,7 @@ export default function LandingPage() {
                 <div className="h-3 w-3 rounded-full bg-emerald-400" />
               </div>
               <div className="ml-3 flex items-center gap-2 text-xs text-muted-foreground">
-                <Brain className="h-3.5 w-3.5 text-emerald-500" /> Bearing — Dashboard
+                <Brain className="h-3.5 w-3.5 text-emerald-500" /> bearing.now — Dashboard
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4 p-6">
@@ -360,7 +360,7 @@ export default function LandingPage() {
           <div className="mb-16 text-center">
             <h2 className="text-4xl font-bold tracking-tight sm:text-5xl">See it in action.</h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-              Real, interactive previews of what Bearing looks like. No screenshots — these are live.
+              Real, interactive previews of what bearing.now looks like. No screenshots — these are live.
             </p>
           </div>
 
@@ -493,7 +493,7 @@ export default function LandingPage() {
           <div className="mb-16 text-center">
             <h2 className="text-4xl font-bold tracking-tight sm:text-5xl">Not another to-do app.</h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-              Bearing weaves every part of your life into one interconnected system —
+              bearing.now weaves every part of your life into one interconnected system —
               a sanctuary, not a spreadsheet.
             </p>
           </div>
@@ -583,13 +583,13 @@ export default function LandingPage() {
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">A sanctuary, not a spreadsheet.</h2>
               <div className="mt-6 space-y-4 text-lg leading-relaxed text-muted-foreground">
                 <p>
-                  Most life management apps treat your life as a list of boxes to check. Bearing treats it as
+                  Most life management apps treat your life as a list of boxes to check. bearing.now treats it as
                   a <span className="font-medium text-foreground">living ecosystem</span> where everything connects.
                 </p>
                 <p>
                   When you write a journal entry about stressing over money, you can link it to your
                   "Get out of Debt" project. When a bill is due Tuesday, it appears on your master calendar
-                  automatically. When you haven't called your mom in 3 weeks, Bearing gently reminds you.
+                  automatically. When you haven't called your mom in 3 weeks, bearing.now gently reminds you.
                 </p>
                 <p>
                   This isn't about doing more. It's about <span className="font-medium text-foreground">doing what matters</span>,
@@ -627,7 +627,7 @@ export default function LandingPage() {
           </p>
           <Link href="/app">
             <Button size="lg" className="mt-8 h-14 gap-2 bg-gradient-to-br from-emerald-500 to-teal-600 px-10 text-base text-white shadow-xl shadow-emerald-500/20 hover:from-emerald-600 hover:to-teal-700">
-              Open Bearing <ArrowRight className="h-5 w-5" />
+              Open bearing.now <ArrowRight className="h-5 w-5" />
             </Button>
           </Link>
           <Button size="lg" variant="outline" className="ml-0 mt-3 h-14 gap-2 px-8 text-base sm:ml-3 sm:mt-0" asChild>
@@ -645,7 +645,7 @@ export default function LandingPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500">
               <Brain className="h-4 w-4 text-white" />
             </div>
-            <span className="font-semibold">Bearing</span>
+            <span className="font-semibold">bearing.now</span>
             <span className="text-sm text-muted-foreground">· Your digital brain, interconnected.</span>
           </div>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
