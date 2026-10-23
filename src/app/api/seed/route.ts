@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { ok, bad } from "@/lib/auth-utils";
 import type { NextRequest } from "next/server";
 import { DOMAINS } from "@/lib/constants";
+import bcrypt from "bcryptjs";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,22 @@ export async function POST(_req: NextRequest) {
   if (existingDomains > 0) {
     return bad("Data already exists. Reset the database first.", 409);
   }
+
+  // Demo user
+  const DEMO_EMAIL = "demo@gmail.com";
+  const DEMO_PASSWORD = "Password123";
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
+  await db.user.upsert({
+    where: { email: DEMO_EMAIL },
+    update: { passwordHash, name: "Demo User" },
+    create: {
+      email: DEMO_EMAIL,
+      name: "Demo User",
+      passwordHash,
+      totpVerified: false,
+    },
+  });
+
 
   // Seed domains
   const domainMap: Record<string, string> = {};

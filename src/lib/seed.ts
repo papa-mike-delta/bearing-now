@@ -1,6 +1,7 @@
 // bearing.now — seed script
 // Run with: bun run src/lib/seed.ts
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 import { DOMAINS } from "./constants";
 
 const db = new PrismaClient();
@@ -14,6 +15,23 @@ function daysFromNow(n: number, h = 9, m = 0) {
 
 async function main() {
   console.log("🌱 Seeding bearing.now…");
+
+  // Demo user
+  const DEMO_EMAIL = "demo@gmail.com";
+  const DEMO_PASSWORD = "Password123";
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
+  await db.user.upsert({
+    where: { email: DEMO_EMAIL },
+    update: { passwordHash, name: "Demo User" },
+    create: {
+      email: DEMO_EMAIL,
+      name: "Demo User",
+      passwordHash,
+      totpVerified: false,
+    },
+  });
+  console.log(`👤 Demo user ready: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
+
 
   // Domains
   for (const dom of DOMAINS) {
