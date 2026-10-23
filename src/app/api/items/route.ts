@@ -1,5 +1,6 @@
+import { ItemDomain } from "@/lib/domain/item";
 import { db } from "@/lib/db";
-import { ok, bad, parseBody, parseListMeta, parseMeta } from "@/lib/api";
+import { ok, bad, domainResponse, parseBody, parseListMeta, parseMeta } from "@/lib/api";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -58,28 +59,9 @@ export async function POST(req: NextRequest) {
 
   const { metadata, tagNames, ...rest } = body;
 
-  const item = await db.item.create({
-    data: {
-      ...rest,
-      ...(metadata ? { metadata: JSON.stringify(metadata) } : {}),
-      ...(tagNames?.length
-        ? {
-            tags: {
-              create: await Promise.all(
-                (tagNames as string[]).map(async (name) => ({
-                  tag: { connectOrCreate: { where: { name }, create: { name } } },
-                })),
-              ),
-            },
-          }
-        : {}),
-    },
-    include: {
-      tags: { include: { tag: true } },
-      domain: true,
-      project: { select: { id: true, name: true, color: true } },
-    },
-  });
-
-  return ok(parseMeta(item as any));
+  const result = await ItemDomain.create({
+    ...rest,
+    ...(metadata ? { metadata: JSON.stringify(metadata) } : {}),
+  }, tagNames);
+  return domainResponse(result, parseMeta);
 }

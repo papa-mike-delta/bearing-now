@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { ok, bad, parseBody } from "@/lib/api";
-import { LinkType } from "@/lib/link-type";
+import { ok, bad, domainResponse, parseBody } from "@/lib/api";
+import { LinkDomain } from "@/lib/domain/link";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -23,14 +23,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const { id } = await ctx.params;
   const body = await parseBody(req);
   if (!body.toId) return bad("toId is required");
-  const type = body.type === undefined ? "related_to" : body.type;
-  if (!LinkType.isValid(type)) return bad("Invalid Link type");
-  const link = await db.link.upsert({
-    where: { fromId_toId_type: { fromId: id, toId: body.toId, type } },
-    update: { note: body.note },
-    create: { fromId: id, toId: body.toId, type, note: body.note },
-  });
-  return ok(link);
+  return domainResponse(await LinkDomain.create({
+    fromId: id, toId: body.toId, type: body.type, note: body.note,
+  }, body.revision));
 }
 
 // DELETE /api/items/[id]/links — remove a link
@@ -40,6 +35,6 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
   const toId = sp.get("toId");
   const type = sp.get("type") || "related_to";
   if (!toId) return bad("toId is required");
-  await db.link.deleteMany({ where: { fromId: id, toId, type } }).catch(() => {});
-  return ok({ deleted: true });
+  const revision = sp.get("revision");
+  return domainResponse(await LinkDomain.delete({ fromId: id, toId, type }, revision === null || revision.trim() === "" ? NaN : Number(revision)));
 }

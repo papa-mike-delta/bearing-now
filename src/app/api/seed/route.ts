@@ -1,3 +1,7 @@
+import { domainResponse } from "@/lib/api";
+import type { Prisma } from "@prisma/client";
+import { ItemDomain } from "@/lib/domain/item";
+import { LinkDomain } from "@/lib/domain/link";
 import { db } from "@/lib/db";
 import { ok, bad } from "@/lib/auth-utils";
 import type { NextRequest } from "next/server";
@@ -58,10 +62,10 @@ export async function POST(_req: NextRequest) {
   const pmap: Record<string, string> = {};
   projects.forEach((p) => { pmap[p.name] = p.id; });
 
-  async function item(data: Record<string, any>) {
+  async function item(data: Omit<Prisma.ItemCreateManyInput, "metadata" | "revision"> & { metadata?: unknown }) {
     const meta = data.metadata ? { metadata: JSON.stringify(data.metadata) } : {};
     const { metadata, ...rest } = data;
-    return db.item.create({ data: { ...rest, ...meta } as any });
+    return (await ItemDomain.create({ ...rest, ...meta })).value;
   }
 
   // Tasks
@@ -144,10 +148,12 @@ export async function POST(_req: NextRequest) {
   const debtJournal = await db.item.findFirst({ where: { title: "Stress about money" } });
   const financialVision = await db.item.findFirst({ where: { title: "Live with intention" } });
   if (debtJournal && financialVision) {
-    await db.link.create({ data: { fromId: debtJournal.id, toId: financialVision.id, type: LinkType.parse("related_to") } }).catch(() => {});
+    const result = await LinkDomain.create({ fromId: debtJournal.id, toId: financialVision.id, type: LinkType.parse("related_to") }, debtJournal.revision);
+    if (!result.ok) return domainResponse(result);
   }
   if (medHabit && writeHabit) {
-    await db.link.create({ data: { fromId: medHabit.id, toId: writeHabit.id, type: LinkType.parse("related_to") } }).catch(() => {});
+    const result = await LinkDomain.create({ fromId: medHabit.id, toId: writeHabit.id, type: LinkType.parse("related_to") }, medHabit.revision);
+    if (!result.ok) return domainResponse(result);
   }
 
   return ok({ success: true, message: "Seed data created successfully" });

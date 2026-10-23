@@ -117,7 +117,7 @@ export function ItemEditor() {
 
     try {
       if (form.id) {
-        await update.mutateAsync({ id: form.id, ...payload });
+        await update.mutateAsync({ id: form.id, revision: form.revision, ...payload });
         notify.success("Updated");
       } else {
         await create.mutateAsync(payload);

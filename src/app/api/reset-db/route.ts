@@ -1,3 +1,4 @@
+import { DatabaseDomain } from "@/lib/domain/database";
 import { db } from "@/lib/db";
 import { ok, bad, getUserFromRequest } from "@/lib/auth-utils";
 import type { NextRequest } from "next/server";
@@ -16,15 +17,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Delete all data in order (respecting foreign keys)
-    await db.habitLog.deleteMany();
-    await db.reviewItem.deleteMany();
-    await db.review.deleteMany();
-    await db.link.deleteMany();
-    await db.tagOnItem.deleteMany();
-    await db.tag.deleteMany();
-    await db.item.deleteMany();
-    await db.project.deleteMany();
-    await db.domain.deleteMany();
+    await DatabaseDomain.clear();
     await db.setting.deleteMany();
     // Keep User table intact
 

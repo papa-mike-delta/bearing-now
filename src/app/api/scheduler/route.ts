@@ -1,5 +1,6 @@
+import { ItemDomain } from "@/lib/domain/item";
 import { db } from "@/lib/db";
-import { ok } from "@/lib/api";
+import { ok, domainResponse } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -40,10 +41,8 @@ export async function POST() {
 
     // Update the existing item's due date to the next occurrence
     // (rather than creating duplicates — recurring items are "rolling")
-    await db.item.update({
-      where: { id: f.id },
-      data: { dueDate: nextDue, revision: { increment: 1 } },
-    });
+    const result = await ItemDomain.update(f.id, f.revision, { dueDate: nextDue });
+    if (!result.ok) return domainResponse(result);
     financeDetails.push(`${f.title} → ${nextDue.toISOString().slice(0, 10)}`);
   }
   if (financeDetails.length) results.push({ type: "finance", created: financeDetails.length, details: financeDetails });
@@ -65,10 +64,8 @@ export async function POST() {
     if (lastLog) {
       const daysSince = Math.floor((now.getTime() - new Date(lastLog.date).getTime()) / 86400000);
       if (daysSince > 2) {
-        await db.item.update({
-          where: { id: h.id },
-          data: { metadata: JSON.stringify({ ...meta, streak: 0 }), revision: { increment: 1 } },
-        });
+        const result = await ItemDomain.update(h.id, h.revision, { metadata: JSON.stringify({ ...meta, streak: 0 }) });
+        if (!result.ok) return domainResponse(result);
         streaksReset++;
       }
     }

@@ -1,5 +1,6 @@
 "use client";
 
+import { notify } from "@/lib/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const qk = {
@@ -26,6 +27,11 @@ async function jfetch<T>(url: string, opts?: RequestInit): Promise<T> {
     ...opts,
   });
   if (!res.ok) {
+    if (res.status === 409) {
+      const message = "This item changed. Reload it before saving again.";
+      notify.error(message);
+      throw new Error(message);
+    }
     const txt = await res.text().catch(() => "");
     throw new Error(txt || res.statusText);
   }
@@ -66,7 +72,7 @@ export function useCreateItem() {
 export function useUpdateItem() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: any) =>
+    mutationFn: ({ id, ...body }: { id: string; revision: number; [key: string]: unknown }) =>
       jfetch<any>(`/api/items/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["items"] });
@@ -82,7 +88,8 @@ export function useUpdateItem() {
 export function useDeleteItem() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => jfetch<any>(`/api/items/${id}`, { method: "DELETE" }),
+    mutationFn: ({ id, revision }: { id: string; revision: number }) =>
+      jfetch<any>(`/api/items/${id}`, { method: "DELETE", body: JSON.stringify({ revision }) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["items"] });
       qc.invalidateQueries({ queryKey: qk.inbox });
@@ -273,10 +280,15 @@ export function useToggleHabit() {
 export function useCreateLink() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ fromId, ...body }: any) =>
+    mutationFn: ({ fromId, ...body }: { fromId: string; toId: string; revision: number; type?: string; note?: string }) =>
       jfetch<any>(`/api/items/${fromId}/links`, { method: "POST", body: JSON.stringify(body) }),
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: qk.item(vars.fromId) });
+      qc.invalidateQueries({ queryKey: qk.item(vars.toId) });
+      qc.invalidateQueries({ queryKey: ["items"] });
+      qc.invalidateQueries({ queryKey: qk.inbox });
+      qc.invalidateQueries({ queryKey: ["project"] });
+      qc.invalidateQueries({ queryKey: ["graph"] });
     },
   });
 }
@@ -284,10 +296,15 @@ export function useCreateLink() {
 export function useDeleteLink() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ fromId, toId, type }: { fromId: string; toId: string; type?: string }) =>
-      jfetch<any>(`/api/items/${fromId}/links?toId=${toId}&type=${type || "related_to"}`, { method: "DELETE" }),
+    mutationFn: ({ fromId, toId, type, revision }: { fromId: string; toId: string; type?: string; revision: number }) =>
+      jfetch<any>(`/api/items/${fromId}/links?${new URLSearchParams({ toId, type: type || "related_to", revision: String(revision) })}`, { method: "DELETE" }),
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: qk.item(vars.fromId) });
+      qc.invalidateQueries({ queryKey: qk.item(vars.toId) });
+      qc.invalidateQueries({ queryKey: ["items"] });
+      qc.invalidateQueries({ queryKey: qk.inbox });
+      qc.invalidateQueries({ queryKey: ["project"] });
+      qc.invalidateQueries({ queryKey: ["graph"] });
     },
   });
 }

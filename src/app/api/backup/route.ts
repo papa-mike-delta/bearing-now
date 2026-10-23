@@ -1,5 +1,8 @@
+import { ItemDomain } from "@/lib/domain/item";
+import { LinkDomain } from "@/lib/domain/link";
+import { DatabaseDomain } from "@/lib/domain/database";
 import { db } from "@/lib/db";
-import { ok, bad, parseBody } from "@/lib/api";
+import { ok, bad, domainResponse, parseBody } from "@/lib/api";
 import { LinkType } from "@/lib/link-type";
 
 export const dynamic = "force-dynamic";
@@ -39,15 +42,7 @@ export async function POST(req: Request) {
 
   try {
     // Clear existing data (except users)
-    await db.habitLog.deleteMany();
-    await db.reviewItem.deleteMany();
-    await db.review.deleteMany();
-    await db.link.deleteMany();
-    await db.tagOnItem.deleteMany();
-    await db.tag.deleteMany();
-    await db.item.deleteMany();
-    await db.project.deleteMany();
-    await db.domain.deleteMany();
+    await DatabaseDomain.clear();
 
     // Restore domains
     if (body.domains) {
@@ -74,14 +69,16 @@ export async function POST(req: Request) {
     if (body.items) {
       for (const i of body.items) {
         const { tags, domain, project, ...itemData } = i;
-        await db.item.create({ data: itemData });
+        await ItemDomain.create(itemData);
       }
     }
 
     // Restore links
     if (body.links) {
       for (const l of body.links) {
-        await db.link.create({ data: l });
+        const source = await db.item.findUniqueOrThrow({ where: { id: l.fromId } });
+        const result = await LinkDomain.create(l, source.revision);
+        if (!result.ok) return domainResponse(result);
       }
     }
 
