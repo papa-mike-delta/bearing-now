@@ -28,6 +28,7 @@ import { SettingsView } from "./views/settings-view";
 import { Icon } from "./icon";
 import { useEffect } from "react";
 import { CoachPanel } from "./coach-panel";
+import { StoredThemeOverride } from "@/components/theme-override";
 
 export function Shell({ coachEnabled = false }: { coachEnabled?: boolean }) {
   const { view, setQuickCaptureOpen, setCommandOpen, setView } = useBearing();
@@ -83,6 +84,7 @@ export function Shell({ coachEnabled = false }: { coachEnabled?: boolean }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      <StoredThemeOverride />
       <Sidebar />
 
       <div className="flex min-w-0 flex-1 flex-col">
