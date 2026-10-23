@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { getLinks } from "@/lib/domain/item-queries";
 import { writeActor, ok, domainResponse, parseBody } from "@/lib/api";
 import { LinkDomain } from "@/lib/domain/link";
 import type { NextRequest } from "next/server";
@@ -8,14 +8,7 @@ export const dynamic = "force-dynamic";
 // GET /api/items/[id]/links — return related items (both directions)
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const [linksFrom, linksTo] = await Promise.all([
-    db.link.findMany({ where: { fromId: id }, include: { to: { include: { domain: true, project: { select: { id: true, name: true, color: true } } } } } }),
-    db.link.findMany({ where: { toId: id }, include: { from: { include: { domain: true, project: { select: { id: true, name: true, color: true } } } } } }),
-  ]);
-  return ok({
-    outgoing: linksFrom.map((l) => ({ ...l, to: l.to })),
-    incoming: linksTo.map((l) => ({ ...l, from: l.from })),
-  });
+  return ok(await getLinks(id));
 }
 
 // POST /api/items/[id]/links — create a link from this item to another

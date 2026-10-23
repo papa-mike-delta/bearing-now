@@ -27,8 +27,9 @@ import { JournalEditorView } from "./views/journal-editor-view";
 import { SettingsView } from "./views/settings-view";
 import { Icon } from "./icon";
 import { useEffect } from "react";
+import { CoachPanel } from "./coach-panel";
 
-export function Shell() {
+export function Shell({ coachEnabled = false }: { coachEnabled?: boolean }) {
   const { view, setQuickCaptureOpen, setCommandOpen, setView } = useBearing();
 
   // global hotkeys: "/" focuses search, "g + key" Vim-style navigation
@@ -99,6 +100,7 @@ export function Shell() {
                 <ViewSwitcher view={view} />
               </motion.div>
             </AnimatePresence>
+            {coachEnabled && <CoachPanel />}
           </div>
           <Footer onQuickCapture={() => setQuickCaptureOpen(true)} onCommand={() => setCommandOpen(true)} />
         </main>

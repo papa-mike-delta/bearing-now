@@ -15,7 +15,7 @@ export class OperationLedger {
       // workers, including concurrent maintenance and presence changes.
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(731909)::text`;
       const result = await write(tx);
-      await tx.operationLedger.create({ data: {
+      const receipt = await tx.operationLedger.create({ data: {
         actor,
         operation: entry.operation,
         payload: JSON.stringify(entry.payload),
@@ -23,7 +23,7 @@ export class OperationLedger {
         receipt: JSON.stringify(result),
         createdAt: new Date(),
       } });
-      return result;
+      return { ...result, receiptId: receipt.id };
     });
   }
 }

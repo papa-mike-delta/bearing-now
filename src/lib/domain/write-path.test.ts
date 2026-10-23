@@ -21,6 +21,7 @@ vi.mock("@/lib/db", () => ({ db }));
 
 beforeEach(() => {
   vi.resetAllMocks();
+  tx.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(tx));
   tx.item.create.mockResolvedValue({ id: "item", revision: 0 });
   tx.item.updateMany.mockResolvedValue({ count: 1 });
@@ -46,7 +47,9 @@ it.each(mutations)("commits $operation and its receipt through the same transact
   expect(tx.operationLedger.create).toHaveBeenCalledTimes(1);
   const [{ data }] = tx.operationLedger.create.mock.calls[0];
   expect(data).toMatchObject({ operation, status: "success" });
-  expect(JSON.parse(data.receipt)).toEqual(result);
+  expect(result.receiptId).toBe("receipt-1");
+  const { receiptId, ...outcome } = result;
+  expect(JSON.parse(data.receipt)).toEqual(outcome);
 });
 
 it.each(mutations)("cannot commit $operation when its ledger write fails", async ({ run }) => {

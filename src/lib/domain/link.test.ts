@@ -19,6 +19,7 @@ afterEach(() => {
 });
 beforeEach(() => {
   vi.resetAllMocks();
+  db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
 });
 
@@ -26,7 +27,7 @@ it("creates a typed Link when the source revision matches", async () => {
   db.item.updateMany.mockResolvedValue({ count: 1 });
   db.link.upsert.mockResolvedValue({ id: "link-1", type: "tracks" });
   expect(await LinkDomain.create({ fromId: "from", toId: "to", type: "tracks" }, 4)).toEqual({
-    ok: true, value: { id: "link-1", type: "tracks" },
+    receiptId: "receipt-1", ok: true, value: { id: "link-1", type: "tracks" },
   });
   expect(db.item.updateMany).toHaveBeenCalledWith({
     where: { id: "from", revision: 4 }, data: { revision: { increment: 1 } },
@@ -36,7 +37,7 @@ it("creates a typed Link when the source revision matches", async () => {
 it("deletes a Link when the source revision matches", async () => {
   db.item.updateMany.mockResolvedValue({ count: 1 });
   expect(await LinkDomain.delete({ fromId: "from", toId: "to", type: "tracks" }, 4)).toEqual({
-    ok: true, value: { deleted: true },
+    receiptId: "receipt-1", ok: true, value: { deleted: true },
   });
   expect(db.link.deleteMany).toHaveBeenCalledWith({ where: { fromId: "from", toId: "to", type: "tracks" } });
 });
@@ -45,7 +46,7 @@ it.each(["create", "delete"] as const)("rejects stale Link %s without writing", 
   db.item.updateMany.mockResolvedValue({ count: 0 });
   db.item.findUnique.mockResolvedValue({ revision: 5 });
   expect(await LinkDomain[operation]({ fromId: "from", toId: "to" }, 4)).toEqual({
-    ok: false, conflict: true, currentRevision: 5,
+    receiptId: "receipt-1", ok: false, conflict: true, currentRevision: 5,
   });
   expect(db.link.upsert).not.toHaveBeenCalled();
   expect(db.link.deleteMany).not.toHaveBeenCalled();
@@ -53,7 +54,7 @@ it.each(["create", "delete"] as const)("rejects stale Link %s without writing", 
 
 it("validates Link types in the domain before writing", async () => {
   expect(await LinkDomain.create({ fromId: "from", toId: "to", type: "unknown" }, 4)).toEqual({
-    ok: false, error: "Invalid Link type",
+    receiptId: "receipt-1", ok: false, error: "Invalid Link type",
   });
   expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ status: "refused" }) });
 });
@@ -68,7 +69,7 @@ it.each(["create", "delete"] as const)("rejects Link %s without a source revisio
 it("refuses a 51st Link create and records it without incrementing the source revision", async () => {
   db.operationLedger.count.mockResolvedValue(50);
   expect(await LinkDomain.create({ fromId: "from", toId: "to" }, 4)).toEqual({
-    ok: false, rateLimited: true, limit: 50,
+    receiptId: "receipt-1", ok: false, rateLimited: true, limit: 50,
   });
   expect(db.item.updateMany).not.toHaveBeenCalled();
   expect(db.link.upsert).not.toHaveBeenCalled();
@@ -80,7 +81,7 @@ it("refuses a 51st Link create and records it without incrementing the source re
 it.each(["create", "delete"] as const)("refuses Link %s when either endpoint is open", async (operation) => {
   db.setting.findFirst.mockResolvedValue({ id: "open-item:746f:user:tab" });
   expect(await LinkDomain[operation]({ fromId: "from", toId: "to" }, 4)).toEqual({
-    ok: false, itemOpen: true, itemId: "to",
+    receiptId: "receipt-1", ok: false, itemOpen: true, itemId: "to",
   });
   expect(db.item.updateMany).not.toHaveBeenCalled();
   expect(db.link.upsert).not.toHaveBeenCalled();

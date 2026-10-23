@@ -16,6 +16,7 @@ const request = (method: string, lease: unknown = "tab-1", authenticated = true)
 
 beforeEach(() => {
   vi.resetAllMocks();
+  db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
 });
 

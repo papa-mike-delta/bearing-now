@@ -11,6 +11,7 @@ const db = vi.hoisted(() => ({
 vi.mock("@/lib/db", () => ({ db }));
 beforeEach(() => {
   vi.resetAllMocks();
+  db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
   db.item.findMany.mockResolvedValueOnce([{
     id: "rent", title: "Rent", revision: 4, dueDate: new Date("2026-01-01"), metadata: '{"recurring":"monthly"}',

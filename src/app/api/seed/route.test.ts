@@ -14,6 +14,7 @@ vi.mock("@/lib/db", () => ({ db }));
 
 beforeEach(() => {
   vi.resetAllMocks();
+  db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
   db.domain.count.mockResolvedValue(0);
   db.domain.create.mockImplementation(async ({ data }) => ({ id: data.key }));

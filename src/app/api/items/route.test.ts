@@ -12,6 +12,7 @@ const { item } = db;
 vi.mock("@/lib/db", () => ({ db }));
 beforeEach(() => {
   vi.resetAllMocks();
+  db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
 });
 
@@ -35,7 +36,7 @@ it("returns 429 and records the refused create for the verified user", async () 
     body: JSON.stringify({ title: "Over cap", type: "note", actor: "user:forged" }),
   }));
   expect(response.status).toBe(429);
-  expect(await response.json()).toEqual({ ok: false, rateLimited: true, limit: 20 });
+  expect(await response.json()).toEqual({ receiptId: "receipt-1", ok: false, rateLimited: true, limit: 20 });
   expect(item.create).not.toHaveBeenCalled();
   expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ actor: "user:alice", status: "refused" }) });
 });
