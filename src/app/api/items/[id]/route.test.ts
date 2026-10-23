@@ -4,6 +4,9 @@ import { GET, PATCH, DELETE } from "./route";
 
 const db = vi.hoisted(() => ({
   item: { findUnique: vi.fn(), findUniqueOrThrow: vi.fn(), updateMany: vi.fn() },
+  operationLedger: { create: vi.fn(), count: vi.fn() },
+  setting: { findFirst: vi.fn() },
+  $queryRaw: vi.fn(),
   $transaction: vi.fn(),
 }));
 const { item } = db;
@@ -67,4 +70,15 @@ it("archives rather than physically deleting an Item", async () => {
   }), ctx);
   expect(response.status).toBe(200);
   expect(await response.json()).toMatchObject({ status: "archived", revision: 5 });
+});
+
+it.each([PATCH, DELETE])("returns 423 and records refusal when an agent writes an open Item", async (handler) => {
+  db.setting.findFirst.mockResolvedValue({ id: "open-item:6974656d2d31:user:tab" });
+  const response = await handler(new NextRequest("http://localhost/api/items/item-1", {
+    method: handler === PATCH ? "PATCH" : "DELETE", body: JSON.stringify({ revision: 4, title: "Automated edit" }),
+  }), ctx);
+  expect(response.status).toBe(423);
+  expect(await response.json()).toEqual({ ok: false, itemOpen: true, itemId: "item-1" });
+  expect(item.updateMany).not.toHaveBeenCalled();
+  expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ status: "refused" }) });
 });

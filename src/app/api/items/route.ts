@@ -1,6 +1,6 @@
 import { ItemDomain } from "@/lib/domain/item";
 import { db } from "@/lib/db";
-import { ok, bad, domainResponse, parseBody, parseListMeta, parseMeta } from "@/lib/api";
+import { writeActor, ok, domainResponse, parseBody, parseListMeta, parseMeta } from "@/lib/api";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -54,14 +54,12 @@ export async function GET(req: NextRequest) {
 // POST /api/items — create
 export async function POST(req: NextRequest) {
   const body = await parseBody(req);
-  if (!body.title) return bad("title is required");
-  if (!body.type) return bad("type is required");
 
   const { metadata, tagNames, ...rest } = body;
 
   const result = await ItemDomain.create({
     ...rest,
     ...(metadata ? { metadata: JSON.stringify(metadata) } : {}),
-  }, tagNames);
+  }, tagNames, await writeActor(req));
   return domainResponse(result, parseMeta);
 }

@@ -36,7 +36,6 @@ async function main() {
   });
   console.log(`👤 Demo user ready: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
 
-
   // Domains
   for (const dom of DOMAINS) {
     await db.domain.upsert({
@@ -118,30 +117,24 @@ async function main() {
   );
   const pmap = Object.fromEntries(projects.map((p) => [p.name, p.id]));
 
+  // Keep this demo to 20 Items so a fresh seed fits the hourly write cap.
   // Helper to create item + metadata
   async function item(data: Omit<Prisma.ItemCreateManyInput, "metadata" | "revision"> & { metadata?: unknown }) {
     const meta = data.metadata ? { metadata: JSON.stringify(data.metadata) } : {};
     const { metadata, ...rest } = data;
-    return (await ItemDomain.create({ ...rest, ...meta })).value;
+    const result = await ItemDomain.create({ ...rest, ...meta }, [], "agent:seed");
+    if (!result.ok) throw new Error(`Seed refused: ${JSON.stringify(result)}`);
+    return result.value;
   }
 
   // ── Tasks (Time & Action) ──
   await item({ type: "task", title: "Book flights to Tokyo", domainId: dmap.time_action, projectId: pmap["Japan Trip 2025"], status: "active", priority: 3, dueDate: daysFromNow(7), metadata: { estimate: "2h" } });
-  await item({ type: "task", title: "Research JR Pass options", domainId: dmap.time_action, projectId: pmap["Japan Trip 2025"], status: "active", priority: 2, dueDate: daysFromNow(10) });
-  await item({ type: "task", title: "Create packing list", domainId: dmap.time_action, projectId: pmap["Japan Trip 2025"], status: "active", priority: 1, dueDate: daysFromNow(30) });
-  await item({ type: "task", title: "Renew passport", domainId: dmap.time_action, projectId: pmap["Japan Trip 2025"], status: "done", priority: 4, completedAt: daysFromNow(-5), dueDate: daysFromNow(-5) });
 
   await item({ type: "task", title: "Morning run 5km", domainId: dmap.time_action, projectId: pmap["Health Transformation"], status: "active", priority: 2, dueDate: daysFromNow(1), metadata: { estimate: "30m" } });
-  await item({ type: "task", title: "Meal prep for the week", domainId: dmap.time_action, projectId: pmap["Health Transformation"], status: "active", priority: 2, dueDate: daysFromNow(2) });
-  await item({ type: "task", title: "Schedule annual physical", domainId: dmap.time_action, projectId: pmap["Health Transformation"], status: "active", priority: 3, dueDate: daysFromNow(14) });
 
   await item({ type: "task", title: "Finish landing page copy", domainId: dmap.time_action, projectId: pmap["Launch Startup"], status: "active", priority: 4, dueDate: daysFromNow(2) });
-  await item({ type: "task", title: "Set up Stripe billing", domainId: dmap.time_action, projectId: pmap["Launch Startup"], status: "active", priority: 3, dueDate: daysFromNow(5) });
-  await item({ type: "task", title: "Write launch announcement", domainId: dmap.time_action, projectId: pmap["Launch Startup"], status: "active", priority: 2, dueDate: daysFromNow(8) });
-  await item({ type: "task", title: "Email beta testers", domainId: dmap.time_action, projectId: pmap["Launch Startup"], status: "done", priority: 2, completedAt: daysFromNow(-2), dueDate: daysFromNow(-2) });
 
   await item({ type: "task", title: "Pay credit card bill", domainId: dmap.time_action, projectId: pmap["Get out of Debt"], status: "active", priority: 4, dueDate: daysFromNow(3), metadata: { amount: 850 } });
-  await item({ type: "task", title: "Cancel unused gym membership", domainId: dmap.time_action, projectId: pmap["Get out of Debt"], status: "active", priority: 1, dueDate: daysFromNow(7) });
 
   // ── Habits ──
   const medHabit = await item({ type: "habit", title: "Meditate 10 minutes", domainId: dmap.mind_soul, status: "active", metadata: { cadence: "daily", target: 10, unit: "min", streak: 4 } });
@@ -166,84 +159,47 @@ async function main() {
 
   // ── Journal entries ──
   await item({ type: "journal", title: "Stress about money", domainId: dmap.mind_soul, projectId: pmap["Get out of Debt"], status: "active", scheduledAt: daysFromNow(-2, 21), content: "Feeling the weight of debt again today. Need to sit down and make a real plan. The interest is eating into everything. I'll start by cutting subscriptions and cooking at home more." });
-  await item({ type: "journal", title: "Great workout session", domainId: dmap.mind_soul, projectId: pmap["Health Transformation"], status: "active", scheduledAt: daysFromNow(-1, 8), content: "Hit a new PR on squats today. Energy is finally coming back. Sleep has been solid for a week. Feeling optimistic." });
-  await item({ type: "journal", title: "Startup doubts", domainId: dmap.mind_soul, projectId: pmap["Launch Startup"], status: "active", scheduledAt: daysFromNow(-3, 23), content: "Questioning whether the market really wants this. But the beta feedback was encouraging. I need to talk to 5 more users this week." });
 
   // ── Notes ──
   await item({ type: "note", title: "Tokyo neighborhood research", domainId: dmap.creativity, projectId: pmap["Japan Trip 2025"], status: "active", content: "## Areas to stay\n- **Shinjuku** — lively, great transit\n- **Shibuya** — young, energetic\n- **Asakusa** — quieter, traditional\n- **Ginza** — upscale shopping" });
-  await item({ type: "note", title: "Startup pricing ideas", domainId: dmap.wealth, projectId: pmap["Launch Startup"], status: "active", content: "Freemium → $9/mo → $29/mo → custom. Annual gets 2 months free. Lifetime deal for early adopters at $199." });
-  await item({ type: "note", title: "Half-marathon training plan", domainId: dmap.health, projectId: pmap["Health Transformation"], status: "active", content: "Week 1-4: base building. Week 5-8: tempo runs. Week 9-12: long runs + taper." });
 
   // ── Finance ──
   await item({ type: "finance", title: "Salary", domainId: dmap.wealth, status: "active", dueDate: daysFromNow(5), metadata: { kind: "income", amount: 4200, recurring: "monthly" } });
   await item({ type: "finance", title: "Rent", domainId: dmap.wealth, status: "active", dueDate: daysFromNow(2), metadata: { kind: "expense", amount: 1450, recurring: "monthly" } });
-  await item({ type: "finance", title: "Netflix subscription", domainId: dmap.wealth, status: "active", dueDate: daysFromNow(8), metadata: { kind: "expense", amount: 15.99, recurring: "monthly", subscription: true } });
-  await item({ type: "finance", title: "Spotify", domainId: dmap.wealth, status: "active", dueDate: daysFromNow(12), metadata: { kind: "expense", amount: 11.99, recurring: "monthly", subscription: true } });
-  await item({ type: "finance", title: "Gym membership", domainId: dmap.wealth, status: "active", dueDate: daysFromNow(20), metadata: { kind: "expense", amount: 39, recurring: "monthly", subscription: true } });
-  await item({ type: "finance", title: "Groceries", domainId: dmap.wealth, status: "active", dueDate: daysFromNow(1), metadata: { kind: "expense", amount: 120 } });
-  await item({ type: "finance", title: "Emergency fund goal", domainId: dmap.wealth, status: "active", metadata: { kind: "goal", amount: 10000, current: 3200 } });
-
-  // ── Health: symptoms & meds ──
-  await item({ type: "symptom", title: "Headache (mild)", domainId: dmap.health, status: "active", scheduledAt: daysFromNow(-1, 16), metadata: { severity: 2 } });
-  await item({ type: "medication", title: "Vitamin D", domainId: dmap.health, status: "active", metadata: { dose: "1000 IU", frequency: "daily" } });
-  await item({ type: "event", title: "Dental cleaning", domainId: dmap.health, status: "active", scheduledAt: daysFromNow(18, 10), metadata: { location: "Bright Smile Dental" } });
 
   // ── Network: contacts ──
   await item({ type: "contact", title: "Sarah Chen", domainId: dmap.network, status: "active", metadata: { relationship: "close friend", birthday: "1992-04-18", lastContact: daysFromNow(-12).toISOString() } });
-  await item({ type: "contact", title: "Marcus Rivera", domainId: dmap.network, status: "active", metadata: { relationship: "mentor", lastContact: daysFromNow(-30).toISOString() } });
-  await item({ type: "contact", title: "Priya Patel", domainId: dmap.network, status: "active", metadata: { relationship: "colleague", lastContact: daysFromNow(-3).toISOString() } });
-  await item({ type: "event", title: "Sarah's birthday", domainId: dmap.network, status: "active", scheduledAt: daysFromNow(20, 19), metadata: { contactId: "Sarah Chen" } });
 
   // ── Growth: books & courses ──
   await item({ type: "bookmark", title: "Atomic Habits", domainId: dmap.growth, projectId: pmap["Read 24 Books"], status: "active", metadata: { author: "James Clear", medium: "book", status: "reading", rating: 5, currentPage: 180, totalPages: 320 }, content: "Tiny changes, remarkable results. Focus on systems over goals.\n\n## Key takeaways\n- **1% better every day** compounds into 37x in a year\n- Focus on **systems** over goals\n- The 4 laws: make it obvious, attractive, easy, satisfying\n- Identity-based habits: \"I am a reader\" not \"I want to read more\"" });
-  await item({ type: "bookmark", title: "Deep Work", domainId: dmap.growth, projectId: pmap["Read 24 Books"], status: "done", priority: 2, completedAt: daysFromNow(-20), metadata: { author: "Cal Newport", medium: "book", status: "finished", rating: 5 } });
-  await item({ type: "bookmark", title: "The Almanack of Naval Ravikant", domainId: dmap.growth, status: "active", metadata: { author: "Eric Jorgenson", medium: "book", status: "queued" } });
-  await item({ type: "bookmark", title: "Building a Second Brain", domainId: dmap.growth, status: "active", metadata: { author: "Tiago Forte", medium: "course", status: "queued", url: "https://buildingasecondbrain.com" } });
-
-  // ── Creativity: movies to watch / watched ──
-  await item({ type: "bookmark", title: "Everything Everywhere All at Once", domainId: dmap.creativity, status: "active", metadata: { medium: "movie", status: "queued", author: "Daniels" }, content: "Multiverse adventure. Recommended by Sarah." });
-  await item({ type: "bookmark", title: "Dune: Part Two", domainId: dmap.creativity, status: "active", metadata: { medium: "movie", status: "queued", author: "Denis Villeneuve" } });
-  await item({ type: "bookmark", title: "Spirited Away", domainId: dmap.creativity, status: "done", metadata: { medium: "movie", status: "finished", rating: 5, author: "Hayao Miyazaki" }, completedAt: daysFromNow(-8), content: "A masterpiece. The bathhouse world is so immersive. Haku's river spirit reveal was beautiful." });
 
   // ── Mind & Soul ──
   await item({ type: "vision", title: "Live with intention", domainId: dmap.mind_soul, status: "active", content: "I want every day to be a deliberate choice, not a reaction. Less screen time, more presence." });
-  await item({ type: "vision", title: "Financial peace", domainId: dmap.mind_soul, projectId: pmap["Get out of Debt"], status: "active", content: "Be debt-free and have a 6-month emergency fund within 2 years." });
-  await item({ type: "affirmation", title: "I am capable of hard things", domainId: dmap.mind_soul, status: "active", content: "Repeat each morning." });
-  await item({ type: "affirmation", title: "Progress over perfection", domainId: dmap.mind_soul, status: "active" });
   await item({ type: "goal", title: "Run a half-marathon", domainId: dmap.health, projectId: pmap["Health Transformation"], status: "active", dueDate: daysFromNow(90), metadata: { measure: "21km race" } });
 
   // ── Creativity & Joy ──
   await item({ type: "idea", title: "App for tracking plant care", domainId: dmap.creativity, status: "inbox", content: "Notification + watering schedule with plant ID." });
-  await item({ type: "idea", title: "Weekend podcast about local food", domainId: dmap.creativity, status: "inbox" });
-  await item({ type: "bookmark", title: "Past Lives", domainId: dmap.creativity, status: "done", metadata: { medium: "movie", rating: 4, status: "finished", author: "Celine Song" }, completedAt: daysFromNow(-15), content: "Quiet, devastating. The ending stayed with me for days." });
-  await item({ type: "milestone", title: "Japan Trip booked!", domainId: dmap.creativity, projectId: pmap["Japan Trip 2025"], status: "done", completedAt: daysFromNow(-5), scheduledAt: daysFromNow(-5) });
 
   // ── Inbox (Quick Capture) ──
   await item({ type: "note", title: "Look into tax-advantaged accounts", domainId: dmap.wealth, status: "inbox" });
-  await item({ type: "task", title: "Reply to landlord about lease renewal", domainId: dmap.admin, status: "inbox" });
-  await item({ type: "idea", title: "Try a cold plunge 3x this week", domainId: dmap.health, status: "inbox" });
-  await item({ type: "note", title: "Call mom this weekend", domainId: dmap.network, status: "inbox" });
-  await item({ type: "bookmark", title: "Article: The art of saying no", domainId: dmap.growth, status: "inbox", metadata: { url: "https://example.com/saying-no" } });
 
   // ── Admin ──
-  await item({ type: "task", title: "Replace HVAC filter", domainId: dmap.admin, status: "active", priority: 1, dueDate: daysFromNow(6) });
   await item({ type: "task", title: "Grocery: oats, eggs, spinach, bananas", domainId: dmap.admin, status: "active", priority: 2, dueDate: daysFromNow(1), content: "Weekly grocery run" });
-  await item({ type: "document", title: "Passport scan", domainId: dmap.admin, status: "active", metadata: { category: "identity" } });
 
   // ── Bi-directional links ──
   const debtJournal = await db.item.findFirst({ where: { title: "Stress about money" } });
   const debtProject = await db.project.findFirst({ where: { name: "Get out of Debt" } });
-  const financialVision = await db.item.findFirst({ where: { title: "Financial peace" } });
+  const financialVision = await db.item.findFirst({ where: { title: "Live with intention" } });
   const halfGoal = await db.item.findFirst({ where: { title: "Run a half-marathon" } });
   const healthProject = await db.project.findFirst({ where: { name: "Health Transformation" } });
   if (debtJournal && financialVision) {
-    await LinkDomain.create({ fromId: debtJournal.id, toId: financialVision.id, type: LinkType.parse("related_to"), note: "journal references the vision" }, debtJournal.revision).catch(() => {});
+    await LinkDomain.create({ fromId: debtJournal.id, toId: financialVision.id, type: LinkType.parse("related_to"), note: "journal references the vision" }, debtJournal.revision, "agent:seed").catch(() => {});
   }
   if (halfGoal && runHabit) {
-    await LinkDomain.create({ fromId: halfGoal.id, toId: runHabit.id, type: LinkType.parse("related_to"), note: "habit supports this goal" }, halfGoal.revision).catch(() => {});
+    await LinkDomain.create({ fromId: halfGoal.id, toId: runHabit.id, type: LinkType.parse("related_to"), note: "habit supports this goal" }, halfGoal.revision, "agent:seed").catch(() => {});
   }
   if (medHabit && writeHabit) {
-    await LinkDomain.create({ fromId: medHabit.id, toId: writeHabit.id, type: LinkType.parse("related_to") }, medHabit.revision).catch(() => {});
+    await LinkDomain.create({ fromId: medHabit.id, toId: writeHabit.id, type: LinkType.parse("related_to") }, medHabit.revision, "agent:seed").catch(() => {});
   }
 
   // ── Reviews ──

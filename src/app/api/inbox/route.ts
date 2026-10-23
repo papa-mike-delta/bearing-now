@@ -1,6 +1,6 @@
 import { ItemDomain } from "@/lib/domain/item";
 import { db } from "@/lib/db";
-import { ok, domainResponse, parseBody, parseMeta, parseListMeta } from "@/lib/api";
+import { writeActor, ok, domainResponse, parseBody, parseMeta, parseListMeta } from "@/lib/api";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,6 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const body = await parseBody(req);
   const title = (body.title || body.text || "").trim();
-  if (!title) return ok({ error: "title required" }, { status: 400 });
 
   const result = await ItemDomain.create({
     title,
@@ -29,6 +28,6 @@ export async function POST(req: NextRequest) {
     domainId: body.domainId,
     projectId: body.projectId,
     ...(body.metadata ? { metadata: JSON.stringify(body.metadata) } : {}),
-  });
+  }, [], await writeActor(req));
   return domainResponse(result, parseMeta);
 }

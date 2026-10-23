@@ -1,6 +1,6 @@
 import { ItemDomain } from "@/lib/domain/item";
 import { db } from "@/lib/db";
-import { ok, domainResponse, notFound, parseBody, parseMeta } from "@/lib/api";
+import { writeActor, ok, domainResponse, notFound, parseBody, parseMeta } from "@/lib/api";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +30,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   const result = await ItemDomain.update(id, revision, {
     ...rest,
     ...(metadata !== undefined ? { metadata: metadata === null ? null : JSON.stringify(metadata) } : {}),
-  }, tagNames);
+  }, tagNames, await writeActor(req));
   return domainResponse(result, parseMeta);
 }
 
@@ -38,5 +38,5 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const { revision } = await parseBody(req);
-  return domainResponse(await ItemDomain.archive(id, revision), parseMeta);
+  return domainResponse(await ItemDomain.archive(id, revision, await writeActor(req)), parseMeta);
 }

@@ -5,12 +5,15 @@ const db = vi.hoisted(() => ({
   habitLog: { deleteMany: vi.fn() },
   reviewItem: { deleteMany: vi.fn() },
   review: { deleteMany: vi.fn() },
-  link: { deleteMany: vi.fn(), upsert: vi.fn() },
+  link: { deleteMany: vi.fn(), upsert: vi.fn(), findUnique: vi.fn() },
   tagOnItem: { deleteMany: vi.fn() },
   tag: { deleteMany: vi.fn() },
   item: { deleteMany: vi.fn(), create: vi.fn(), findUniqueOrThrow: vi.fn(), updateMany: vi.fn() },
   project: { deleteMany: vi.fn() },
   domain: { deleteMany: vi.fn() },
+  operationLedger: { create: vi.fn(), count: vi.fn() },
+  setting: { findFirst: vi.fn() },
+  $queryRaw: vi.fn(),
   $transaction: vi.fn(),
 }));
 vi.mock("@/lib/db", () => ({ db }));
@@ -47,4 +50,30 @@ it("restores all six core Link types", async () => {
 
   expect(response.status).toBe(200);
   expect(db.link.upsert.mock.calls.map(([{ create }]) => create)).toEqual(links);
+});
+
+it.each([
+  { field: "items", count: 21, entry: { id: "item", type: "note", title: "Restore" }, limit: 20 },
+  { field: "links", count: 51, entry: { fromId: "item-1", toId: "item-2", type: "mentions" }, limit: 50 },
+])("refuses an over-cap $field restore before deleting existing data", async ({ field, count, entry, limit }) => {
+  db.operationLedger.count.mockResolvedValue(0);
+  const response = await POST(new Request("http://localhost/api/backup", {
+    method: "POST", body: JSON.stringify({ version: 1, [field]: Array.from({ length: count }, () => entry) }),
+  }));
+  expect(response.status).toBe(429);
+  expect(await response.json()).toEqual({ ok: false, rateLimited: true, limit });
+  expect(db.item.deleteMany).not.toHaveBeenCalled();
+  expect(db.habitLog.deleteMany).not.toHaveBeenCalled();
+  expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ operation: "database.clear", status: "refused" }) });
+});
+
+it("preserves data if the actor lacks enough remaining allowance for a small restore", async () => {
+  db.operationLedger.count.mockResolvedValue(19);
+  const response = await POST(new Request("http://localhost/api/backup", {
+    method: "POST", body: JSON.stringify({ version: 1, items: [
+      { id: "one", title: "One", type: "note" }, { id: "two", title: "Two", type: "note" },
+    ] }),
+  }));
+  expect(response.status).toBe(429);
+  expect(db.item.deleteMany).not.toHaveBeenCalled();
 });

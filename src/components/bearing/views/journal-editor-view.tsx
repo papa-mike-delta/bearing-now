@@ -1,5 +1,7 @@
 "use client";
 
+import { useOpenItem } from "@/hooks/use-open-item";
+
 import { useState, useEffect, useCallback } from "react";
 import { useBearing } from "@/store/bearing";
 import { useItem, useCreateItem, useUpdateItem, useDeleteItem, useItems, useDomains } from "@/lib/hooks";
@@ -59,6 +61,7 @@ function computeStats(content: string) {
 
 export function JournalEditorView() {
   const { journalEditId, setView, openItemDetail } = useBearing();
+  useOpenItem(journalEditId);
   const { data: existingItem, isLoading } = useItem(journalEditId);
   const create = useCreateItem();
   const update = useUpdateItem();

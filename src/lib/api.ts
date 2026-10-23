@@ -1,4 +1,6 @@
 import type { DomainResult } from "@/lib/domain/result";
+import type { Actor } from "@/lib/domain/operation-ledger";
+import { getUserFromRequest } from "@/lib/auth";
 // bearing.now — shared server-side helpers
 import { NextResponse } from "next/server";
 
@@ -43,5 +45,14 @@ export function parseListMeta(items: any[]) {
 export function domainResponse<T>(result: DomainResult<T>, serialize: (value: T) => unknown = (value) => value) {
   if (result.ok) return ok(serialize(result.value));
   if ("conflict" in result) return ok(result, { status: 409 });
+  if ("rateLimited" in result) return ok(result, { status: 429 });
+  if ("itemOpen" in result) return ok(result, { status: 423 });
   return bad(result.error);
+}
+
+// Never accept actor identity from a request body/header. Unverified callers
+// retain the existing middleware policy and cannot bypass open-item protection.
+export async function writeActor(req: Request): Promise<Actor> {
+  const session = await getUserFromRequest(req);
+  return session ? `user:${session.userId}` : "agent:anonymous";
 }

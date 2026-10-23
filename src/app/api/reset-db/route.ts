@@ -1,3 +1,4 @@
+import { domainResponse } from "@/lib/api";
 import { DatabaseDomain } from "@/lib/domain/database";
 import { db } from "@/lib/db";
 import { ok, bad, getUserFromRequest } from "@/lib/auth-utils";
@@ -17,7 +18,8 @@ export async function POST(req: NextRequest) {
 
   try {
     // Delete all data in order (respecting foreign keys)
-    await DatabaseDomain.clear();
+    const cleared = await DatabaseDomain.clear(`user:${session.userId}`);
+    if (!cleared.ok) return domainResponse(cleared);
     await db.setting.deleteMany();
     // Keep User table intact
 

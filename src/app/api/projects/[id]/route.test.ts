@@ -5,6 +5,9 @@ import { DELETE } from "./route";
 const db = vi.hoisted(() => ({
   item: { findMany: vi.fn(), findUnique: vi.fn(), findUniqueOrThrow: vi.fn(), updateMany: vi.fn() },
   project: { delete: vi.fn() },
+  operationLedger: { create: vi.fn(), count: vi.fn() },
+  setting: { findFirst: vi.fn() },
+  $queryRaw: vi.fn(),
   $transaction: vi.fn(),
 }));
 vi.mock("@/lib/db", () => ({ db }));

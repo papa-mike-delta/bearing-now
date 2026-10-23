@@ -2,7 +2,7 @@ import { ItemDomain } from "@/lib/domain/item";
 import { LinkDomain } from "@/lib/domain/link";
 import { DatabaseDomain } from "@/lib/domain/database";
 import { db } from "@/lib/db";
-import { ok, bad, domainResponse, parseBody } from "@/lib/api";
+import { writeActor, ok, bad, domainResponse, parseBody } from "@/lib/api";
 import { LinkType } from "@/lib/link-type";
 
 export const dynamic = "force-dynamic";
@@ -40,9 +40,11 @@ export async function POST(req: Request) {
     (link: { type?: unknown } | null) => !LinkType.isValid(link?.type),
   ))) return bad("Invalid Link type");
 
+  const actor = await writeActor(req);
   try {
     // Clear existing data (except users)
-    await DatabaseDomain.clear();
+    const cleared = await DatabaseDomain.clear(actor, { items: body.items?.length ?? 0, links: body.links?.length ?? 0 });
+    if (!cleared.ok) return domainResponse(cleared);
 
     // Restore domains
     if (body.domains) {
@@ -69,7 +71,8 @@ export async function POST(req: Request) {
     if (body.items) {
       for (const i of body.items) {
         const { tags, domain, project, ...itemData } = i;
-        await ItemDomain.create(itemData);
+        const result = await ItemDomain.create(itemData, [], actor);
+        if (!result.ok) return domainResponse(result);
       }
     }
 
@@ -77,7 +80,7 @@ export async function POST(req: Request) {
     if (body.links) {
       for (const l of body.links) {
         const source = await db.item.findUniqueOrThrow({ where: { id: l.fromId } });
-        const result = await LinkDomain.create(l, source.revision);
+        const result = await LinkDomain.create(l, source.revision, actor);
         if (!result.ok) return domainResponse(result);
       }
     }
