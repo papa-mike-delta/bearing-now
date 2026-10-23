@@ -23,6 +23,7 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
 });
 
@@ -31,7 +32,7 @@ it("updates at the loaded revision and returns the next revision", async () => {
   db.item.findUniqueOrThrow.mockResolvedValue({ id: "item-1", title: "Updated", revision: 5 });
 
   expect(await ItemDomain.update("item-1", 4, { title: "Updated" })).toEqual({
-    ok: true, value: { id: "item-1", title: "Updated", revision: 5 },
+    receiptId: "receipt-1", ok: true, value: { id: "item-1", title: "Updated", revision: 5 },
   });
   expect(db.item.updateMany).toHaveBeenCalledWith({
     where: { id: "item-1", revision: 4 },
@@ -43,7 +44,7 @@ it("rejects a stale revision without changing tags", async () => {
   db.item.updateMany.mockResolvedValue({ count: 0 });
   db.item.findUnique.mockResolvedValue({ revision: 5 });
   expect(await ItemDomain.update("item-1", 4, { title: "Stale" }, ["new"])).toEqual({
-    ok: false, conflict: true, currentRevision: 5,
+    receiptId: "receipt-1", ok: false, conflict: true, currentRevision: 5,
   });
   expect(db.tagOnItem.deleteMany).not.toHaveBeenCalled();
 });
@@ -91,14 +92,14 @@ it("returns synchronized tags and manages completion on status changes", async (
 it("rejects an archive with a stale revision", async () => {
   db.item.updateMany.mockResolvedValue({ count: 0 });
   db.item.findUnique.mockResolvedValue({ revision: 5 });
-  expect(await ItemDomain.archive("item-1", 4)).toEqual({ ok: false, conflict: true, currentRevision: 5 });
+  expect(await ItemDomain.archive("item-1", 4)).toEqual({ receiptId: "receipt-1", ok: false, conflict: true, currentRevision: 5 });
 });
 
 it("reports a removed Item as a conflict with no current revision", async () => {
   db.item.updateMany.mockResolvedValue({ count: 0 });
   db.item.findUnique.mockResolvedValue(null);
   expect(await ItemDomain.update("missing", 4, { title: "Stale" })).toEqual({
-    ok: false, conflict: true, currentRevision: null,
+    receiptId: "receipt-1", ok: false, conflict: true, currentRevision: null,
   });
 });
 
@@ -121,7 +122,7 @@ it("blocks identity changes and nested writes that would bypass revision checks"
 it("refuses a 21st Item create in the actor's rolling hour and records the refusal", async () => {
   db.operationLedger.count.mockResolvedValue(20);
   expect(await ItemDomain.create({ type: "note", title: "Over cap" }, [], "agent:coach")).toEqual({
-    ok: false, rateLimited: true, limit: 20,
+    receiptId: "receipt-1", ok: false, rateLimited: true, limit: 20,
   });
   expect(db.item.create).not.toHaveBeenCalled();
   expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({
@@ -134,7 +135,7 @@ it.each(["update", "archive"] as const)("refuses an agent %s of an open Item and
   db.setting.findFirst.mockResolvedValue({ id: "open-item:6974656d2d31:user:tab", value: "2099-01-01T00:00:00.000Z" });
   const result = operation === "archive" ? await ItemDomain.archive("item-1", 4) :
     await ItemDomain.update("item-1", 4, { title: "Agent edit" });
-  expect(result).toEqual({ ok: false, itemOpen: true, itemId: "item-1" });
+  expect(result).toEqual({ receiptId: "receipt-1", ok: false, itemOpen: true, itemId: "item-1" });
   expect(db.item.updateMany).not.toHaveBeenCalled();
   expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({
     operation: `item.${operation}`, status: "refused",
@@ -163,7 +164,7 @@ it("permits the user's own edits while the Item is open", async () => {
 });
 
 it("closes only this user's lease, leaving other tabs' leases intact", async () => {
-  expect(await ItemDomain.setOpen("item-1", "tab-1", false, "user:alice")).toEqual({ ok: true, value: { open: false } });
+  expect(await ItemDomain.setOpen("item-1", "tab-1", false, "user:alice")).toEqual({ receiptId: "receipt-1", ok: true, value: { open: false } });
   expect(db.setting.deleteMany).toHaveBeenLastCalledWith({ where: { id: "open-item:6974656d2d31:757365723a616c696365:tab-1" } });
   expect(db.setting.upsert).not.toHaveBeenCalled();
 });

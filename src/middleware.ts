@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { coachToolsEnabled } from "@/lib/coach/feature-flag";
 
 // Routes that don't require authentication
 const PUBLIC_ROUTES = ["/", "/login", "/api/auth", "/api/public-prefs"];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  if (pathname === "/api/coach" && !coachToolsEnabled()) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   // Allow public routes
   if (PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(route + "/"))) {

@@ -1,3 +1,4 @@
+import { searchItems } from "@/lib/domain/item-queries";
 import { db } from "@/lib/db";
 import { ok, parseListMeta } from "@/lib/api";
 import type { NextRequest } from "next/server";
@@ -10,12 +11,7 @@ export async function GET(req: NextRequest) {
   if (!q.trim()) return ok({ items: [], projects: [], tags: [] });
 
   const [items, projects, tags] = await Promise.all([
-    db.item.findMany({
-      where: { OR: [{ title: { contains: q } }, { content: { contains: q } }] },
-      take: 20,
-      include: { domain: true, project: { select: { id: true, name: true, color: true } } },
-      orderBy: { updatedAt: "desc" },
-    }),
+    searchItems(q),
     db.project.findMany({ where: { OR: [{ name: { contains: q } }, { description: { contains: q } }] }, take: 10 }),
     db.tag.findMany({ where: { name: { contains: q } }, take: 10, include: { _count: { select: { items: true } } } }),
   ]);

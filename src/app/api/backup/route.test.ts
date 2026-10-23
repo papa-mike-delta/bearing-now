@@ -25,6 +25,7 @@ const request = (links: unknown) => new Request("http://localhost/api/backup", {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
   db.item.findUniqueOrThrow.mockResolvedValue({ id: "item-1", revision: 0 });
   db.item.updateMany.mockResolvedValue({ count: 1 });
@@ -61,7 +62,7 @@ it.each([
     method: "POST", body: JSON.stringify({ version: 1, [field]: Array.from({ length: count }, () => entry) }),
   }));
   expect(response.status).toBe(429);
-  expect(await response.json()).toEqual({ ok: false, rateLimited: true, limit });
+  expect(await response.json()).toEqual({ receiptId: "receipt-1", ok: false, rateLimited: true, limit });
   expect(db.item.deleteMany).not.toHaveBeenCalled();
   expect(db.habitLog.deleteMany).not.toHaveBeenCalled();
   expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ operation: "database.clear", status: "refused" }) });

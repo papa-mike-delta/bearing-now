@@ -21,6 +21,7 @@ const request = (body: unknown) => new NextRequest("http://localhost/api/items/i
 
 beforeEach(() => {
   vi.resetAllMocks();
+  db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
   db.item.updateMany.mockResolvedValue({ count: 1 });
 });
@@ -77,7 +78,7 @@ it("returns 429 for a capped Link create", async () => {
   db.operationLedger.count.mockResolvedValue(50);
   const response = await POST(request({ toId: "item-2", revision: 4 }), ctx);
   expect(response.status).toBe(429);
-  expect(await response.json()).toEqual({ ok: false, rateLimited: true, limit: 50 });
+  expect(await response.json()).toEqual({ receiptId: "receipt-1", ok: false, rateLimited: true, limit: 50 });
   expect(link.upsert).not.toHaveBeenCalled();
 });
 
@@ -87,6 +88,6 @@ it.each(["POST", "DELETE"])("returns 423 for Link %s touching an open target", a
     new NextRequest("http://localhost/api/items/item-1/links?toId=item-2&revision=4", { method: "DELETE" });
   const response = await (method === "POST" ? POST : DELETE)(req, ctx);
   expect(response.status).toBe(423);
-  expect(await response.json()).toEqual({ ok: false, itemOpen: true, itemId: "item-2" });
+  expect(await response.json()).toEqual({ receiptId: "receipt-1", ok: false, itemOpen: true, itemId: "item-2" });
   expect(db.item.updateMany).not.toHaveBeenCalled();
 });

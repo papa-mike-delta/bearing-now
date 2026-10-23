@@ -14,6 +14,7 @@ vi.mock("@/lib/db", () => ({ db }));
 const ctx = { params: Promise.resolve({ id: "project-1" }) };
 beforeEach(() => {
   vi.resetAllMocks();
+  db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
   db.item.findMany.mockResolvedValue([{ id: "item-1", revision: 4 }]);
 });

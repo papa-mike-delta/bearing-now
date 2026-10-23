@@ -16,6 +16,7 @@ const ctx = { params: Promise.resolve({ id: "item-1" }) };
 
 beforeEach(() => {
   vi.resetAllMocks();
+  db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
 });
 
@@ -78,7 +79,7 @@ it.each([PATCH, DELETE])("returns 423 and records refusal when an agent writes a
     method: handler === PATCH ? "PATCH" : "DELETE", body: JSON.stringify({ revision: 4, title: "Automated edit" }),
   }), ctx);
   expect(response.status).toBe(423);
-  expect(await response.json()).toEqual({ ok: false, itemOpen: true, itemId: "item-1" });
+  expect(await response.json()).toEqual({ receiptId: "receipt-1", ok: false, itemOpen: true, itemId: "item-1" });
   expect(item.updateMany).not.toHaveBeenCalled();
   expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ status: "refused" }) });
 });
