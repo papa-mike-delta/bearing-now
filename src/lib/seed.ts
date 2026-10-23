@@ -3,6 +3,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { DOMAINS } from "./constants";
+import { LinkType } from "./link-type";
 
 const db = new PrismaClient();
 
@@ -233,13 +234,13 @@ async function main() {
   const halfGoal = await db.item.findFirst({ where: { title: "Run a half-marathon" } });
   const healthProject = await db.project.findFirst({ where: { name: "Health Transformation" } });
   if (debtJournal && financialVision) {
-    await db.link.create({ data: { fromId: debtJournal.id, toId: financialVision.id, type: "related", note: "journal references the vision" } }).catch(() => {});
+    await db.link.create({ data: { fromId: debtJournal.id, toId: financialVision.id, type: LinkType.parse("related_to"), note: "journal references the vision" } }).catch(() => {});
   }
   if (halfGoal && runHabit) {
-    await db.link.create({ data: { fromId: halfGoal.id, toId: runHabit.id, type: "related", note: "habit supports this goal" } }).catch(() => {});
+    await db.link.create({ data: { fromId: halfGoal.id, toId: runHabit.id, type: LinkType.parse("related_to"), note: "habit supports this goal" } }).catch(() => {});
   }
   if (medHabit && writeHabit) {
-    await db.link.create({ data: { fromId: medHabit.id, toId: writeHabit.id, type: "related" } }).catch(() => {});
+    await db.link.create({ data: { fromId: medHabit.id, toId: writeHabit.id, type: LinkType.parse("related_to") } }).catch(() => {});
   }
 
   // ── Reviews ──

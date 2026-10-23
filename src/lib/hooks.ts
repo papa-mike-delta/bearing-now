@@ -285,7 +285,7 @@ export function useDeleteLink() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ fromId, toId, type }: { fromId: string; toId: string; type?: string }) =>
-      jfetch<any>(`/api/items/${fromId}/links?toId=${toId}&type=${type || "related"}`, { method: "DELETE" }),
+      jfetch<any>(`/api/items/${fromId}/links?toId=${toId}&type=${type || "related_to"}`, { method: "DELETE" }),
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: qk.item(vars.fromId) });
     },

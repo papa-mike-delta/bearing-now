@@ -42,7 +42,7 @@ export async function POST() {
     // (rather than creating duplicates — recurring items are "rolling")
     await db.item.update({
       where: { id: f.id },
-      data: { dueDate: nextDue },
+      data: { dueDate: nextDue, revision: { increment: 1 } },
     });
     financeDetails.push(`${f.title} → ${nextDue.toISOString().slice(0, 10)}`);
   }
@@ -67,7 +67,7 @@ export async function POST() {
       if (daysSince > 2) {
         await db.item.update({
           where: { id: h.id },
-          data: { metadata: JSON.stringify({ ...meta, streak: 0 }) },
+          data: { metadata: JSON.stringify({ ...meta, streak: 0 }), revision: { increment: 1 } },
         });
         streaksReset++;
       }

@@ -59,16 +59,16 @@ export function ItemDetailSheet() {
   }
 
   async function addLink(toId: string) {
-    await createLink.mutateAsync({ fromId: item.id, toId, type: "related" });
+    await createLink.mutateAsync({ fromId: item.id, toId, type: "related_to" });
     setLinkSearch("");
     notify.success("Connected");
   }
 
-  async function removeLink(linkId: string, direction: "out" | "in") {
+  async function removeLink(linkId: string, direction: "out" | "in", type: string) {
     if (direction === "out") {
-      await deleteLink.mutateAsync({ fromId: item.id, toId: linkId });
+      await deleteLink.mutateAsync({ fromId: item.id, toId: linkId, type });
     } else {
-      await deleteLink.mutateAsync({ fromId: linkId, toId: item.id });
+      await deleteLink.mutateAsync({ fromId: linkId, toId: item.id, type });
     }
     notify.success("Link removed");
   }
@@ -327,7 +327,7 @@ export function ItemDetailSheet() {
                           type={m.name}
                           direction="out"
                           onClick={() => useBearing.getState().openItemDetail(l.to.id)}
-                          onRemove={() => removeLink(l.to.id, "out")}
+                          onRemove={() => removeLink(l.to.id, "out", l.type)}
                         />
                       );
                     })}
@@ -342,7 +342,7 @@ export function ItemDetailSheet() {
                           type={m.name}
                           direction="in"
                           onClick={() => useBearing.getState().openItemDetail(l.from.id)}
-                          onRemove={() => removeLink(l.from.id, "in")}
+                          onRemove={() => removeLink(l.from.id, "in", l.type)}
                         />
                       );
                     })}
