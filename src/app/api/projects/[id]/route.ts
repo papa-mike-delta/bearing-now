@@ -53,7 +53,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   // unlink items first
-  await db.item.updateMany({ where: { projectId: id }, data: { projectId: null } });
+  await db.item.updateMany({ where: { projectId: id }, data: { projectId: null, revision: { increment: 1 } } });
   await db.project.delete({ where: { id } }).catch(() => {});
   return ok({ deleted: true });
 }

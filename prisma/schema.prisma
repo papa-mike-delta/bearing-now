@@ -42,9 +42,10 @@ model Domain {
 // ─── Universal Item (the "Digital Brain" node) ───────────────────────────────
 // A single model represents tasks, notes, journal entries, habits, events,
 // finances, contacts, ideas, goals, documents, bookmarks, milestones, etc.
-// Type-specific data lives in a JSON `metadata` string.
+// Core query fields are normalized here; other type-specific data lives in `metadata`.
 model Item {
   id          String   @id @default(cuid())
+  revision    Int      @default(0) // optimistic concurrency token for domain updates
   type        String   // task | note | journal | habit | event | finance | contact | idea | goal | document | bookmark | milestone | routine | symptom | medication | affirmation | vision
   title       String
   content     String?  // markdown / rich text body
@@ -61,6 +62,14 @@ model Item {
   dueDate     DateTime?
   scheduledAt DateTime?
   completedAt DateTime?
+
+  summary          String?   // Note summary
+  relationshipTier String?   // Person: the eight relationship tiers in CONTEXT.md
+  phone            String?   // Person
+  birthday         DateTime? @db.Date // Person: calendar date, without time or timezone
+  startAt          DateTime? // Event
+  endAt            DateTime? // Event
+  frequency        String?   // Habit
 
   metadata    String?  // JSON string for type-specific fields
 
@@ -106,12 +115,12 @@ model Project {
   @@index([domainId])
 }
 
-// ─── Bi-directional Link ─────────────────────────────────────────────────────
+// ─── Directed, typed Link ────────────────────────────────────────────────────
 model Link {
   id        String   @id @default(cuid())
   fromId    String
   toId      String
-  type      String   @default("related") // related | blocks | parent | subtask | references | depends-on
+  type      String   @default("related_to") // advances | tracks | related_to | mentions | scheduled_at | located_at; legacy values remain readable
   note      String?
   createdAt DateTime @default(now())
 
@@ -119,8 +128,9 @@ model Link {
   to        Item     @relation("LinkTo", fields: [toId], references: [id], onDelete: Cascade)
 
   @@unique([fromId, toId, type])
-  @@index([fromId])
-  @@index([toId])
+  @@index([fromId, type])
+  @@index([toId, type])
+  @@index([type, fromId])
 }
 
 // ─── Tags ────────────────────────────────────────────────────────────────────

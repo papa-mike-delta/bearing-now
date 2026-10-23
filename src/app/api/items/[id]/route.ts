@@ -40,6 +40,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     where: { id },
     data: {
       ...rest,
+      revision: { increment: 1 },
       ...(metadata ? { metadata: JSON.stringify(metadata) } : {}),
     },
     include: {

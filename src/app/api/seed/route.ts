@@ -3,6 +3,7 @@ import { ok, bad } from "@/lib/auth-utils";
 import type { NextRequest } from "next/server";
 import { DOMAINS } from "@/lib/constants";
 import bcrypt from "bcryptjs";
+import { LinkType } from "@/lib/link-type";
 
 export const dynamic = "force-dynamic";
 
@@ -143,10 +144,10 @@ export async function POST(_req: NextRequest) {
   const debtJournal = await db.item.findFirst({ where: { title: "Stress about money" } });
   const financialVision = await db.item.findFirst({ where: { title: "Live with intention" } });
   if (debtJournal && financialVision) {
-    await db.link.create({ data: { fromId: debtJournal.id, toId: financialVision.id, type: "related" } }).catch(() => {});
+    await db.link.create({ data: { fromId: debtJournal.id, toId: financialVision.id, type: LinkType.parse("related_to") } }).catch(() => {});
   }
   if (medHabit && writeHabit) {
-    await db.link.create({ data: { fromId: medHabit.id, toId: writeHabit.id, type: "related" } }).catch(() => {});
+    await db.link.create({ data: { fromId: medHabit.id, toId: writeHabit.id, type: LinkType.parse("related_to") } }).catch(() => {});
   }
 
   return ok({ success: true, message: "Seed data created successfully" });

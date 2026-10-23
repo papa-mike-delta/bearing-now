@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { ok, bad, parseBody } from "@/lib/api";
+import { LinkType } from "@/lib/link-type";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,9 @@ export async function GET() {
 export async function POST(req: Request) {
   const body = await parseBody(req);
   if (!body || !body.version) return bad("Invalid backup file");
+  if (body.links && (!Array.isArray(body.links) || body.links.some(
+    (link: { type?: unknown } | null) => !LinkType.isValid(link?.type),
+  ))) return bad("Invalid Link type");
 
   try {
     // Clear existing data (except users)
