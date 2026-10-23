@@ -1,11 +1,11 @@
 {
-  "name": "life-os",
+  "name": "bearing-now",
   "version": "0.2.0",
   "description": "An open-source personal operating system for tasks, notes, journals, habits, finances, and reflections.",
   "private": true,
   "license": "MIT",
   "keywords": [
-    "life-os",
+    "bearing-now",
     "digital-brain",
     "second-brain",
     "personal-knowledge-management",
@@ -30,12 +30,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/karim-coder/life-os.git"
+    "url": "https://github.com/karim-coder/bearing-now.git"
   },
   "bugs": {
-    "url": "https://github.com/karim-coder/life-os/issues"
+    "url": "https://github.com/karim-coder/bearing-now/issues"
   },
-  "homepage": "https://github.com/karim-coder/life-os#readme",
+  "homepage": "https://github.com/karim-coder/bearing-now#readme",
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "prisma generate && next build",

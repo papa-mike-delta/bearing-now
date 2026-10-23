@@ -1,12 +1,12 @@
-# Life OS — Your Digital Brain
+# Bearing — Your Digital Brain
 
 A comprehensive, open-source personal operating system that brings harmony, focus, and connection to every aspect of your life. Built with Next.js 16, TypeScript, Tailwind CSS, and Prisma.
 
-Life OS is for people looking for an open-source second brain, self-hosted productivity app, personal knowledge management system, digital brain, habit tracker app, journal app, task manager, daily planner, goal tracker, focus timer, calendar planner, finance tracker, and connected life dashboard.
+Bearing is for people looking for an open-source second brain, self-hosted productivity app, personal knowledge management system, digital brain, habit tracker app, journal app, task manager, daily planner, goal tracker, focus timer, calendar planner, finance tracker, and connected life dashboard.
 
 ## Live Demo
 
-Try Life OS at [life-os-me.vercel.app](https://life-os-me.vercel.app/).
+Try Bearing at [bearing-now-me.vercel.app](https://bearing-now-me.vercel.app/).
 
 Demo account:
 - Email: `demo@gmail.com`
@@ -16,11 +16,11 @@ Demo account:
 
 | Public landing page                                                              | Dashboard                                                                 |
 | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| <img src="./public/screenshots/landing.jpg" alt="Life OS public landing page" /> | <img src="./public/screenshots/dashboard.jpeg" alt="Life OS dashboard" /> |
+| <img src="./public/screenshots/landing.jpg" alt="Bearing public landing page" /> | <img src="./public/screenshots/dashboard.jpeg" alt="Bearing dashboard" /> |
 
 | Digital Brain graph                                                                   | Insights                                                                    |
 | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| <img src="./public/screenshots/brain-graph.jpeg" alt="Life OS digital brain graph" /> | <img src="./public/screenshots/insight.jpeg" alt="Life OS insights view" /> |
+| <img src="./public/screenshots/brain-graph.jpeg" alt="Bearing digital brain graph" /> | <img src="./public/screenshots/insight.jpeg" alt="Bearing insights view" /> |
 
 ## ✨ Features
 
@@ -99,8 +99,8 @@ Installable on desktop and mobile. Works as a standalone app.
 
 ```bash
 # Clone the repository
-git clone https://github.com/karim-coder/life-os.git
-cd life-os
+git clone https://github.com/karim-coder/bearing-now.git
+cd bearing-now
 
 # Install dependencies
 bun install
@@ -152,11 +152,11 @@ Open [http://localhost:3000](http://localhost:3000) and create an account.
 src/
 ├── app/                    # Next.js App Router
 │   ├── api/                # API routes (items, projects, auth, ai, etc.)
-│   ├── app/                # Authenticated Life OS interface
+│   ├── app/                # Authenticated Bearing interface
 │   ├── login/              # Authentication page
 │   └── page.tsx            # Public landing page
 ├── components/
-│   ├── life-os/            # Core app components
+│   ├── bearing-now/            # Core app components
 │   │   ├── views/          # Dashboard, Inbox, Calendar, Focus, etc.
 │   │   ├── item-card.tsx   # Universal item card
 │   │   ├── item-editor.tsx # Create/edit dialog
@@ -192,8 +192,8 @@ src/
 docker-compose up -d
 
 # Or build manually
-docker build -t life-os .
-docker run -p 3000:3000 -v $(pwd)/db:/app/db life-os
+docker build -t bearing-now .
+docker run -p 3000:3000 -v $(pwd)/db:/app/db bearing-now
 ```
 
 ## 🔧 Configuration
@@ -217,7 +217,7 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) and fo
 
 ## 🔎 GitHub Discoverability
 
-Recommended repository topics: `life-os`, `second-brain`, `digital-brain`, `personal-knowledge-management`, `productivity`, `self-hosted`, `habit-tracker`, `journal-app`, `task-manager`, `calendar-planner`, `finance-tracker`, `goal-tracker`, `focus-timer`, `knowledge-graph`, `nextjs`, `prisma`, `pwa`.
+Recommended repository topics: `bearing-now`, `second-brain`, `digital-brain`, `personal-knowledge-management`, `productivity`, `self-hosted`, `habit-tracker`, `journal-app`, `task-manager`, `calendar-planner`, `finance-tracker`, `goal-tracker`, `focus-timer`, `knowledge-graph`, `nextjs`, `prisma`, `pwa`.
 
 ## 📄 License
 

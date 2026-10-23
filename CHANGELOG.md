@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Life OS will be documented in this file.
+All notable changes to Bearing will be documented in this file.
 
 ## [Unreleased]
 
