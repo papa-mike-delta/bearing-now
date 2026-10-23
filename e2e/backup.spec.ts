@@ -41,8 +41,6 @@ test("JSON export/import preserves item tags", async ({ page }, testInfo) => {
   try {
     expect((await settings.restore(backup)).status()).toBe(200);
     const restored = await settings.item(title);
-    // BUG: JSON restore discards item tag associations — see e2e/README.md#findings
-    test.fail();
     expect(restored.tags).toEqual(expect.arrayContaining([expect.objectContaining({ tag: expect.objectContaining({ name: tag }) })]));
   } finally {
     await page.close();
@@ -54,11 +52,11 @@ test("a full exported backup can be restored", async ({ page }) => {
   const settings = new SettingsPage(page);
   await settings.goto();
   await settings.open();
+  // Arrange a dataset larger than the 20-per-hour create cap so the restore must bypass it.
+  expect((await page.request.post("/api/items", { data: { title: `restore cap ${crypto.randomUUID()}`, type: "note" } })).ok()).toBeTruthy();
   const backup = await settings.backup();
   expect(backup.items.length).toBeGreaterThan(20);
   const response = await settings.restore(backup);
-  // BUG: full backup restore exceeds the user create cap — see e2e/README.md#findings
-  test.fail();
   expect(response.status()).toBe(200);
   expect((await settings.backup()).items).toHaveLength(backup.items.length);
 });

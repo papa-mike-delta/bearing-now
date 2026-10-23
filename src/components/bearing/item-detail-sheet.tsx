@@ -1,5 +1,7 @@
 "use client";
 
+import { format } from "date-fns";
+
 import { useOpenItem } from "@/hooks/use-open-item";
 
 import { useState } from "react";
@@ -874,7 +876,7 @@ function HabitSection({ itemId, logs, meta, accentColor }: { itemId: string; log
   const toggle = useToggleHabit();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayKey = today.toISOString().slice(0, 10);
+  const todayKey = format(today, "yyyy-MM-dd");
   const doneToday = logs.some((l) => new Date(l.date).toISOString().slice(0, 10) === todayKey);
 
   const days: Date[] = [];
@@ -884,7 +886,7 @@ function HabitSection({ itemId, logs, meta, accentColor }: { itemId: string; log
     days.push(d);
   }
   const logSet = new Set(logs.map((l) => new Date(l.date).toISOString().slice(0, 10)));
-  const doneCount = days.filter((d) => logSet.has(d.toISOString().slice(0, 10))).length;
+  const doneCount = days.filter((d) => logSet.has(format(d, "yyyy-MM-dd"))).length;
 
   return (
     <div className="rounded-xl border border-border/50 bg-card/30 p-4">
@@ -909,7 +911,7 @@ function HabitSection({ itemId, logs, meta, accentColor }: { itemId: string; log
       </div>
       <div className="grid grid-flow-col grid-rows-7 gap-1" style={{ gridAutoColumns: "minmax(0, 1fr)" }}>
         {days.map((d) => {
-          const key = d.toISOString().slice(0, 10);
+          const key = format(d, "yyyy-MM-dd");
           const done = logSet.has(key);
           const isToday = key === todayKey;
           return (

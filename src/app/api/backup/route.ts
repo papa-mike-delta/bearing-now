@@ -71,7 +71,7 @@ export async function POST(req: Request) {
     if (body.items) {
       for (const i of body.items) {
         const { tags, domain, project, ...itemData } = i;
-        const result = await ItemDomain.create(itemData, [], actor);
+        const result = await ItemDomain.create(itemData, (tags || []).map((t: { tag: { name: string } }) => t.tag.name), actor, "restore");
         if (!result.ok) return domainResponse(result);
       }
     }
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
     if (body.links) {
       for (const l of body.links) {
         const source = await db.item.findUniqueOrThrow({ where: { id: l.fromId } });
-        const result = await LinkDomain.create(l, source.revision, actor);
+        const result = await LinkDomain.create(l, source.revision, actor, "restore");
         if (!result.ok) return domainResponse(result);
       }
     }

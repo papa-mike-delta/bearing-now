@@ -11,9 +11,10 @@ export class LinkDomain {
   private static async mutate<T>(
     data: Pick<LinkData, "fromId" | "toId"> & { type: string }, revision: number,
     actor: Actor, entry: { operation: "link.create" | "link.update" | "link.delete"; payload: unknown },
-    write: (tx: Prisma.TransactionClient) => Promise<T>,
+    write: (tx: Prisma.TransactionClient) => Promise<T>, purpose?: "restore",
   ): Promise<DomainResult<T>> {
-    return OperationLedger.run(actor, entry, async (tx) => {
+    return OperationLedger.run(actor, purpose === "restore" && actor.startsWith("user:")
+      ? { ...entry, operation: "link.restore" } : entry, async (tx) => {
       if (!data.toId) return { ok: false, error: "toId is required" };
       if (!isRevision(revision)) return { ok: false, error: "revision must be a non-negative integer" };
       const refusal = await WriteCaps.openItem(tx, actor, [data.fromId, data.toId]);
@@ -23,7 +24,7 @@ export class LinkDomain {
         const existing = await tx.link.findUnique({ where: { fromId_toId_type: data } });
         if (existing) entry.operation = "link.update";
         else {
-          const refusal = await WriteCaps.create(tx, actor, "link.create");
+          const refusal = await WriteCaps.create(tx, actor, "link.create", 1, purpose);
           if (refusal) return refusal;
         }
       }
@@ -48,7 +49,7 @@ export class LinkDomain {
       });
   }
 
-  static async create(data: LinkData, revision: number, actor: Actor = "agent:internal") {
+  static async create(data: LinkData, revision: number, actor: Actor = "agent:internal", purpose?: "restore") {
     const type = data.type === undefined ? "related_to" : data.type;
     const { fromId, toId, note } = data;
     return LinkDomain.mutate({ fromId, toId, type }, revision, actor,
@@ -59,6 +60,6 @@ export class LinkDomain {
           ...(data.id !== undefined ? { id: data.id } : {}),
           ...(data.createdAt !== undefined ? { createdAt: data.createdAt } : {}),
         },
-      }));
+      }), purpose);
   }
 }

@@ -20,7 +20,9 @@ export class WriteCaps {
   }
 
   // Called under OperationLedger's transaction lock; only committed creates count.
-  static async create(tx: Prisma.TransactionClient, actor: Actor, operation: "item.create" | "link.create", amount = 1) {
+  static async create(tx: Prisma.TransactionClient, actor: Actor, operation: "item.create" | "link.create", amount = 1, purpose?: "restore") {
+    // Only an authenticated user may bypass create caps for a backup restore.
+    if (purpose === "restore" && actor.startsWith("user:")) return null;
     const limit = operation === "item.create" ? 20 : 50;
     const count = await tx.operationLedger.count({ where: {
       actor, operation, status: "success",

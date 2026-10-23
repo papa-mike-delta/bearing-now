@@ -34,13 +34,13 @@ There are three page routes: `/`, `/login`, `/app`. Sidebar and command palette 
 - Unauthenticated app redirect; invalid-password rejection; unique account registration; real demo login; logout/session revocation and login again.
 - Every sidebar destination: Dashboard, Inbox, Calendar, Agenda, Focus, Projects, Brain Graph, Reviews, Insights, All Items, Mind, Action, Health, Wealth, Network, Growth, Joy, Admin, Settings.
 - Command palette navigation to Sanctuary; Sanctuary and journal editor entry points.
-- Inbox capture; edit title and persist across reload; preserve tags during editing (expected failure); archive; convert to task and activate; activate only selected captures in bulk.
+- Inbox capture; edit title and persist across reload; preserve tags during editing; archive; convert to task and activate; activate only selected captures in bulk.
 - All Items create and persist each of the 17 supported item types; search; task completion, done filter and reopening.
 - Dashboard Add task.
 - Each of the eight life domains' primary create action and domain assignment.
 - Projects create, open dashboard and add associated task.
 - Connections add, verify persisted target and remove.
-- Habit detail mark/unmark today and persisted logs (expected failure on marking today).
+- Habit detail mark/unmark today and persisted logs.
 - Calendar and weekly agenda display a newly scheduled event.
 - Brain graph search, match count, zoom and reset.
 - Focus timer preset, start, countdown, pause and reset.
@@ -56,17 +56,17 @@ The inventory also records secondary controls (for example graph drag, specializ
 
 ## Findings
 
-Expected failures retain assertions of correct user-visible behavior. Each has `test.fail()` next to a `// BUG: ... — see e2e/README.md#findings` comment. A repair should make the test unexpectedly pass until that annotation is removed. Setup and persistence preconditions run before the annotation where possible.
+All five regression tests assert correct user-visible behavior as normal passing tests.
 
 | Flow | Expected | Actual | File/route at fault | Status (fixed in this PR / open) |
 | --- | --- | --- | --- | --- |
-| Settings profile reload | Saved name remains visible after reload regardless of response ordering | Preferences response contains no `name` but calls `setName("")`, overwriting the name from 2FA status when preferences arrives last | `src/components/bearing/views/settings-view.tsx`, mount effect | open |
-| JSON backup tag roundtrip | Restored item retains its tags | Import removes the item's `tags` field and calls `ItemDomain.create(itemData, [], actor)`; tag rows survive but associations are empty | `src/app/api/backup/route.ts` POST | open |
-| Item editor tag preservation | Changing only the title preserves tags | Editor seeds `tagNames: []` rather than mapping existing `item.tags`, then saves the empty array and removes all associations | `src/components/bearing/item-editor.tsx` initialization/save | open |
-| Habit Mark today | Today becomes logged and the button changes to Done today | Parsing YYYY-MM-DD as UTC and then setting local midnight stores the previous date in America/New_York; UI still offers Mark today | `src/app/api/items/[id]/habit-logs/route.ts` POST | open |
-| Full JSON backup import | The app can restore its own exported dataset | HTTP 429 when item count exceeds the remaining 20-per-hour actor create allowance, including the seeded dataset; import is rejected before clearing data | `src/lib/domain/database.ts` `DatabaseDomain.clear` / `src/lib/domain/write-caps.ts`, reached by `/api/backup` POST | open |
+| Settings profile reload | Saved name remains visible after reload regardless of response ordering | Preferences response contains no `name` but calls `setName("")`, overwriting the name from 2FA status when preferences arrives last | `src/components/bearing/views/settings-view.tsx`, mount effect | fixed in this PR — Guard preferences name updates with a string check so absent names cannot overwrite profile state. |
+| JSON backup tag roundtrip | Restored item retains its tags | Import removes the item's `tags` field and calls `ItemDomain.create(itemData, [], actor)`; tag rows survive but associations are empty | `src/app/api/backup/route.ts` POST | fixed in this PR — Pass exported tag names to ItemDomain.create to reconnect imported items to tags. |
+| Item editor tag preservation | Changing only the title preserves tags | Editor seeds `tagNames: []` rather than mapping existing `item.tags`, then saves the empty array and removes all associations | `src/components/bearing/item-editor.tsx` initialization/save | fixed in this PR — Initialize tagNames from the existing item tag associations. |
+| Habit Mark today | Today becomes logged and the button changes to Done today | Parsing YYYY-MM-DD as UTC and then setting local midnight stores the previous date in America/New_York; UI still offers Mark today | `src/app/api/items/[id]/habit-logs/route.ts` POST | fixed in this PR — Use local calendar keys in the browser and store supplied dates at UTC midnight without local normalization. |
+| Full JSON backup import | The app can restore its own exported dataset | HTTP 429 when item count exceeds the remaining 20-per-hour actor create allowance, including the seeded dataset; import is rejected before clearing data | `src/lib/domain/database.ts` `DatabaseDomain.clear` / `src/lib/domain/write-caps.ts`, reached by `/api/backup` POST | fixed in this PR — Exempt authenticated user restores at the domain cap boundary; ordinary creates and agent restores remain capped. |
 
-The restore cap is enforced deliberately by the domain layer; the finding records the resulting limitation of the advertised full-backup user flow, not a missing route. Tests isolate tag loss with a one-item backup so this cap cannot mask that separate defect. No non-inbox application bug is changed.
+Restore exemptions apply only to authenticated user backup operations and retain distinct item.restore/link.restore ledger receipts so restored records do not consume ordinary create allowances. Agent restores still undergo cap preflight before data is cleared. Tests isolate tag restoration with a one-item backup and separately exercise the full exported dataset.
 
 ## Inbox edit 404 root cause
 

@@ -64,7 +64,5 @@ test("editing an inbox title preserves its existing tags", async ({ page }) => {
   await inbox.navigate("Inbox");
   await inbox.edit(title, `${title} edited`);
   const edited = await inbox.item(`${title} edited`);
-  // BUG: item editor erases existing tags when saving a title — see e2e/README.md#findings
-  test.fail();
   expect(edited.tags).toEqual(expect.arrayContaining([expect.objectContaining({ tag: expect.objectContaining({ name: tag }) })]));
 });

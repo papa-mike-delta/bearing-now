@@ -99,8 +99,6 @@ test("settings profile persists after reload", async ({ page }) => {
   });
   await settings.reload();
   await settings.open();
-  // BUG: saved profile name disappears on reload — see e2e/README.md#findings
-  test.fail();
   await expect(page.getByRole("main").locator("input").first()).toHaveValue(name);
 });
 
@@ -217,8 +215,6 @@ test("habit detail logs and unlogs today", async ({ page }) => {
   expect((await logged).status()).toBe(200);
   const item = await app.item(title);
   expect((await (await page.request.get(`/api/items/${item.id}/habit-logs`)).json()).logs).toHaveLength(1);
-  // BUG: habit log normalizes the date to the previous day — see e2e/README.md#findings
-  test.fail();
   await expect(page.getByRole("button", { name: "Done today", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Done today", exact: true }).click();
   await expect(page.getByRole("button", { name: "Mark today", exact: true })).toBeVisible();

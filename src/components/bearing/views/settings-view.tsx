@@ -53,7 +53,7 @@ export function SettingsView() {
 
   useEffect(() => {
     fetch("/api/auth/session").then(r => r.json()).then(d => setEmail(d.email || ""));
-    fetch("/api/preferences").then(r => r.json()).then(d => { setPrefs(d); setName(d.name || ""); setLoading(false); });
+    fetch("/api/preferences").then(r => r.json()).then(d => { setPrefs(d); if (typeof d.name === "string") setName(d.name); setLoading(false); });
     fetch("/api/auth/2fa-status").then(r => r.json()).then(d => { setTwoFAEnabled(d.enabled); setName(d.name || ""); });
   }, []);
 
