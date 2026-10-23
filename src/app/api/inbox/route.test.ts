@@ -2,9 +2,17 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { POST } from "./route";
 
-const item = vi.hoisted(() => ({ create: vi.fn() }));
-vi.mock("@/lib/db", () => ({ db: { item } }));
-beforeEach(() => vi.resetAllMocks());
+const db = vi.hoisted(() => ({
+  item: { create: vi.fn() },
+  operationLedger: { create: vi.fn(), count: vi.fn() },
+  $queryRaw: vi.fn(), $transaction: vi.fn(),
+}));
+const { item } = db;
+vi.mock("@/lib/db", () => ({ db }));
+beforeEach(() => {
+  vi.resetAllMocks();
+  db.$transaction.mockImplementation((run) => run(db));
+});
 
 it("quick captures an inbox note at revision zero", async () => {
   item.create.mockResolvedValue({ id: "new", title: "Capture", status: "inbox", revision: 0 });

@@ -41,7 +41,7 @@ export async function POST() {
 
     // Update the existing item's due date to the next occurrence
     // (rather than creating duplicates — recurring items are "rolling")
-    const result = await ItemDomain.update(f.id, f.revision, { dueDate: nextDue });
+    const result = await ItemDomain.update(f.id, f.revision, { dueDate: nextDue }, undefined, "agent:scheduler");
     if (!result.ok) return domainResponse(result);
     financeDetails.push(`${f.title} → ${nextDue.toISOString().slice(0, 10)}`);
   }
@@ -64,7 +64,7 @@ export async function POST() {
     if (lastLog) {
       const daysSince = Math.floor((now.getTime() - new Date(lastLog.date).getTime()) / 86400000);
       if (daysSince > 2) {
-        const result = await ItemDomain.update(h.id, h.revision, { metadata: JSON.stringify({ ...meta, streak: 0 }) });
+        const result = await ItemDomain.update(h.id, h.revision, { metadata: JSON.stringify({ ...meta, streak: 0 }) }, undefined, "agent:scheduler");
         if (!result.ok) return domainResponse(result);
         streaksReset++;
       }

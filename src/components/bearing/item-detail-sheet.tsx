@@ -1,5 +1,7 @@
 "use client";
 
+import { useOpenItem } from "@/hooks/use-open-item";
+
 import { useState } from "react";
 import {
   Sheet,
@@ -34,6 +36,7 @@ import { cn } from "@/lib/utils";
 
 export function ItemDetailSheet() {
   const { itemDetailId, closeItemDetail, openItemEditor } = useBearing();
+  useOpenItem(itemDetailId);
   const { data: item, isLoading } = useItem(itemDetailId);
   const update = useUpdateItem();
   const del = useDeleteItem();

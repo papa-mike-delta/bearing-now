@@ -221,3 +221,16 @@ model Setting {
   id    String @id
   value String
 }
+
+// Durable audit history, independent of Items so reset/restore cannot erase it.
+model OperationLedger {
+  id        String   @id @default(cuid())
+  actor     String
+  operation String
+  payload   String   // JSON request
+  status    String   // success | refused
+  receipt   String   // JSON domain result
+  createdAt DateTime @default(now())
+
+  @@index([actor, operation, status, createdAt])
+}

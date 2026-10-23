@@ -1,3 +1,4 @@
+import type { DomainResult } from "@/lib/domain/result";
 import { domainResponse } from "@/lib/api";
 import type { Prisma } from "@prisma/client";
 import { ItemDomain } from "@/lib/domain/item";
@@ -19,7 +20,20 @@ function daysFromNow(n: number, h = 9, m = 0) {
 }
 
 // POST /api/seed — seeds demo data for testing and hosted demos
+class SeedRefusal {
+  constructor(readonly result: Exclude<DomainResult<never>, { ok: true }>) {}
+}
+
 export async function POST(_req: NextRequest) {
+  try {
+    return await seed();
+  } catch (error) {
+    if (error instanceof SeedRefusal) return domainResponse(error.result);
+    throw error;
+  }
+}
+
+async function seed() {
   // Check if data already exists
   const existingDomains = await db.domain.count();
   if (existingDomains > 0) {
@@ -41,7 +55,6 @@ export async function POST(_req: NextRequest) {
     },
   });
 
-
   // Seed domains
   const domainMap: Record<string, string> = {};
   for (const dom of DOMAINS) {
@@ -62,21 +75,21 @@ export async function POST(_req: NextRequest) {
   const pmap: Record<string, string> = {};
   projects.forEach((p) => { pmap[p.name] = p.id; });
 
+  // Keep this demo to 20 Items so a fresh seed fits the hourly write cap.
   async function item(data: Omit<Prisma.ItemCreateManyInput, "metadata" | "revision"> & { metadata?: unknown }) {
     const meta = data.metadata ? { metadata: JSON.stringify(data.metadata) } : {};
     const { metadata, ...rest } = data;
-    return (await ItemDomain.create({ ...rest, ...meta })).value;
+    const result = await ItemDomain.create({ ...rest, ...meta }, [], "agent:seed");
+    if (!result.ok) throw new SeedRefusal(result);
+    return result.value;
   }
 
   // Tasks
   await item({ type: "task", title: "Book flights to Tokyo", domainId: domainMap.time_action, projectId: pmap["Japan Trip 2025"], status: "active", priority: 3, dueDate: daysFromNow(7), metadata: { estimate: "2h" } });
-  await item({ type: "task", title: "Research JR Pass options", domainId: domainMap.time_action, projectId: pmap["Japan Trip 2025"], status: "active", priority: 2, dueDate: daysFromNow(10) });
   await item({ type: "task", title: "Morning run 5km", domainId: domainMap.time_action, projectId: pmap["Health Transformation"], status: "active", priority: 2, dueDate: daysFromNow(1) });
   await item({ type: "task", title: "Finish landing page copy", domainId: domainMap.time_action, projectId: pmap["Launch Startup"], status: "active", priority: 4, dueDate: daysFromNow(2) });
-  await item({ type: "task", title: "Set up Stripe billing", domainId: domainMap.time_action, projectId: pmap["Launch Startup"], status: "active", priority: 3, dueDate: daysFromNow(5) });
   await item({ type: "task", title: "Pay credit card bill", domainId: domainMap.time_action, projectId: pmap["Get out of Debt"], status: "active", priority: 4, dueDate: daysFromNow(3), metadata: { amount: 850 } });
   await item({ type: "task", title: "Grocery: oats, eggs, spinach, bananas", domainId: domainMap.admin, status: "active", priority: 2, dueDate: daysFromNow(1), content: "Weekly grocery run" });
-  await item({ type: "task", title: "Replace HVAC filter", domainId: domainMap.admin, status: "active", priority: 1, dueDate: daysFromNow(6) });
 
   // Habits
   const medHabit = await item({ type: "habit", title: "Meditate 10 minutes", domainId: domainMap.mind_soul, status: "active", metadata: { cadence: "daily", target: 10, unit: "min", streak: 4 } });
@@ -99,46 +112,29 @@ export async function POST(_req: NextRequest) {
 
   // Journals
   await item({ type: "journal", title: "Stress about money", domainId: domainMap.mind_soul, projectId: pmap["Get out of Debt"], status: "active", scheduledAt: daysFromNow(-2, 21), content: "Feeling the weight of debt again today. Need to sit down and make a real plan." });
-  await item({ type: "journal", title: "Great workout session", domainId: domainMap.mind_soul, projectId: pmap["Health Transformation"], status: "active", scheduledAt: daysFromNow(-1, 8), content: "Hit a new PR on squats today. Energy is finally coming back." });
 
   // Notes
   await item({ type: "note", title: "Tokyo neighborhood research", domainId: domainMap.creativity, projectId: pmap["Japan Trip 2025"], status: "active", content: "## Areas to stay\n- **Shinjuku** — lively, great transit\n- **Shibuya** — young, energetic\n- **Asakusa** — quieter, traditional" });
-  await item({ type: "note", title: "Startup pricing ideas", domainId: domainMap.wealth, projectId: pmap["Launch Startup"], status: "active", content: "Freemium → $9/mo → $29/mo → custom. Annual gets 2 months free." });
 
   // Finance
   await item({ type: "finance", title: "Salary", domainId: domainMap.wealth, status: "active", dueDate: daysFromNow(5), metadata: { kind: "income", amount: 4200, recurring: "monthly" } });
   await item({ type: "finance", title: "Rent", domainId: domainMap.wealth, status: "active", dueDate: daysFromNow(2), metadata: { kind: "expense", amount: 1450, recurring: "monthly" } });
-  await item({ type: "finance", title: "Netflix", domainId: domainMap.wealth, status: "active", dueDate: daysFromNow(8), metadata: { kind: "expense", amount: 15.99, recurring: "monthly", subscription: true } });
-  await item({ type: "finance", title: "Spotify", domainId: domainMap.wealth, status: "active", dueDate: daysFromNow(12), metadata: { kind: "expense", amount: 11.99, recurring: "monthly", subscription: true } });
-  await item({ type: "finance", title: "Emergency fund goal", domainId: domainMap.wealth, status: "active", metadata: { kind: "goal", amount: 10000, current: 3200 } });
 
   // Contacts
   await item({ type: "contact", title: "Sarah Chen", domainId: domainMap.network, status: "active", metadata: { relationship: "close friend", birthday: "1992-04-18", lastContact: daysFromNow(-12).toISOString() } });
-  await item({ type: "contact", title: "Marcus Rivera", domainId: domainMap.network, status: "active", metadata: { relationship: "mentor", lastContact: daysFromNow(-30).toISOString() } });
-  await item({ type: "contact", title: "Priya Patel", domainId: domainMap.network, status: "active", metadata: { relationship: "colleague", lastContact: daysFromNow(-3).toISOString() } });
 
   // Books & media
   await item({ type: "bookmark", title: "Atomic Habits", domainId: domainMap.growth, projectId: pmap["Read 24 Books"], status: "active", metadata: { author: "James Clear", medium: "book", status: "reading", rating: 5, currentPage: 180, totalPages: 320 }, content: "Tiny changes, remarkable results. Focus on systems over goals." });
-  await item({ type: "bookmark", title: "Deep Work", domainId: domainMap.growth, projectId: pmap["Read 24 Books"], status: "done", priority: 2, completedAt: daysFromNow(-20), metadata: { author: "Cal Newport", medium: "book", status: "finished", rating: 5 } });
-  await item({ type: "bookmark", title: "The Almanack of Naval Ravikant", domainId: domainMap.growth, status: "active", metadata: { author: "Eric Jorgenson", medium: "book", status: "queued" } });
-
-  // Movies
-  await item({ type: "bookmark", title: "Everything Everywhere All at Once", domainId: domainMap.creativity, status: "active", metadata: { medium: "movie", status: "queued", author: "Daniels" } });
-  await item({ type: "bookmark", title: "Dune: Part Two", domainId: domainMap.creativity, status: "active", metadata: { medium: "movie", status: "queued", author: "Denis Villeneuve" } });
-  await item({ type: "bookmark", title: "Spirited Away", domainId: domainMap.creativity, status: "done", metadata: { medium: "movie", status: "finished", rating: 5, author: "Hayao Miyazaki" }, completedAt: daysFromNow(-8) });
 
   // Mind & Soul
   await item({ type: "vision", title: "Live with intention", domainId: domainMap.mind_soul, status: "active", content: "I want every day to be a deliberate choice, not a reaction." });
-  await item({ type: "affirmation", title: "I am capable of hard things", domainId: domainMap.mind_soul, status: "active" });
   await item({ type: "goal", title: "Run a half-marathon", domainId: domainMap.health, projectId: pmap["Health Transformation"], status: "active", dueDate: daysFromNow(90), metadata: { measure: "21km race" } });
 
   // Ideas
   await item({ type: "idea", title: "App for tracking plant care", domainId: domainMap.creativity, status: "inbox", content: "Notification + watering schedule with plant ID." });
-  await item({ type: "idea", title: "Weekend podcast about local food", domainId: domainMap.creativity, status: "inbox" });
 
   // Inbox items
   await item({ type: "note", title: "Look into tax-advantaged accounts", domainId: domainMap.wealth, status: "inbox" });
-  await item({ type: "task", title: "Reply to landlord about lease renewal", domainId: domainMap.admin, status: "inbox" });
 
   // Reviews
   await db.review.create({ data: { type: "daily", date: daysFromNow(-1, 21), status: "completed", wins: "Shipped the landing page hero section.", challenges: "Got distracted by notifications.", learnings: "Deep work blocks need to be phone-free.", gratitude: "Grateful for my supportive partner.", mood: 4, energy: 3 } });
@@ -148,11 +144,11 @@ export async function POST(_req: NextRequest) {
   const debtJournal = await db.item.findFirst({ where: { title: "Stress about money" } });
   const financialVision = await db.item.findFirst({ where: { title: "Live with intention" } });
   if (debtJournal && financialVision) {
-    const result = await LinkDomain.create({ fromId: debtJournal.id, toId: financialVision.id, type: LinkType.parse("related_to") }, debtJournal.revision);
+    const result = await LinkDomain.create({ fromId: debtJournal.id, toId: financialVision.id, type: LinkType.parse("related_to") }, debtJournal.revision, "agent:seed");
     if (!result.ok) return domainResponse(result);
   }
   if (medHabit && writeHabit) {
-    const result = await LinkDomain.create({ fromId: medHabit.id, toId: writeHabit.id, type: LinkType.parse("related_to") }, medHabit.revision);
+    const result = await LinkDomain.create({ fromId: medHabit.id, toId: writeHabit.id, type: LinkType.parse("related_to") }, medHabit.revision, "agent:seed");
     if (!result.ok) return domainResponse(result);
   }
 

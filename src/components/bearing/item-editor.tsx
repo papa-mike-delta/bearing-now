@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useOpenItem } from "@/hooks/use-open-item";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export function ItemEditor() {
   const { itemEditorOpen, itemEditorSeed, closeItemEditor } = useBearing();
+  useOpenItem(itemEditorOpen ? itemEditorSeed?.id : null);
   const create = useCreateItem();
   const update = useUpdateItem();
   const { data: projData } = useProjects();

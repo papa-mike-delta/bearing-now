@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { ok, bad, domainResponse, parseBody } from "@/lib/api";
+import { writeActor, ok, domainResponse, parseBody } from "@/lib/api";
 import { LinkDomain } from "@/lib/domain/link";
 import type { NextRequest } from "next/server";
 
@@ -22,10 +22,9 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const body = await parseBody(req);
-  if (!body.toId) return bad("toId is required");
   return domainResponse(await LinkDomain.create({
     fromId: id, toId: body.toId, type: body.type, note: body.note,
-  }, body.revision));
+  }, body.revision, await writeActor(req)));
 }
 
 // DELETE /api/items/[id]/links — remove a link
@@ -34,7 +33,6 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
   const sp = req.nextUrl.searchParams;
   const toId = sp.get("toId");
   const type = sp.get("type") || "related_to";
-  if (!toId) return bad("toId is required");
   const revision = sp.get("revision");
-  return domainResponse(await LinkDomain.delete({ fromId: id, toId, type }, revision === null || revision.trim() === "" ? NaN : Number(revision)));
+  return domainResponse(await LinkDomain.delete({ fromId: id, toId: toId ?? "", type }, revision === null || revision.trim() === "" ? NaN : Number(revision), await writeActor(req)));
 }
