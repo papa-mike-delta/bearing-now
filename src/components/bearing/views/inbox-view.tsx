@@ -1,5 +1,7 @@
 "use client";
 
+import { reportWriteError } from "@/hooks/use-browser-writes";
+
 import { useState, useEffect } from "react";
 import { useBearing } from "@/store/bearing";
 import { useInbox, useUpdateItem, useDeleteItem, useDomains, useProjects } from "@/lib/hooks";
@@ -57,22 +59,24 @@ export function InboxView() {
   }
 
   async function applyAiSuggestion(itemId: string) {
-    const s = aiSuggestions[itemId];
-    if (!s) return;
-    await update.mutateAsync({
-      id: itemId,
-      revision: items.find((i) => i.id === itemId)?.revision,
-      type: s.suggestedType,
-      domainId: s.suggestedDomainId,
-      projectId: s.suggestedProjectId,
-      status: "active",
-    });
-    setAiSuggestions((prev) => {
-      const next = { ...prev };
-      delete next[itemId];
-      return next;
-    });
-    notify.success("Item processed");
+    try {
+      const s = aiSuggestions[itemId];
+      if (!s) return;
+      await update.mutateAsync({
+        id: itemId,
+        revision: items.find((i) => i.id === itemId)?.revision,
+        type: s.suggestedType,
+        domainId: s.suggestedDomainId,
+        projectId: s.suggestedProjectId,
+        status: "active",
+      });
+      setAiSuggestions((prev) => {
+        const next = { ...prev };
+        delete next[itemId];
+        return next;
+      });
+      notify.success("Item processed");
+    } catch (error) { reportWriteError(error); }
   }
 
   function toggle(id: string) {
@@ -85,15 +89,19 @@ export function InboxView() {
   }
 
   async function processAll(field: "domainId" | "projectId" | "type" | "status", value: string) {
-    const ids = selected.size ? Array.from(selected) : items.map((i) => i.id);
-    await Promise.all(items.filter((item) => ids.includes(item.id)).map((item) => update.mutateAsync({ id: item.id, revision: item.revision, [field]: value || null })));
-    setSelected(new Set());
-    notify.success(`Processed ${ids.length} item${ids.length > 1 ? "s" : ""}`);
+    try {
+      const ids = selected.size ? Array.from(selected) : items.map((i) => i.id);
+      await Promise.all(items.filter((item) => ids.includes(item.id)).map((item) => update.mutateAsync({ id: item.id, revision: item.revision, [field]: value || null })));
+      setSelected(new Set());
+      notify.success(`Processed ${ids.length} item${ids.length > 1 ? "s" : ""}`);
+    } catch (error) { reportWriteError(error); }
   }
 
   async function clearInbox() {
-    await Promise.all(items.map((i) => update.mutateAsync({ id: i.id, revision: i.revision, status: "active" })));
-    notify.success("Inbox cleared — all items activated");
+    try {
+      await Promise.all(items.map((i) => update.mutateAsync({ id: i.id, revision: i.revision, status: "active" })));
+      notify.success("Inbox cleared — all items activated");
+    } catch (error) { reportWriteError(error); }
   }
 
   return (

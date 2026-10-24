@@ -1,5 +1,7 @@
 "use client";
 
+import { reportWriteError } from "@/hooks/use-browser-writes";
+
 import { itemDraftKey } from "@/lib/item-drafts";
 import { browserJournalStorage, clearJournalDraft } from "@/lib/journal-draft-storage";
 import { useJournalDraftStorage } from "@/hooks/use-journal-draft-storage";
@@ -139,7 +141,7 @@ export function JournalEditorView() {
       if (selected && !completed.dirtyFields.length) setView("mind_soul");
     } catch (e: any) {
       owner.fail(ticket, e);
-      notify.error(e.message || "Failed to save");
+      reportWriteError(e, "Failed to save");
     }
   }
 
@@ -150,7 +152,7 @@ export function JournalEditorView() {
       notify.success("Journal entry archived");
       if (currentView()) setView("mind_soul");
     } catch (e: any) {
-      notify.error(e.message || "Failed to archive");
+      reportWriteError(e, "Failed to archive");
     }
   }
 

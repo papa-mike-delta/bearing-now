@@ -31,3 +31,11 @@ function receiptToast(ok: boolean) {
 it.each([true, false])("shows a one-line Coach receipt toast that auto-dismisses in 3 seconds (ok=%s)", (ok) => {
   receiptToast(ok);
 });
+
+it("links an ordinary refusal to its session-scoped receipt route", () => {
+  notify.receipt("This Item changed", "receipt /1", false, "user");
+  expect(toast.error).toHaveBeenCalledTimes(1);
+  const [content, options] = toast.error.mock.calls[0] as [ReactElement, { duration: number }];
+  expect(renderToStaticMarkup(content)).toContain('href="/api/receipts/receipt%20%2F1"');
+  expect(options.duration).toBe(6000);
+});

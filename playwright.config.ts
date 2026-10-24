@@ -25,7 +25,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev",
-    env: { TZ: "America/New_York" },
+    env: { TZ: "America/New_York", COACH_TOOLS_ENABLED: "true" },
     url: "http://localhost:3000/login",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

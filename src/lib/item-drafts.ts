@@ -1,4 +1,5 @@
 import { createStore } from "zustand/vanilla";
+import { BrowserWriteError, type WriteFailure } from "./browser-writes";
 
 export type ItemSnapshot = Record<string, any>;
 export type Draft = {
@@ -9,6 +10,7 @@ export type Draft = {
   pending?: number;
   error?: string;
   conflict?: boolean;
+  failure?: WriteFailure;
 };
 export type SaveTicket = {
   key: string; epoch: number; request: number;
@@ -68,7 +70,7 @@ export function createItemDraftOwner() {
       if (!previous) return;
       const { id, revision, ...editable } = patch;
       const data = { ...previous.data, ...structuredClone(editable) };
-      put(key, { ...previous, data, dirtyFields: dirty(data, previous.baseline), error: undefined, conflict: false });
+      put(key, { ...previous, data, dirtyFields: dirty(data, previous.baseline), error: undefined, conflict: false, failure: undefined });
     },
     discard(key: string) {
       const previous = get(key);
@@ -79,7 +81,7 @@ export function createItemDraftOwner() {
       const draft = get(key);
       if (!draft || draft.pending) return null;
       const ticket = { key: resolve(key), epoch, request: ++request, data: structuredClone(draft.data), fields: fields ?? Object.keys(draft.data) };
-      put(key, { ...draft, pending: ticket.request, error: undefined, conflict: false });
+      put(key, { ...draft, pending: ticket.request, error: undefined, conflict: false, failure: undefined });
       return ticket;
     },
     complete(ticket: SaveTicket, saved: ItemSnapshot) {
@@ -116,7 +118,9 @@ export function createItemDraftOwner() {
       if (ticket.epoch !== epoch || current?.pending !== ticket.request) return;
       put(ticket.key, { ...current, pending: undefined,
         error: error instanceof Error ? error.message : "Failed to save. Your draft is retained.",
-        conflict: typeof error === "object" && error !== null && "status" in error && error.status === 409,
+        conflict: error instanceof BrowserWriteError ? error.outcome.kind === "conflict"
+          : typeof error === "object" && error !== null && "status" in error && error.status === 409,
+        failure: error instanceof BrowserWriteError ? error.outcome : undefined,
       });
     },
     clear() {

@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { SectionCard } from "./layout";
 import { CoachReceiptLink } from "@/lib/coach/receipt-link";
 import { notify } from "@/lib/toast";
-import type { DomainResult } from "@/lib/domain/result";
+import { useBrowserWrites } from "@/hooks/use-browser-writes";
+import { coachWriteRequest } from "@/lib/browser-writes";
+import { qk } from "@/lib/query-keys";
 
 type CoachActivityRow = { id: string; line: string };
 
@@ -49,23 +51,16 @@ export function CoachPanel() {
   const [args, setArgs] = useState(JSON.stringify(examples.searchItems, null, 2));
   const [output, setOutput] = useState("");
   const [pending, setPending] = useState(false);
-  const [activity, setActivity] = useState<CoachActivityRow[]>([]);
-  const queryClient = useQueryClient();
-
-  async function loadActivity() {
-    try {
+  const writes = useBrowserWrites();
+  const { data: activity = [] } = useQuery({
+    queryKey: qk.coachActivity,
+    queryFn: async (): Promise<CoachActivityRow[]> => {
       const response = await fetch("/api/coach", { credentials: "same-origin" });
-      if (!response.ok) return;
-      const body: { activity?: CoachActivityRow[] } = await response.json();
-      if (Array.isArray(body.activity)) setActivity(body.activity);
-    } catch {
-      // The tool form still works when the feed cannot load.
-    }
-  }
-
-  useEffect(() => {
-    void loadActivity();
-  }, []);
+      if (!response.ok) throw new Error("Coach activity unavailable");
+      const body = await response.json();
+      return Array.isArray(body.activity) ? body.activity.filter((row: CoachActivityRow) => row && typeof row.id === "string" && typeof row.line === "string") : [];
+    },
+  });
 
   async function invoke(event: React.FormEvent) {
     event.preventDefault();
@@ -78,20 +73,12 @@ export function CoachPanel() {
     }
     setPending(true);
     try {
-      const response = await fetch("/api/coach", {
-        method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tool, args: parsed }),
-      });
-      const result: DomainResult<unknown> & { message?: string } = await response.json();
-      setOutput(JSON.stringify(result, null, 2));
-      if (result.receiptId && result.message) notify.receipt(result.message, result.receiptId, result.ok);
-      else notify.error("error" in result ? result.error : "Tool call failed");
-      void loadActivity();
-      if (result.ok && ["createItem", "updateItem", "archiveItem", "createLink", "deleteLink"].includes(tool)) {
-        void queryClient.invalidateQueries();
+      const outcome = await writes.execute(coachWriteRequest(tool, parsed));
+      setOutput(JSON.stringify(outcome, null, 2));
+      if (outcome.kind === "success") {
+        if (outcome.receiptId) notify.receipt(outcome.message ?? "Tool completed", outcome.receiptId, true);
+        else notify.success("Tool completed");
       }
-    } catch {
-      notify.error("Coach unavailable");
     } finally {
       setPending(false);
     }
