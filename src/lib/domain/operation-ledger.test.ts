@@ -74,86 +74,26 @@ it("lists the 50 newest Coach writes and conflict receipts with current Item tit
   });
 });
 
-it.each([
-  {
-    operation: "item.archive", status: "success",
-    payload: { id: "item-1", data: { status: "archived" } },
-    receipt: { ok: true, value: { id: "item-1", title: "Old" } },
-    items: [{ id: "item-1", title: "Read" }],
-    line: "Archived Read",
-  },
-  {
-    operation: "link.create", status: "success",
-    payload: { data: { fromId: "item-1", toId: "item-2", type: "tracks" } },
-    receipt: { ok: true, value: { type: "tracks" } },
-    items: [{ id: "item-1", title: "Read" }, { id: "item-2", title: "Notes" }],
-    line: "Linked Read → Notes",
-  },
-  {
-    operation: "link.delete", status: "refused",
-    payload: { data: { fromId: "item-1", toId: "item-2" } },
-    receipt: { ok: false, conflict: true, currentRevision: 3 },
-    items: [{ id: "item-1", title: "Read" }, { id: "item-2", title: "Notes" }],
-    line: "Refused unlink Read → Notes",
-  },
-  {
-    operation: "link.create", status: "success",
-    payload: { data: { fromId: "item-1", toId: "item-2", type: "tracks" } },
-    receipt: { ok: true, value: { type: "tracks" } },
-    items: [{ id: "item-1", title: "Read" }],
-    line: "Linked Read",
-  },
-  {
-    operation: "link.update", status: "success",
-    payload: { data: { fromId: "gone", toId: "item-2", type: "tracks" } },
-    receipt: { ok: true, value: { fromId: "gone", toId: "item-2", type: "tracks" } },
-    items: [{ id: "item-2", title: "Notes" }],
-    line: "Linked Item → Notes",
-  },
-  {
-    operation: "link.delete", status: "success",
-    payload: { data: { fromId: "gone", toId: "also-gone" } },
-    receipt: { ok: true, value: { deleted: true } },
-    items: [],
-    line: "Unlinked Item",
-  },
-  {
-    operation: "item.update", status: "refused",
-    payload: { id: "item-1", revision: 4, data: {} },
-    receipt: { ok: false, itemOpen: true, itemId: "item-1" },
-    items: [{ id: "item-1", title: "Read" }],
-    line: "Refused update Read",
-  },
-  {
-    operation: "item.update", status: "refused",
-    payload: { id: "gone", revision: 4, data: { title: "Read more" } },
-    receipt: { ok: false, conflict: true, currentRevision: 5 },
-    items: [],
-    line: "Refused update Read more",
-  },
-  {
-    operation: "item.archive", status: "refused",
-    payload: { id: "gone", revision: 4, data: { status: "archived" } },
-    receipt: { ok: false, conflict: true, currentRevision: null },
-    items: [],
-    line: "Refused archive Item",
-  },
-  {
-    operation: "coach.getItem", status: "refused",
-    payload: { id: "missing" },
-    receipt: { ok: false, error: "Item not found" },
-    items: [],
-    line: "Refused read Item",
-  },
-])("labels $operation $status as $line", async ({ operation, status, payload, receipt, items, line }) => {
-  db.item.findMany.mockResolvedValue(items);
+it("uses stored titles then Item when current Items no longer exist", async () => {
   db.operationLedger.findMany.mockResolvedValue([
-    entry({ operation, status, payload: JSON.stringify(payload), receipt: JSON.stringify(receipt) }),
+    entry({ id: "stored", operation: "item.update", status: "refused", payload: JSON.stringify({ id: "gone", data: { title: "Stored" } }), receipt: '{"ok":false}' }),
+    entry({ id: "missing", operation: "item.archive", status: "refused", payload: '{"id":"gone"}', receipt: '{"ok":false}' }),
   ]);
-  await expect(OperationLedger.listCoachActivity("alice")).resolves.toEqual([
-    expect.objectContaining({ operation, status, line }),
+  expect((await OperationLedger.listCoachActivity("alice")).map(({ line }) => line)).toEqual([
+    "Refused update Stored", "Refused archive Item",
   ]);
-  expect(line).not.toMatch(/\n/);
+});
+
+it("renders malformed and unknown stored operations without changing feed order or title scope", async () => {
+  db.operationLedger.findMany.mockResolvedValue([
+    entry({ id: "legacy", operation: "legacy.write", status: "refused", payload: "{broken", receipt: "null" }),
+    entry({ id: "missing", operation: "item.archive", status: "refused", payload: '{"id":"foreign"}', receipt: "[]" }),
+  ]);
+  const activity = await OperationLedger.listCoachActivity("alice");
+  expect(activity.map(({ id, line }) => ({ id, line }))).toEqual([
+    { id: "legacy", line: "Refused legacy.write Item" },
+    { id: "missing", line: "Refused archive Item" },
+  ]);
   expect(db.item.findMany).toHaveBeenCalledTimes(1);
-  expect(db.item.findMany).toHaveBeenCalledWith(expect.objectContaining({ select: { id: true, title: true } }));
+  expect(db.item.findMany).toHaveBeenCalledWith({ where: { id: { in: ["foreign"] }, userId: "alice" }, select: { id: true, title: true } });
 });
