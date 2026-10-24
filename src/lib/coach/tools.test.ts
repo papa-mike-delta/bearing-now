@@ -107,7 +107,7 @@ it("creates a Link through Coach caps and increments its source revision", async
   db.item.updateMany.mockResolvedValue({ count: 1 });
   db.link.upsert.mockResolvedValue({ id: "link", fromId: "item", toId: "other", type: "tracks" });
   expect(await CoachTools.createLink("alice", { fromId: "item", toId: "other", type: "tracks", revision: 4 })).toMatchObject({
-    ok: true, value: { type: "tracks" }, receiptId: "receipt-1", message: "Linked Read",
+    ok: true, value: { type: "tracks" }, receiptId: "receipt-1", message: "Linked Read → Read",
   });
   expect(db.item.updateMany).toHaveBeenCalledWith({
     where: { id: "item", userId: "alice", revision: 4 }, data: { revision: { increment: 1 } },
@@ -120,7 +120,7 @@ it("deletes a Link through the revision-checked domain as Coach", async () => {
   db.item.findFirst.mockResolvedValue({ title: "Read" });
   db.item.updateMany.mockResolvedValue({ count: 1 });
   expect(await CoachTools.deleteLink("alice", { fromId: "item", toId: "other", type: "tracks", revision: 4 })).toMatchObject({
-    ok: true, value: { deleted: true }, receiptId: "receipt-1", message: "Unlinked Read",
+    ok: true, value: { deleted: true }, receiptId: "receipt-1", message: "Unlinked Read → Read",
   });
   expect(db.link.deleteMany).toHaveBeenCalledWith({ where: { fromId: "item", toId: "other", type: "tracks" } });
   expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ actor: "agent:coach", operation: "link.delete" }) });
