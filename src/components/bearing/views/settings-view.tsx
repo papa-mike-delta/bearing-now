@@ -1,5 +1,7 @@
 "use client";
 
+import { useDraftSession } from "../item-draft-session";
+
 import { useState, useEffect } from "react";
 import { useBearing } from "@/store/bearing";
 import { Icon } from "../icon";
@@ -33,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export function SettingsView() {
+  const { owner: draftOwner } = useDraftSession();
   const { setView } = useBearing();
   const { theme = "system", setTheme } = useTheme();
   const [loading, setLoading] = useState(true);
@@ -456,7 +459,7 @@ export function SettingsView() {
       <SectionCard title="Account" icon="UserCog">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">Sign out of your account</p>
-          <Button variant="outline" size="sm" className="gap-1.5 text-rose-500 hover:bg-rose-500/10 hover:text-rose-600" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); window.location.href = "/login"; }}>
+          <Button variant="outline" size="sm" className="gap-1.5 text-rose-500 hover:bg-rose-500/10 hover:text-rose-600" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); draftOwner.clear(); window.location.href = "/login"; }}>
             <Icon name="LogOut" className="h-3.5 w-3.5" /> Sign out
           </Button>
         </div>

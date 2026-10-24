@@ -1,8 +1,12 @@
 "use client";
 
+import { itemDraftKey } from "@/lib/item-drafts";
+import { browserJournalStorage, clearJournalDraft } from "@/lib/journal-draft-storage";
+import { useJournalDraftStorage } from "@/hooks/use-journal-draft-storage";
+import { useItemDraft, useDraftSession, DraftNotice } from "../item-draft-session";
 import { useOpenItem } from "@/hooks/use-open-item";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useBearing } from "@/store/bearing";
 import { useItem, useCreateItem, useUpdateItem, useDeleteItem, useItems, useDomains } from "@/lib/hooks";
 import { Icon } from "../icon";
@@ -60,7 +64,7 @@ function computeStats(content: string) {
 }
 
 export function JournalEditorView() {
-  const { journalEditId, setView, openItemDetail } = useBearing();
+  const { journalEditId, journalDraftKey, setView, openItemDetail, finishNewJournal } = useBearing();
   useOpenItem(journalEditId);
   const { data: existingItem, isLoading } = useItem(journalEditId);
   const create = useCreateItem();
@@ -68,21 +72,30 @@ export function JournalEditorView() {
   const del = useDeleteItem();
   const { data: domData } = useDomains();
 
-  const [revision, setRevision] = useState<number>(0);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [domainId, setDomainId] = useState("");
-  const [projectId, setProjectId] = useState("");
   const [mood, setMood] = useState(3);
   const [showPreview, setShowPreview] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [lastKey, setLastKey] = useState("");
   const [dailyGoal, setDailyGoal] = useState(getWritingGoal);
   const [showGoalInput, setShowGoalInput] = useState(false);
   const [goalInput, setGoalInput] = useState(() => String(getWritingGoal()));
 
   const domains = domData?.domains || [];
   const mindSoulDomain = domains.find((d: any) => d.key === "mind_soul");
+
+  const draftKey = journalEditId ? itemDraftKey(journalEditId) : journalDraftKey;
+  const seed = useMemo(() => journalEditId ? existingItem : {
+    type: "journal", domainId: mindSoulDomain?.id ?? "",
+  }, [journalEditId, existingItem, mindSoulDomain?.id]);
+  const { owner, draft, data } = useItemDraft(draftKey, seed);
+  const { userId } = useDraftSession();
+  useJournalDraftStorage(draftKey, !journalEditId, draft);
+  const { title, content, domainId, projectId } = data;
+  const setTitle = (title: string) => owner.change(draftKey, { title });
+  const setContent = (content: string) => owner.change(draftKey, { content });
+  const setDomainId = (domainId: string) => owner.change(draftKey, { domainId });
+  const currentView = () => {
+    const current = useBearing.getState();
+    return current.view === "journal" && (current.journalEditId ? itemDraftKey(current.journalEditId) : current.journalDraftKey) === draftKey;
+  };
 
   const handleGoalSave = useCallback(() => {
     const val = parseInt(goalInput, 10);
@@ -94,51 +107,6 @@ export function JournalEditorView() {
     setShowGoalInput(false);
   }, [goalInput]);
 
-  // Load existing item or initialize new
-  const loadKey = journalEditId || "new";
-  if (loadKey !== lastKey && (!journalEditId || existingItem)) {
-    setLastKey(loadKey);
-    if (journalEditId && existingItem) {
-      setRevision(existingItem.revision);
-      setTitle(existingItem.title || "");
-      setContent(existingItem.content || "");
-      setDomainId(existingItem.domainId || "");
-      setProjectId(existingItem.projectId || "");
-    } else if (!journalEditId) {
-      setTitle("");
-      setContent("");
-      setDomainId(mindSoulDomain?.id || "");
-      setProjectId("");
-      setMood(3);
-    }
-  }
-
-  // Auto-save draft to localStorage
-  useEffect(() => {
-    if (!journalEditId && (title || content)) {
-      const timer = setTimeout(() => {
-        localStorage.setItem("lifeos-journal-draft", JSON.stringify({ title, content, domainId, projectId }));
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [title, content, domainId, projectId, journalEditId]);
-
-  // Load draft on mount for new entries (render-time state adjustment)
-  const [draftLoaded, setDraftLoaded] = useState(false);
-  if (!draftLoaded && !journalEditId) {
-    setDraftLoaded(true);
-    const draft = localStorage.getItem("lifeos-journal-draft");
-    if (draft) {
-      try {
-        const d = JSON.parse(draft);
-        if (d.title) setTitle(d.title);
-        if (d.content) setContent(d.content);
-        if (d.domainId) setDomainId(d.domainId);
-        if (d.projectId) setProjectId(d.projectId);
-      } catch {}
-    }
-  }
-
   const stats = computeStats(content);
   const goalProgress = Math.min(100, Math.round((stats.words / dailyGoal) * 100));
   const goalReached = stats.words >= dailyGoal;
@@ -148,44 +116,39 @@ export function JournalEditorView() {
       notify.error("Add a title first");
       return;
     }
+    const ticket = owner.beginSave(draftKey, ["title", "content", "domainId", "projectId"]);
+    if (!ticket) return;
+    const snapshot = ticket.data;
     try {
-      if (journalEditId) {
-        await update.mutateAsync({
-          id: journalEditId,
-          revision,
-          title: title.trim(),
-          content,
-          domainId: domainId || null,
-          projectId: projectId || null,
-        });
-        notify.success("Entry saved");
-      } else {
-        await create.mutateAsync({
-          type: "journal",
-          title: title.trim(),
-          content,
-          status: "active",
-          domainId: domainId || null,
-          projectId: projectId || null,
-          scheduledAt: new Date().toISOString(),
-        });
-        localStorage.removeItem("lifeos-journal-draft");
-        notify.success("Journal entry created");
+      const payload = {
+        title: snapshot.title.trim(), content: snapshot.content,
+        domainId: snapshot.domainId || null, projectId: snapshot.projectId || null,
+      };
+      const saved = snapshot.id
+        ? await update.mutateAsync({ id: snapshot.id, revision: snapshot.revision, ...payload })
+        : await create.mutateAsync({ ...payload, type: "journal", status: "active", scheduledAt: new Date().toISOString() });
+      const completed = owner.complete(ticket, saved);
+      if (!completed) return;
+      const selected = currentView();
+      if (!snapshot.id) {
+        clearJournalDraft(browserJournalStorage(), userId);
+        if (selected && completed.dirtyFields.length) useBearing.setState({ journalEditId: saved.id });
+        finishNewJournal(draftKey);
       }
-      setSaved(true);
-      setTimeout(() => setView("mind_soul"), 600);
+      notify.success(snapshot.id ? "Entry saved" : "Journal entry created");
+      if (selected && !completed.dirtyFields.length) setView("mind_soul");
     } catch (e: any) {
+      owner.fail(ticket, e);
       notify.error(e.message || "Failed to save");
     }
   }
 
   async function handleDelete() {
-    if (!journalEditId) return;
+    if (!journalEditId || !draft || draft.pending) return;
     try {
-      await del.mutateAsync({ id: journalEditId, revision });
-      localStorage.removeItem("lifeos-journal-draft");
+      await del.mutateAsync({ id: journalEditId, revision: draft.data.revision });
       notify.success("Journal entry archived");
-      setView("mind_soul");
+      if (currentView()) setView("mind_soul");
     } catch (e: any) {
       notify.error(e.message || "Failed to archive");
     }
@@ -280,16 +243,20 @@ export function JournalEditorView() {
           <Button
             size="sm"
             onClick={save}
-            disabled={create.isPending || update.isPending}
+            disabled={!draft || !!draft.pending || create.isPending || update.isPending}
             className="gap-1.5 text-white"
             style={{ background: ACCENT }}
           >
-            <Icon name={saved ? "Check" : "Save"} className="h-3.5 w-3.5" />
-            {saved ? "Saved" : journalEditId ? "Save" : "Publish"}
+            <Icon name="Save" className="h-3.5 w-3.5" />
+            {data.id ? "Save" : "Publish"}
           </Button>
         </div>
       </div>
 
+      <DraftNotice draft={draft} onDiscard={() => {
+        owner.discard(draftKey);
+        if (!journalEditId) clearJournalDraft(browserJournalStorage(), userId);
+      }} />
       {/* Editor card */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -351,6 +318,7 @@ export function JournalEditorView() {
             </div>
           ) : (
             <RichTextEditor
+              key={draftKey}
               value={content}
               onChange={setContent}
               placeholder="Start writing… Express yourself freely. This is your space."

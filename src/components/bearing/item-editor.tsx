@@ -1,5 +1,6 @@
 "use client";
 
+import { useItemDraft, DraftNotice } from "./item-draft-session";
 import { useState } from "react";
 import { useOpenItem } from "@/hooks/use-open-item";
 import {
@@ -16,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useBearing } from "@/store/bearing";
-import { useCreateItem, useUpdateItem, useProjects, useDomains, useTags } from "@/lib/hooks";
+import { useItem, useCreateItem, useUpdateItem, useProjects, useDomains, useTags } from "@/lib/hooks";
 import { ITEM_TYPES, DOMAINS, PRIORITY_META, ITEM_TYPE_MAP } from "@/lib/constants";
 import { Icon } from "./icon";
 import { notify } from "@/lib/toast";
@@ -24,7 +25,7 @@ import { toDateInput, fromDateInput } from "@/lib/dates";
 import { useQueryClient } from "@tanstack/react-query";
 
 export function ItemEditor() {
-  const { itemEditorOpen, itemEditorSeed, closeItemEditor } = useBearing();
+  const { itemEditorOpen, itemEditorSeed, itemEditorDraftKey, itemEditorInstance, closeItemEditor } = useBearing();
   useOpenItem(itemEditorOpen ? itemEditorSeed?.id : null);
   const create = useCreateItem();
   const update = useUpdateItem();
@@ -37,38 +38,21 @@ export function ItemEditor() {
   const domains = domData?.domains || [];
   const tags = tagData?.tags || [];
 
-  const [form, setForm] = useState<any>({});
-  const [tagInput, setTagInput] = useState("");
-  const [lastKey, setLastKey] = useState("");
-  const key = itemEditorOpen ? `open:${itemEditorSeed?.id || "new"}` : "closed";
-  if (key !== lastKey) {
-    setLastKey(key);
-    if (itemEditorOpen) {
-      setForm({
-        type: "task",
-        title: "",
-        content: "",
-        status: "active",
-        priority: 0,
-        domainId: "",
-        projectId: "",
-        dueDate: "",
-        scheduledAt: "",
-        tagNames: itemEditorSeed?.tags?.map(({ tag }) => tag.name) || [],
-        ...(itemEditorSeed || {}),
-        // API items carry `metadata: null` when none was saved; the type-specific
-        // fields read form.metadata.* during render, so never let null through.
-        metadata: itemEditorSeed?.metadata ?? {},
-      });
-      setTagInput("");
-    }
-  }
+  const { data: freshItem } = useItem(itemEditorOpen ? itemEditorSeed?.id ?? null : null);
+  const draftKey = itemEditorOpen ? itemEditorDraftKey : null;
+  const { owner, draft, data: form } = useItemDraft(draftKey, freshItem ?? itemEditorSeed);
+  const closeThisEditor = () => {
+    if (useBearing.getState().itemEditorInstance === itemEditorInstance) closeItemEditor();
+  };
+  const [tagState, setTagState] = useState({ key: draftKey, value: "" });
+  const tagInput = tagState.key === draftKey ? tagState.value : "";
+  const setTagInput = (value: string) => setTagState({ key: draftKey, value });
 
   function set(k: string, v: any) {
-    setForm((f: any) => ({ ...f, [k]: v }));
+    if (draftKey) owner.change(draftKey, { [k]: v });
   }
   function setMeta(k: string, v: any) {
-    setForm((f: any) => ({ ...f, metadata: { ...f.metadata, [k]: v } }));
+    if (draftKey) owner.change(draftKey, { metadata: { ...owner.get(draftKey)?.data.metadata, [k]: v } });
   }
   function addTag() {
     const t = tagInput.trim().toLowerCase();
@@ -79,14 +63,18 @@ export function ItemEditor() {
   }
 
   async function save() {
-    if (!form.title?.trim()) {
+    if (!draft?.data.title?.trim()) {
       notify.error("Title is required");
       return;
     }
+    if (!draftKey) return;
+    const ticket = owner.beginSave(draftKey);
+    if (!ticket) return;
+    const form = ticket.data;
     const payload: any = {
       type: form.type,
       title: form.title.trim(),
-      content: form.content || undefined,
+      content: form.content,
       status: form.status,
       priority: Number(form.priority) || 0,
       domainId: form.domainId || null,
@@ -120,15 +108,16 @@ export function ItemEditor() {
     }
 
     try {
-      if (form.id) {
-        await update.mutateAsync({ id: form.id, revision: form.revision, ...payload });
-        notify.success("Updated");
-      } else {
-        await create.mutateAsync(payload);
-        notify.success("Created");
-      }
-      closeItemEditor();
+      const saved = form.id
+        ? await update.mutateAsync({ id: form.id, revision: form.revision, ...payload })
+        : await create.mutateAsync(payload);
+      const completed = owner.complete(ticket, saved);
+      if (!completed) return;
+      notify.success(form.id ? "Updated" : "Created");
+      const current = useBearing.getState();
+      if (!completed.dirtyFields.length && current.itemEditorDraftKey === draftKey && current.itemEditorInstance === itemEditorInstance) closeItemEditor();
     } catch (e: any) {
+      owner.fail(ticket, e);
       notify.error(e.message || "Failed to save");
     }
   }
@@ -163,7 +152,7 @@ export function ItemEditor() {
   };
 
   return (
-    <Dialog open={itemEditorOpen} onOpenChange={(o) => !o && closeItemEditor()}>
+    <Dialog key={itemEditorInstance} open={itemEditorOpen} onOpenChange={(o) => !o && closeThisEditor()}>
       <DialogContent className="flex max-h-[92vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[580px]">
         {/* ── Gradient header ── */}
         <div
@@ -186,6 +175,7 @@ export function ItemEditor() {
           </DialogHeader>
         </div>
 
+        <DraftNotice draft={draft} onDiscard={() => draftKey && owner.discard(draftKey)} />
         {/* ── Scrollable body ── */}
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
           <div className="space-y-5">
@@ -540,10 +530,10 @@ export function ItemEditor() {
 
         {/* ── Sticky footer ── */}
         <div className="flex flex-shrink-0 items-center justify-end gap-2 border-t border-border/60 bg-background/95 px-6 py-3 backdrop-blur-md">
-          <Button variant="ghost" onClick={closeItemEditor} className="h-9">Cancel</Button>
+          <Button variant="ghost" onClick={closeThisEditor} className="h-9">Close</Button>
           <Button
             onClick={save}
-            disabled={create.isPending || update.isPending}
+            disabled={!draft || !!draft.pending || create.isPending || update.isPending}
             className="h-9 gap-1.5"
             style={{ background: typeMeta.color, color: "white" }}
           >

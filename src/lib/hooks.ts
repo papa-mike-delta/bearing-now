@@ -30,7 +30,7 @@ async function jfetch<T>(url: string, opts?: RequestInit): Promise<T> {
     if (res.status === 409) {
       const message = "This item changed. Reload it before saving again.";
       notify.error(message);
-      throw new Error(message);
+      throw Object.assign(new Error(message), { status: 409 });
     }
     const txt = await res.text().catch(() => "");
     throw new Error(txt || res.statusText);
@@ -74,6 +74,9 @@ export function useUpdateItem() {
   return useMutation({
     mutationFn: ({ id, ...body }: { id: string; revision: number; [key: string]: unknown }) =>
       jfetch<any>(`/api/items/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    onError: (error, vars) => {
+      if ("status" in error && error.status === 409) qc.invalidateQueries({ queryKey: qk.item(vars.id) });
+    },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["items"] });
       qc.invalidateQueries({ queryKey: qk.item(vars.id) });
