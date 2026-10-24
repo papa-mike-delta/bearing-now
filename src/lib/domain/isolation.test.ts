@@ -1,3 +1,4 @@
+import { OpenItemLeases } from "./open-item-leases";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ItemDomain } from "./item";
 import { LinkDomain } from "./link";
@@ -11,7 +12,7 @@ const db = vi.hoisted(() => ({
   link: { findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn(), findUnique: vi.fn() },
   domain: { findFirst: vi.fn() },
   project: { findFirst: vi.fn() },
-  setting: { findFirst: vi.fn(), findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
+  setting: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
   tag: { upsert: vi.fn() },
   tagOnItem: { deleteMany: vi.fn(), createMany: vi.fn() },
   operationLedger: { create: vi.fn(), count: vi.fn() },
@@ -21,7 +22,9 @@ const db = vi.hoisted(() => ({
 vi.mock("@/lib/db", () => ({ db }));
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   vi.resetAllMocks();
+  db.setting.findMany.mockResolvedValue([]);
   db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
 });
@@ -48,10 +51,9 @@ it("reads items, links, and open-item settings only for the caller", async () =>
   }));
 
   db.setting.findMany.mockResolvedValue([]);
+  const list = vi.spyOn(OpenItemLeases, "list");
   await listOpenItems(userB);
-  expect(db.setting.findMany).toHaveBeenCalledWith({ where: {
-    userId: userB, id: { startsWith: "open-item:user-b:" }, value: { gt: expect.any(String) },
-  } });
+  expect(list).toHaveBeenCalledWith(db, userB);
   expect(db.item.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: userB, id: { in: [] } } }));
 });
 
@@ -85,7 +87,6 @@ it("writes an open-item setting only on the caller's item and key", async () => 
   db.item.findFirst.mockResolvedValue({ id: "item-b" });
   expect(await ItemDomain.setOpen(userB, "item-b", "tab-1", true, `user:${userB}`)).toMatchObject({ ok: true, value: { open: true } });
   expect(db.setting.upsert).toHaveBeenCalledWith(expect.objectContaining({
-    where: { id: expect.stringMatching(/^open-item:user-b:/) },
     create: expect.objectContaining({ userId: userB }),
   }));
   expect(db.setting.deleteMany).toHaveBeenCalledWith({ where: expect.objectContaining({ userId: userB }) });

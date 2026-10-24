@@ -7,7 +7,7 @@ const db = vi.hoisted(() => ({
   link: { upsert: vi.fn(), findUnique: vi.fn(), deleteMany: vi.fn() },
   item: { updateMany: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
   operationLedger: { create: vi.fn(), count: vi.fn() },
-  setting: { findFirst: vi.fn() },
+  setting: { findMany: vi.fn() },
   $queryRaw: vi.fn(),
   $transaction: vi.fn(),
 }));
@@ -24,6 +24,7 @@ const request = (body: unknown) => new NextRequest("http://localhost/api/items/i
 
 beforeEach(() => {
   vi.resetAllMocks();
+  db.setting.findMany.mockResolvedValue([]);
   db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
   db.item.updateMany.mockResolvedValue({ count: 1 });

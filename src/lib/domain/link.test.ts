@@ -1,3 +1,4 @@
+import { OpenItemLeases } from "./open-item-leases";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { LinkDomain } from "./link";
 
@@ -5,7 +6,7 @@ const db = vi.hoisted(() => ({
   item: { updateMany: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
   link: { upsert: vi.fn(), deleteMany: vi.fn(), findUnique: vi.fn() },
   operationLedger: { create: vi.fn(), count: vi.fn() },
-  setting: { findFirst: vi.fn() },
+  setting: { findMany: vi.fn() },
   $queryRaw: vi.fn(),
   $transaction: vi.fn(),
 }));
@@ -18,7 +19,9 @@ afterEach(() => {
   expect(db.operationLedger.create).toHaveBeenCalledTimes(db.$transaction.mock.calls.length);
 });
 beforeEach(() => {
+  vi.restoreAllMocks();
   vi.resetAllMocks();
+  db.setting.findMany.mockResolvedValue([]);
   db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.item.findMany.mockImplementation(async ({ where }) => (where.id.in as string[]).map((id) => ({ id })));
   db.$transaction.mockImplementation((run) => run(db));
@@ -80,18 +83,14 @@ it("refuses a 51st Link create and records it without incrementing the source re
 });
 
 it.each(["create", "delete"] as const)("refuses Link %s when either endpoint is open", async (operation) => {
-  db.setting.findFirst.mockResolvedValue({ id: "open-item:alice:746f:user:tab" });
+  vi.spyOn(OpenItemLeases, "protectedItem").mockResolvedValue("to");
   expect(await LinkDomain[operation]("alice", { fromId: "from", toId: "to" }, 4)).toEqual({
     receiptId: "receipt-1", ok: false, itemOpen: true, itemId: "to",
   });
   expect(db.item.updateMany).not.toHaveBeenCalled();
   expect(db.link.upsert).not.toHaveBeenCalled();
   expect(db.link.deleteMany).not.toHaveBeenCalled();
-  expect(db.setting.findFirst).toHaveBeenCalledWith({ where: {
-    userId: "alice",
-    OR: [{ id: { startsWith: "open-item:alice:66726f6d:" } }, { id: { startsWith: "open-item:alice:746f:" } }],
-    value: { gt: expect.any(String) },
-  } });
+  expect(OpenItemLeases.protectedItem).toHaveBeenCalledWith(db, "alice", ["from", "to"]);
 });
 
 it("allows the 50th Link create and records a successful Link receipt", async () => {

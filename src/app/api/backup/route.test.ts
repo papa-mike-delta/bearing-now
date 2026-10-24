@@ -13,7 +13,7 @@ const db = vi.hoisted(() => ({
   project: { deleteMany: vi.fn(), create: vi.fn() },
   domain: { deleteMany: vi.fn(), create: vi.fn() },
   operationLedger: { create: vi.fn(), count: vi.fn() },
-  setting: { findFirst: vi.fn(), deleteMany: vi.fn() },
+  setting: { findMany: vi.fn(), deleteMany: vi.fn() },
   $queryRaw: vi.fn(),
   $transaction: vi.fn(),
 }));
@@ -28,6 +28,7 @@ const request = (links: unknown, authenticated = true) => new Request("http://lo
 
 beforeEach(() => {
   vi.resetAllMocks();
+  db.setting.findMany.mockResolvedValue([]);
   db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
   db.item.updateMany.mockResolvedValue({ count: 1 });

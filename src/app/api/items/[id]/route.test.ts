@@ -6,7 +6,7 @@ import { GET, PATCH, DELETE } from "./route";
 const db = vi.hoisted(() => ({
   item: { findFirst: vi.fn(), findUniqueOrThrow: vi.fn(), updateMany: vi.fn() },
   operationLedger: { create: vi.fn(), count: vi.fn() },
-  setting: { findFirst: vi.fn() },
+  setting: { findMany: vi.fn() },
   $queryRaw: vi.fn(),
   $transaction: vi.fn(),
 }));
@@ -23,6 +23,7 @@ const authed = (method: string, body?: unknown) => new NextRequest("http://local
 
 beforeEach(() => {
   vi.resetAllMocks();
+  db.setting.findMany.mockResolvedValue([]);
   db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
 });

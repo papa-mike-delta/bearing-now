@@ -7,13 +7,14 @@ const db = vi.hoisted(() => ({
   project: { create: vi.fn(), findFirst: vi.fn() }, habitLog: { create: vi.fn() }, review: { create: vi.fn() },
   item: { create: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
   link: { upsert: vi.fn(), findUnique: vi.fn() },
-  setting: { findFirst: vi.fn() }, operationLedger: { create: vi.fn(), count: vi.fn() },
+  setting: { findMany: vi.fn() }, operationLedger: { create: vi.fn(), count: vi.fn() },
   $transaction: vi.fn(), $queryRaw: vi.fn(),
 }));
 vi.mock("@/lib/db", () => ({ db }));
 
 beforeEach(() => {
   vi.resetAllMocks();
+  db.setting.findMany.mockResolvedValue([]);
   db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
   db.user.upsert.mockResolvedValue({ id: "demo-user" });
