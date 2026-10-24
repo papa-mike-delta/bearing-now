@@ -163,7 +163,7 @@ export function ItemEditor() {
           className="flex-shrink-0 px-6 pb-4 pt-5"
           style={{ background: colorGradient(typeMeta.color, 9, "80%") }}
         >
-          <DialogHeader className="space-y-0 p-0">
+          <DialogHeader className="space-y-0 py-0 pl-0 pr-10">
             <DialogTitle className="flex items-center gap-2.5 text-base font-semibold">
               <span
                 className="flex h-9 w-9 items-center justify-center rounded-xl shadow-sm"
@@ -224,7 +224,7 @@ export function ItemEditor() {
             {/* Section: Organization */}
             <div>
               <SectionLabel icon="FolderTree">Organization</SectionLabel>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <Select value={form.domainId || "none"} onValueChange={(v) => set("domainId", v === "none" ? "" : v)}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="No domain" /></SelectTrigger>
                   <SelectContent className="max-h-72">
@@ -259,7 +259,7 @@ export function ItemEditor() {
             {/* Section: Status & Priority */}
             <div>
               <SectionLabel icon="SlidersHorizontal">Status & Priority</SectionLabel>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <Select value={form.status} onValueChange={(v) => set("status", v)}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -290,14 +290,14 @@ export function ItemEditor() {
             {(typeMeta.hasDate || form.type === "task" || form.type === "finance" || form.type === "event" || form.type === "journal") && (
               <div>
                 <SectionLabel icon="CalendarClock">Timing</SectionLabel>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div>
                     <Input type="datetime-local" value={toDateInput(form.dueDate)} onChange={(e) => set("dueDate", e.target.value)} className="h-9" />
-                    <p className="mt-1 text-[10px] text-muted-foreground">Due date</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Due date</p>
                   </div>
                   <div>
                     <Input type="datetime-local" value={toDateInput(form.scheduledAt)} onChange={(e) => set("scheduledAt", e.target.value)} className="h-9" />
-                    <p className="mt-1 text-[10px] text-muted-foreground">Scheduled / logged at</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Scheduled / logged at</p>
                   </div>
                 </div>
               </div>
@@ -306,7 +306,7 @@ export function ItemEditor() {
             {/* Type-specific metadata */}
             {isFinance && (
               <MetadataSection icon="Wallet" label="Finance details" color={typeMeta.color}>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div>
                     <FieldLabel>Kind</FieldLabel>
                     <Select value={form.metadata.kind || "expense"} onValueChange={(v) => setMeta("kind", v)}>
@@ -368,7 +368,7 @@ export function ItemEditor() {
 
             {isBookmark && (
               <MetadataSection icon="Bookmark" label={form.metadata?.medium === "book" ? "Book details" : form.metadata?.medium === "movie" || form.metadata?.medium === "video" ? "Watch list" : "Media details"} color={typeMeta.color}>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div>
                     <FieldLabel>Medium</FieldLabel>
                     <Select value={form.metadata.medium || "book"} onValueChange={(v) => setMeta("medium", v)}>
@@ -448,7 +448,7 @@ export function ItemEditor() {
 
             {isContact && (
               <MetadataSection icon="User" label="Contact details" color={typeMeta.color}>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div>
                     <FieldLabel>Relationship</FieldLabel>
                     <Input value={form.metadata.relationship || ""} onChange={(e) => setMeta("relationship", e.target.value)} className="h-9" placeholder="friend, mentor…" />
@@ -472,7 +472,7 @@ export function ItemEditor() {
 
             {isMedication && (
               <MetadataSection icon="Pill" label="Medication details" color={typeMeta.color}>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div>
                     <FieldLabel>Dose</FieldLabel>
                     <Input value={form.metadata.dose || ""} onChange={(e) => setMeta("dose", e.target.value)} className="h-9" placeholder="100mg" />
@@ -553,7 +553,7 @@ export function ItemEditor() {
 // ── Helper components ──
 function SectionLabel({ children, icon }: { children: React.ReactNode; icon: string }) {
   return (
-    <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
       <Icon name={icon} className="h-3 w-3" />
       {children}
     </div>
@@ -561,13 +561,13 @@ function SectionLabel({ children, icon }: { children: React.ReactNode; icon: str
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">{children}</p>;
+  return <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground/70">{children}</p>;
 }
 
 function MetadataSection({ icon, label, color, children }: { icon: string; label: string; color: string; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border p-3" style={{ borderColor: colorWithAlpha(color, 19), background: colorWithAlpha(color, 3) }}>
-      <div className="mb-2.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color }}>
+      <div className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider" style={{ color }}>
         <Icon name={icon} className="h-3 w-3" />
         {label}
       </div>

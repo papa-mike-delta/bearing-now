@@ -53,7 +53,7 @@ export function AllItemsView() {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex gap-1 rounded-lg bg-muted p-1">
+          <div className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
             {["active", "done", "inbox", "archived", "all"].map((s) => (
               <button
                 key={s}

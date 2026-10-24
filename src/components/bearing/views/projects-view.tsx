@@ -46,8 +46,8 @@ export function ProjectsView() {
         icon="FolderKanban"
         color="var(--info)"
         actions={
-          <div className="flex gap-2">
-            <div className="flex gap-1 rounded-lg bg-muted p-1">
+          <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
               {(["active", "all"] as const).map((f) => (
                 <button
                   key={f}
@@ -118,18 +118,18 @@ export function ProjectsView() {
                   <Icon name={p.icon || "FolderKanban"} className="h-5 w-5" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-base font-semibold">{p.name}</h3>
+                  <h3 className="break-words text-base font-semibold">{p.name}</h3>
                   {p.targetDate && (
-                    <p className="text-[11px] text-muted-foreground">Target {smartDate(p.targetDate)}</p>
+                    <p className="text-xs text-muted-foreground">Target {smartDate(p.targetDate)}</p>
                   )}
                 </div>
                 {p.status !== "active" && (
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">{p.status}</span>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium capitalize text-muted-foreground">{p.status}</span>
                 )}
               </div>
               <p className="mb-4 line-clamp-2 flex-1 text-sm text-muted-foreground">{p.description || "No description"}</p>
               <div>
-                <div className="mb-1.5 flex items-center justify-between text-[11px]">
+                <div className="mb-1.5 flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">{p.taskDone}/{p.taskTotal || p.itemCount} tasks · {p.itemCount} items</span>
                   <span className="font-semibold" style={{ color: projectColor(p) }}>{p.progress}%</span>
                 </div>
@@ -206,19 +206,19 @@ function ProjectDetail({ id }: { id: string }) {
       {/* Stats row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-xl border border-border/60 bg-card/40 p-3">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Tasks done</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Tasks done</p>
           <p className="mt-1 text-xl font-bold">{stats.tasksDone}</p>
         </div>
         <div className="rounded-xl border border-border/60 bg-card/40 p-3">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Active tasks</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Active tasks</p>
           <p className="mt-1 text-xl font-bold">{stats.tasksActive}</p>
         </div>
         <div className="rounded-xl border border-border/60 bg-card/40 p-3">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Income</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Income</p>
           <p className="mt-1 text-xl font-bold text-income">${stats.income.toLocaleString()}</p>
         </div>
         <div className="rounded-xl border border-border/60 bg-card/40 p-3">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Expense</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Expense</p>
           <p className="mt-1 text-xl font-bold text-expense">${stats.expense.toLocaleString()}</p>
         </div>
       </div>
@@ -274,7 +274,7 @@ function ProjectDetail({ id }: { id: string }) {
               <div className="max-h-80 space-y-2 overflow-y-auto">
                 {journals.map((j) => (
                   <button key={j.id} onClick={() => openItemDetail(j.id)} className="w-full rounded-lg border border-border/60 p-3 text-left hover:bg-muted/40">
-                    <p className="text-[11px] text-muted-foreground">{fmtDate(j.scheduledAt || j.createdAt, "MMM d, p")}</p>
+                    <p className="text-xs text-muted-foreground">{fmtDate(j.scheduledAt || j.createdAt, "MMM d, p")}</p>
                     <p className="mt-0.5 text-sm font-medium">{j.title}</p>
                     {j.content && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{j.content}</p>}
                   </button>

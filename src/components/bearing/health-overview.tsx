@@ -56,7 +56,7 @@ export function HealthOverview() {
         </span>
         <div>
           <h3 className="text-sm font-semibold">Health snapshot</h3>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {medications.length} med{medications.length !== 1 ? "s" : ""} · {symptoms.length} symptom{symptoms.length !== 1 ? "s" : ""} · {appointments.length} upcoming
           </p>
         </div>
@@ -66,7 +66,7 @@ export function HealthOverview() {
         {/* Upcoming appointments */}
         {appointments.length > 0 && (
           <div>
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Upcoming</p>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Upcoming</p>
             <div className="space-y-1">
               {appointments.slice(0, 2).map((a: any, i: number) => (
                 <motion.button
@@ -82,7 +82,7 @@ export function HealthOverview() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-medium">{a.title}</p>
-                    <p className="text-[10px] text-muted-foreground">{smartDate(a.scheduledAt)}</p>
+                    <p className="text-xs text-muted-foreground">{smartDate(a.scheduledAt)}</p>
                   </div>
                 </motion.button>
               ))}
@@ -93,7 +93,7 @@ export function HealthOverview() {
         {/* Active medications */}
         {medications.length > 0 && (
           <div>
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Medications</p>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Medications</p>
             <div className="flex flex-wrap gap-1.5">
               {medications.map((m: any) => (
                 <button
@@ -103,7 +103,7 @@ export function HealthOverview() {
                 >
                   <Icon name="Pill" className="h-3 w-3 text-expense" />
                   <span className="font-medium">{m.title}</span>
-                  {m.metadata?.dose && <span className="text-[10px] text-muted-foreground">{m.metadata.dose}</span>}
+                  {m.metadata?.dose && <span className="text-xs text-muted-foreground">{m.metadata.dose}</span>}
                 </button>
               ))}
             </div>
@@ -113,7 +113,7 @@ export function HealthOverview() {
         {/* Health habits */}
         {healthHabits.length > 0 && (
           <div>
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Health habits</p>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Health habits</p>
             <div className="space-y-1">
               {healthHabits.slice(0, 3).map((h: any, i: number) => {
                 const streak = h.metadata?.streak || 0;
@@ -130,7 +130,7 @@ export function HealthOverview() {
                     <Icon name="Repeat" className="h-3 w-3 text-success" />
                     <span className="flex-1 truncate text-xs font-medium">{h.title}</span>
                     {streak > 0 && (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-success/15 px-1.5 py-0.5 text-[10px] font-bold text-success">
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-success/15 px-1.5 py-0.5 text-xs font-bold text-success">
                         <Icon name="Flame" className="h-2.5 w-2.5" />
                         {streak}
                       </span>
@@ -145,7 +145,7 @@ export function HealthOverview() {
         {/* Recent symptoms */}
         {symptoms.length > 0 && (
           <div>
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Recent symptoms</p>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Recent symptoms</p>
             <div className="space-y-1">
               {symptoms.slice(0, 3).map((s: any, i: number) => {
                 const sev = s.metadata?.severity || 1;
@@ -169,7 +169,7 @@ export function HealthOverview() {
                       ))}
                     </div>
                     <span className="flex-1 truncate text-xs font-medium">{s.title}</span>
-                    <span className="text-[10px] text-muted-foreground">{smartDate(s.scheduledAt || s.createdAt)}</span>
+                    <span className="text-xs text-muted-foreground">{smartDate(s.scheduledAt || s.createdAt)}</span>
                   </motion.button>
                 );
               })}

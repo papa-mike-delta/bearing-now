@@ -74,18 +74,18 @@ export function ItemCard({ item, onClick, compact, showProject, className }: Ite
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-wrap items-start justify-between gap-2">
           <h4
             className={cn(
-              "text-sm font-medium leading-snug",
+              "break-words text-sm font-medium leading-snug",
               done && "line-through text-muted-foreground",
             )}
           >
-            {item.title}
+            {onClick ? <button className="text-left" onClick={(event) => { event.stopPropagation(); onClick(); }}>{item.title}</button> : item.title}
           </h4>
           {item.priority > 0 && (
             <span
-              className="mt-0.5 flex-shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+              className="mt-0.5 flex-shrink-0 rounded-md px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide"
               style={{ background: colorWithAlpha(PRIORITY_META[item.priority]?.color, 10), color: PRIORITY_META[item.priority]?.color }}
             >
               {PRIORITY_META[item.priority]?.name}
@@ -99,43 +99,43 @@ export function ItemCard({ item, onClick, compact, showProject, className }: Ite
 
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {(item.dueDate || item.scheduledAt) && (
-            <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium", dateColor(item.dueDate || item.scheduledAt))}>
+            <span className={cn("inline-flex items-center gap-1 text-xs font-medium", dateColor(item.dueDate || item.scheduledAt))}>
               <Icon name="CalendarClock" className="h-3 w-3" />
               {smartDate(item.dueDate || item.scheduledAt)}
             </span>
           )}
           {domain && (
-            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               <span className="h-2 w-2 rounded-full" style={{ background: domain.color }} />
               {domain.short}
             </span>
           )}
           {showProject && item.project && (
             <span
-              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+              className="inline-flex min-w-0 max-w-full items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium"
               style={{ background: colorWithAlpha(projectColor(item.project, item.type), 10), color: projectColor(item.project, item.type) }}
             >
-              <Icon name="Folder" className="h-2.5 w-2.5" />
-              {item.project.name}
+              <Icon name="Folder" className="h-2.5 w-2.5 shrink-0" />
+              <span className="min-w-0 [overflow-wrap:anywhere]">{item.project.name}</span>
             </span>
           )}
           {item.tags?.length > 0 &&
             item.tags.slice(0, 3).map((t: any) => (
               <span
                 key={t.tag.id}
-                className="rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+                className="max-w-full break-words rounded-md px-1.5 py-0.5 text-xs font-medium"
                 style={{ background: colorWithAlpha(t.tag.color, 10), color: t.tag.color }}
               >
                 #{t.tag.name}
               </span>
             ))}
           {item.metadata?.amount != null && (
-            <span className="text-[11px] font-semibold" style={{ color: item.metadata.kind === "income" ? "var(--income)" : "var(--expense)" }}>
+            <span className="text-xs font-semibold" style={{ color: item.metadata.kind === "income" ? "var(--income)" : "var(--expense)" }}>
               {item.metadata.kind === "income" ? "+" : "−"}${Number(item.metadata.amount).toLocaleString()}
             </span>
           )}
           {item.metadata?.rating && (
-            <span className="inline-flex items-center gap-0.5 text-[11px] text-priority-high">
+            <span className="inline-flex items-center gap-0.5 text-xs text-priority-high">
               <Icon name="Star" className="h-3 w-3 fill-priority-high text-priority-high" />
               {item.metadata.rating}
             </span>

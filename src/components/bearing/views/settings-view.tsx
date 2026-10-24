@@ -203,8 +203,8 @@ export function SettingsView() {
       {/* Security section skeleton */}
       <div className="space-y-3 rounded-2xl border border-border/60 bg-card/50 p-4">
         <div className="h-5 w-20 skeleton rounded bg-muted/40" />
-        <div className="flex items-center justify-between rounded-xl border border-border/40 p-3">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/40 p-3">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="h-9 w-9 skeleton rounded-lg bg-muted/40" />
             <div className="space-y-1">
               <div className="h-4 w-48 skeleton rounded bg-muted/40" />
@@ -257,8 +257,8 @@ export function SettingsView() {
               <div className="rounded-xl border border-type-journal/20 bg-type-journal/5 p-4">
                 <h4 className="mb-3 text-sm font-semibold text-type-journal">Set up 2FA</h4>
                 {qr2faUrl && <div className="mb-3 flex justify-center"><img src={qr2faUrl} alt="2FA QR" className="rounded-lg border-2 border-border" width={180} height={180} /></div>}
-                <p className="mb-2 text-[11px] text-muted-foreground">Scan with Google Authenticator, Authy, etc.:</p>
-                <p className="mb-3 break-all rounded bg-muted/50 p-2 font-mono text-[10px]">{manualEntry}</p>
+                <p className="mb-2 text-xs text-muted-foreground">Scan with Google Authenticator, Authy, etc.:</p>
+                <p className="mb-3 break-all rounded bg-muted/50 p-2 font-mono text-xs">{manualEntry}</p>
                 <div className="flex gap-2">
                   <Input value={verifyCode} onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" className="h-9 text-center text-lg font-bold tracking-widest" />
                   <Button size="sm" onClick={confirm2FA} disabled={loading || verifyCode.length !== 6} className="gap-1.5">{loading ? <Icon name="Loader2" className="h-3.5 w-3.5 animate-spin" /> : "Confirm"}</Button>
@@ -268,10 +268,10 @@ export function SettingsView() {
             </motion.div>
           )}
           {/* Login on another device */}
-          <div className="flex items-center justify-between rounded-xl border border-border/40 p-3">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/40 p-3">
+            <div className="flex min-w-0 items-center gap-3">
               <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-type-journal/10 text-type-journal"><Icon name="QrCode" className="h-4 w-4" /></span>
-              <div><p className="text-sm font-medium">Login on another device</p><p className="text-[11px] text-muted-foreground">Generate a QR code to sign in on your phone</p></div>
+              <div><p className="text-sm font-medium">Login on another device</p><p className="text-xs text-muted-foreground">Generate a QR code to sign in on your phone</p></div>
             </div>
             <Button size="sm" variant="outline" onClick={startQrLogin} disabled={qrLoading} className="gap-1.5">
               <Icon name={qrLoading ? "Loader2" : "QrCode"} className={`h-3.5 w-3.5 ${qrLoading ? "animate-spin" : ""}`} /> Generate QR
@@ -295,7 +295,7 @@ export function SettingsView() {
               <Icon name="Loader2" className="h-4 w-4 animate-spin" />
               <span>Waiting for scan…</span>
             </div>
-            <p className="mt-2 text-[10px] text-muted-foreground">Expires in 5 minutes</p>
+            <p className="mt-2 text-xs text-muted-foreground">Expires in 5 minutes</p>
           </div>
         </DialogContent>
       </Dialog>
@@ -319,7 +319,7 @@ export function SettingsView() {
                     <SelectItem value="custom">Custom endpoint</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="mt-1 text-[10px] text-muted-foreground">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {prefs?.aiProvider === "z-ai-sdk" && "Uses the built-in z-ai-web-dev-sdk. No configuration needed."}
                   {prefs?.aiProvider === "openai-compatible" && "Works with any OpenAI-compatible API. Enter your API key and base URL below."}
                   {prefs?.aiProvider === "custom" && "Enter a custom API endpoint, key, and model name."}
@@ -329,18 +329,18 @@ export function SettingsView() {
               {(prefs?.aiProvider === "openai-compatible" || prefs?.aiProvider === "custom") && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3 rounded-lg border border-border/40 p-3">
                   <div>
-                    <Label className="mb-1 block text-[11px] font-medium text-muted-foreground">API Key {prefs?.hasApiKey && "(saved)"}</Label>
+                    <Label className="mb-1 block text-xs font-medium text-muted-foreground">API Key {prefs?.hasApiKey && "(saved)"}</Label>
                     <Input type="password" placeholder={prefs?.hasApiKey ? "•••••••• (saved)" : "sk-..."} onChange={(e) => { if (e.target.value) updatePrefs({ aiApiKey: e.target.value }); }} className="h-9" />
                   </div>
                   <div>
-                    <Label className="mb-1 block text-[11px] font-medium text-muted-foreground">Base URL</Label>
+                    <Label className="mb-1 block text-xs font-medium text-muted-foreground">Base URL</Label>
                     <Input value={prefs?.aiBaseUrl || ""} onChange={(e) => updatePrefs({ aiBaseUrl: e.target.value })} placeholder="https://api.openai.com/v1" className="h-9" />
                   </div>
                   <div>
-                    <Label className="mb-1 block text-[11px] font-medium text-muted-foreground">Model</Label>
+                    <Label className="mb-1 block text-xs font-medium text-muted-foreground">Model</Label>
                     <Input value={prefs?.aiModel || ""} onChange={(e) => updatePrefs({ aiModel: e.target.value })} placeholder="gpt-4o-mini" className="h-9" />
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Works with: OpenAI, Groq, Together AI, Anyscale, Ollama, LM Studio, and any OpenAI-compatible API.</p>
+                  <p className="text-xs text-muted-foreground">Works with: OpenAI, Groq, Together AI, Anyscale, Ollama, LM Studio, and any OpenAI-compatible API.</p>
                 </motion.div>
               )}
             </motion.div>
@@ -367,10 +367,10 @@ export function SettingsView() {
               <Button size="sm" variant="outline" onClick={() => saveThemeOverride(true)} disabled={themeSaving}>Reset imported theme</Button>
             </div>
           </div>
-          <div className="flex items-center justify-between rounded-xl border border-border/40 p-3">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/40 p-3">
+            <div className="flex min-w-0 items-center gap-3">
               <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-priority-high/10 text-priority-high"><Icon name="Bell" className="h-4 w-4" /></span>
-              <div><p className="text-sm font-medium">Browser notifications</p><p className="text-[11px] text-muted-foreground">Overdue & due task alerts</p></div>
+              <div><p className="text-sm font-medium">Browser notifications</p><p className="text-xs text-muted-foreground">Overdue & due task alerts</p></div>
             </div>
             <Button size="sm" variant="outline" onClick={async () => { const g = await requestNotificationPermission(); if (g) { notify.success("Notifications enabled"); sendNotification("bearing.now", "Enabled!"); } else notify.error("Permission denied"); }}>Enable</Button>
           </div>
@@ -384,20 +384,20 @@ export function SettingsView() {
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success"><Icon name="HardDrive" className="h-4 w-4" /></span>
             <div className="flex-1">
               <p className="text-sm font-medium">SQLite (local file)</p>
-              <p className="text-[11px] text-muted-foreground">Current database — stored at <code className="rounded bg-muted px-1 text-[10px]">db/custom.db</code></p>
+              <p className="text-xs text-muted-foreground">Current database — stored at <code className="rounded bg-muted px-1 text-xs">db/custom.db</code></p>
             </div>
           </div>
 
           <div className="rounded-lg border border-border/40 p-3">
             <p className="mb-2 text-xs font-medium">Want to use a cloud database?</p>
-            <p className="text-[11px] text-muted-foreground">bearing.now supports any PostgreSQL database. To switch:</p>
-            <ol className="mt-1.5 space-y-1 text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">bearing.now supports any PostgreSQL database. To switch:</p>
+            <ol className="mt-1.5 space-y-1 text-xs text-muted-foreground">
               <li>1. Create a free database on <a href="https://neon.tech" target="_blank" className="text-type-bookmark hover:underline">Neon</a> or <a href="https://supabase.com" target="_blank" className="text-type-bookmark hover:underline">Supabase</a></li>
               <li>2. Set <code className="rounded bg-muted px-1">DATABASE_URL</code> in your <code className="rounded bg-muted px-1">.env</code> file</li>
               <li>3. Change Prisma provider from <code className="rounded bg-muted px-1">sqlite</code> to <code className="rounded bg-muted px-1">postgresql</code></li>
               <li>4. Run <code className="rounded bg-muted px-1">bun run db:push</code></li>
             </ol>
-            <p className="mt-2 text-[10px] text-muted-foreground">PostgreSQL connection string format: <code className="rounded bg-muted px-1">postgresql://user:pass@host/dbname</code></p>
+            <p className="mt-2 text-xs text-muted-foreground">PostgreSQL connection string format: <code className="rounded bg-muted px-1">postgresql://user:pass@host/dbname</code></p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -459,7 +459,7 @@ export function SettingsView() {
 
       {/* Account */}
       <SectionCard title="Account" icon="UserCog">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">Sign out of your account</p>
           <Button variant="outline" size="sm" className="gap-1.5 text-expense hover:bg-expense/10 hover:text-expense" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); draftOwner.clear(); window.location.href = "/login"; }}>
             <Icon name="LogOut" className="h-3.5 w-3.5" /> Sign out
@@ -472,10 +472,10 @@ export function SettingsView() {
 
 function ToggleRow({ icon, color, title, desc, checked, onChange }: { icon: string; color: string; title: string; desc: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-border/40 p-3">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/40 p-3">
+      <div className="flex min-w-0 items-center gap-3">
         <span className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: colorWithAlpha(color, 10), color }}><Icon name={icon} className="h-4 w-4" /></span>
-        <div><p className="text-sm font-medium">{title}</p><p className="text-[11px] text-muted-foreground">{desc}</p></div>
+        <div><p className="text-sm font-medium">{title}</p><p className="text-xs text-muted-foreground">{desc}</p></div>
       </div>
       <Switch checked={checked} onCheckedChange={onChange} />
     </div>

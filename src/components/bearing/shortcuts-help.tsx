@@ -80,7 +80,7 @@ export function ShortcutsHelp() {
         <div className="space-y-4 py-2">
           {SHORTCUT_GROUPS.map((group) => (
             <div key={group.title}>
-              <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 {group.title}
               </h3>
               <div className="grid gap-1">
@@ -97,7 +97,7 @@ export function ShortcutsHelp() {
                       {s.keys.map((k, j) => (
                         <kbd
                           key={j}
-                          className="rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-semibold shadow-sm"
+                          className="rounded border border-border bg-background px-1.5 py-0.5 text-xs font-semibold shadow-sm"
                         >
                           {k}
                         </kbd>

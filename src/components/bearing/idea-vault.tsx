@@ -61,7 +61,7 @@ export function IdeaVault() {
               </span>
               <div>
                 <h3 className="text-sm font-semibold">Idea vault</h3>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {ideas.length} idea{ideas.length !== 1 ? "s" : ""}{inboxIdeas.length > 0 && ` · ${inboxIdeas.length} unprocessed`}
                 </p>
               </div>
@@ -82,10 +82,10 @@ export function IdeaVault() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium">{idea.title}</p>
-                  {idea.content && <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">{idea.content}</p>}
+                  {idea.content && <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{idea.content}</p>}
                 </div>
                 {idea.status === "inbox" && (
-                  <span className="flex-shrink-0 rounded-full bg-priority-high/15 px-1.5 py-0.5 text-[9px] font-bold text-priority-high">NEW</span>
+                  <span className="flex-shrink-0 rounded-full bg-priority-high/15 px-1.5 py-0.5 text-xs font-bold text-priority-high">NEW</span>
                 )}
               </motion.button>
             ))}
@@ -98,7 +98,7 @@ export function IdeaVault() {
         {/* Media log */}
         {mediaLog.length > 0 && (
           <div className="rounded-2xl border border-border/50 bg-card/30 p-3">
-            <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               <Icon name="Film" className="h-3 w-3" />
               Media log
             </h4>
@@ -114,7 +114,7 @@ export function IdeaVault() {
                   </span>
                   <span className="flex-1 truncate text-xs font-medium">{m.title}</span>
                   {m.metadata?.rating > 0 && (
-                    <span className="flex items-center gap-0.5 text-[10px] text-priority-high">
+                    <span className="flex items-center gap-0.5 text-xs text-priority-high">
                       <Icon name="Star" className="h-2.5 w-2.5 fill-priority-high text-priority-high" />
                       {m.metadata.rating}
                     </span>
@@ -128,7 +128,7 @@ export function IdeaVault() {
         {/* Upcoming events */}
         {events.length > 0 && (
           <div className="rounded-2xl border border-border/50 bg-card/30 p-3">
-            <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               <Icon name="Calendar" className="h-3 w-3" />
               Upcoming
             </h4>
@@ -144,7 +144,7 @@ export function IdeaVault() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-medium">{e.title}</p>
-                    <p className="text-[10px] text-muted-foreground">{smartDate(e.scheduledAt)}</p>
+                    <p className="text-xs text-muted-foreground">{smartDate(e.scheduledAt)}</p>
                   </div>
                 </button>
               ))}
@@ -156,7 +156,7 @@ export function IdeaVault() {
       {/* Recent milestones */}
       {milestones.length > 0 && (
         <div className="rounded-2xl border border-priority-high/20 bg-gradient-to-br from-priority-high/5 to-transparent p-3">
-          <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-priority-high">
+          <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-priority-high">
             <Icon name="Flag" className="h-3 w-3" />
             Milestones
           </h4>
@@ -174,7 +174,7 @@ export function IdeaVault() {
               >
                 <Icon name={ms.status === "done" ? "Check" : "Flag"} className="h-3 w-3" />
                 <span className="font-medium">{ms.title}</span>
-                <span className="text-[10px] text-muted-foreground">{smartDate(ms.completedAt || ms.scheduledAt)}</span>
+                <span className="text-xs text-muted-foreground">{smartDate(ms.completedAt || ms.scheduledAt)}</span>
               </button>
             ))}
           </div>

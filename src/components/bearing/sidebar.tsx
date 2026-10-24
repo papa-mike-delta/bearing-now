@@ -54,12 +54,12 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </div>
         <div>
           <div className="text-sm font-semibold leading-none tracking-tight">bearing.now</div>
-          <div className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Digital Brain</div>
+          <div className="mt-0.5 text-xs uppercase tracking-wider text-muted-foreground">Digital Brain</div>
         </div>
       </div>
 
       {/* Scrollable nav */}
-      <ScrollArea className="flex-1 px-3 py-3">
+      <ScrollArea className="min-h-0 flex-1 overflow-hidden px-3 py-3">
         <div className="space-y-0.5">
           {NAV.map((n) => {
             const active = view === n.key;
@@ -79,14 +79,14 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                 <Icon name={n.icon} className="h-4 w-4" />
                 <span className="flex-1 text-left">{n.name}</span>
                 {badge && (
-                  <span className="rounded-full bg-priority-high/15 px-1.5 py-0.5 text-[10px] font-bold text-priority-high">{badge}</span>
+                  <span className="rounded-full bg-priority-high/15 px-1.5 py-0.5 text-xs font-bold text-priority-high">{badge}</span>
                 )}
               </button>
             );
           })}
         </div>
 
-        <div className="mt-4 mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Life Domains</div>
+        <div className="mt-4 mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Life Domains</div>
         <div className="space-y-0.5">
           {DOMAINS.map((d) => {
             const active = view === d.key;
@@ -104,7 +104,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                   <Icon name={d.icon} className="h-3 w-3" />
                 </span>
                 <span className="flex-1 text-left text-[13px] font-medium">{d.short}</span>
-                {count ? <span className="text-[10px] text-muted-foreground/60">{count}</span> : null}
+                {count ? <span className="text-xs text-muted-foreground/60">{count}</span> : null}
               </button>
             );
           })}
@@ -165,7 +165,7 @@ export function Sidebar() {
             <SheetTitle>Navigation</SheetTitle>
             <SheetDescription>Navigate between bearing.now views and life domains.</SheetDescription>
           </SheetHeader>
-          <div className="flex h-full flex-col">
+          <div className="flex min-h-0 flex-1 flex-col">
             <SidebarContent onNavigate={closeMobile} />
           </div>
         </SheetContent>

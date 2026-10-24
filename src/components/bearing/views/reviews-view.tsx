@@ -234,7 +234,7 @@ function ReviewCard({ review, onOpenItem }: { review: any; onOpenItem: (id: stri
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold capitalize">{review.type} reflection</h3>
-              <Badge variant="secondary" className="text-[10px]">{fmtDate(date, "EEE, MMM d")}</Badge>
+              <Badge variant="secondary" className="text-xs">{fmtDate(date, "EEE, MMM d")}</Badge>
             </div>
             {review.wins && <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{review.wins}</p>}
           </div>

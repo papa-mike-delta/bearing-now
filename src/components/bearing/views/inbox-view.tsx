@@ -1,5 +1,7 @@
 "use client";
 
+import { cn } from "@/lib/utils";
+
 import { reportWriteError } from "@/hooks/use-browser-writes";
 
 import { useState, useEffect } from "react";
@@ -112,7 +114,7 @@ export function InboxView() {
         icon="Inbox"
         color="var(--priority-high)"
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {items.length > 0 && aiEnabled && (
               <Button
                 variant="outline"
@@ -122,7 +124,7 @@ export function InboxView() {
                 className="gap-1.5 border-type-journal/30 text-type-journal hover:bg-type-journal/10"
               >
                 <Icon name={aiLoading ? "Loader2" : "Bot"} className={`h-3.5 w-3.5 ${aiLoading ? "animate-spin" : ""}`} />
-                <span className="hidden sm:inline">{aiLoading ? "AI analyzing…" : "AI Smart Process"}</span>
+                <span className="sr-only sm:not-sr-only">{aiLoading ? "AI analyzing…" : "AI Smart Process"}</span>
               </Button>
             )}
             <Button onClick={() => setQuickCaptureOpen(true)} className="gap-1.5 bg-primary text-primary-foreground">
@@ -138,17 +140,17 @@ export function InboxView() {
           <span className="text-xs font-medium text-muted-foreground">
             {selected.size > 0 ? `${selected.size} selected` : `${items.length} to process`}
           </span>
-          <div className="ml-auto flex flex-wrap items-center gap-1.5">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Set:</span>
-            <select onChange={(e) => e.target.value && processAll("type", e.target.value)} className="rounded-md border border-border/60 bg-background px-2 py-1 text-xs" defaultValue="">
+          <div className="ml-auto flex w-full min-w-0 max-w-full flex-wrap items-center gap-1.5 sm:w-auto">
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">Set:</span>
+            <select aria-label="Set Item type" onChange={(e) => e.target.value && processAll("type", e.target.value)} className="min-w-0 max-w-full rounded-md border border-border/60 bg-background px-2 py-1 text-xs" defaultValue="">
               <option value="">type…</option>
               {ITEM_TYPES.map((t) => <option key={t.type} value={t.type}>{t.name}</option>)}
             </select>
-            <select onChange={(e) => e.target.value && processAll("domainId", e.target.value)} className="rounded-md border border-border/60 bg-background px-2 py-1 text-xs" defaultValue="">
+            <select aria-label="Set life domain" onChange={(e) => e.target.value && processAll("domainId", e.target.value)} className="min-w-0 max-w-full rounded-md border border-border/60 bg-background px-2 py-1 text-xs" defaultValue="">
               <option value="">domain…</option>
               {domains.map((d: any) => <option key={d.id} value={d.id}>{DOMAINS.find((dd) => dd.key === d.key)?.name}</option>)}
             </select>
-            <select onChange={(e) => e.target.value && processAll("projectId", e.target.value)} className="rounded-md border border-border/60 bg-background px-2 py-1 text-xs" defaultValue="">
+            <select aria-label="Set project" onChange={(e) => e.target.value && processAll("projectId", e.target.value)} className="min-w-0 max-w-full rounded-md border border-border/60 bg-background px-2 py-1 text-xs" defaultValue="">
               <option value="">project…</option>
               {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
@@ -166,7 +168,7 @@ export function InboxView() {
               <div className="h-5 w-5 skeleton rounded-md bg-muted/60" />
               <div className="flex-1 space-y-2">
                 <div className="h-4 w-2/3 skeleton rounded bg-muted/60" />
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <div className="h-3 w-16 skeleton rounded bg-muted/40" />
                   <div className="h-3 w-12 skeleton rounded bg-muted/40" />
                 </div>
@@ -198,17 +200,18 @@ export function InboxView() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0, x: 40 }}
-                  className="flex items-center gap-3"
+                  className="inbox-row flex flex-wrap items-center gap-3 sm:flex-nowrap"
                 >
                   <button
+                    aria-label={`Select ${item.title}`} aria-pressed={selected.has(item.id)}
                     onClick={() => toggle(item.id)}
-                    className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border-2 transition-all ${
-                      selected.has(item.id) ? "border-success bg-success/15 text-success" : "border-muted-foreground/30"
-                    }`}
+                    className="flex h-5 w-5 flex-shrink-0 items-center justify-center"
                   >
-                    {selected.has(item.id) && <Icon name="Check" className="h-3 w-3" strokeWidth={3} />}
+                    <span className={cn("flex h-5 w-5 items-center justify-center rounded-md border-2 transition-all", selected.has(item.id) ? "border-success bg-success/15 text-success" : "border-muted-foreground/30")}>
+                      {selected.has(item.id) && <Icon name="Check" className="h-3 w-3" strokeWidth={3} />}
+                    </span>
                   </button>
-                  <div className="relative flex-1">
+                  <div className="relative min-w-0 flex-1">
                     <ItemCard item={item} showProject onClick={() => openItemDetail(item.id)} />
                     {aiSuggestions[item.id] && (
                       <motion.div
@@ -217,7 +220,7 @@ export function InboxView() {
                         className="mt-1.5 flex items-center gap-2 rounded-lg border border-type-journal/20 bg-type-journal/5 p-2"
                       >
                         <Icon name="Bot" className="h-3 w-3 flex-shrink-0 text-type-journal" />
-                        <div className="min-w-0 flex-1 text-[11px]">
+                        <div className="min-w-0 flex-1 text-xs">
                           <span className="font-medium text-type-journal">
                             {aiSuggestions[item.id].suggestedType}
                             {aiSuggestions[item.id].suggestedDomainKey && ` · ${aiSuggestions[item.id].suggestedDomainKey.replace("_", " ")}`}
@@ -228,14 +231,14 @@ export function InboxView() {
                         </div>
                         <button
                           onClick={() => applyAiSuggestion(item.id)}
-                          className="flex-shrink-0 rounded-md bg-type-journal/15 px-2 py-0.5 text-[10px] font-medium text-type-journal hover:bg-type-journal/25"
+                          className="flex-shrink-0 rounded-md bg-type-journal/15 px-2 py-0.5 text-xs font-medium text-type-journal hover:bg-type-journal/25"
                         >
                           Apply
                         </button>
                       </motion.div>
                     )}
                   </div>
-                  <div className="flex flex-shrink-0 gap-1">
+                  <div className="inbox-actions flex w-full flex-shrink-0 justify-end gap-1 sm:w-auto">
                     <button
                       onClick={() => { update.mutate({ id: item.id, revision: item.revision, status: "active" }, { onSuccess: () => notify.success("Activated") }); }}
                       className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-success/10 hover:text-success"

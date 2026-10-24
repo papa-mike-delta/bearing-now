@@ -37,7 +37,7 @@ function Kbd({ children, className }: { children: React.ReactNode; className?: s
   return (
     <kbd
       className={cn(
-        "inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium leading-none text-muted-foreground shadow-sm",
+        "inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs font-medium leading-none text-muted-foreground shadow-sm",
         className,
       )}
     >
@@ -123,7 +123,7 @@ export function QuickCapture() {
           <Icon name="Zap" className="h-4 w-4 shrink-0 text-priority-high" />
           <span className="text-sm font-medium">Quick Capture</span>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <span className="hidden items-center gap-1 text-[10px] text-muted-foreground sm:inline-flex">
+            <span className="hidden items-center gap-1 text-xs text-muted-foreground sm:inline-flex">
               <Kbd>{mod}K</Kbd> to open
             </span>
             <DialogClose className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
@@ -178,7 +178,7 @@ export function QuickCapture() {
                   <Icon name={m.icon} className="h-3 w-3" />
                   {m.name}
                   <span className={cn(
-                    "ml-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded text-[8px] font-bold leading-none",
+                    "ml-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded text-xs font-bold leading-none",
                     type === t ? "text-muted-foreground" : "text-muted-foreground/50"
                   )}>
                     {idx + 1}
@@ -219,7 +219,7 @@ export function QuickCapture() {
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border/60 bg-muted/30 px-4 py-3">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Kbd>↵</Kbd> capture
             </span>

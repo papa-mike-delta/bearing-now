@@ -37,7 +37,7 @@ export function BucketList() {
           </span>
           <div>
             <h3 className="text-sm font-semibold">Bucket list</h3>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {completed.length} done · {active.length} to go
             </p>
           </div>
@@ -84,11 +84,11 @@ export function BucketList() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-medium">{item.title}</p>
                   {item.metadata?.measure && (
-                    <p className="text-[10px] text-muted-foreground">{item.metadata.measure}</p>
+                    <p className="text-xs text-muted-foreground">{item.metadata.measure}</p>
                   )}
                 </div>
                 {item.dueDate && (
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {new Date(item.dueDate).getFullYear()}
                   </span>
                 )}
@@ -100,7 +100,7 @@ export function BucketList() {
         {/* Completed items */}
         {completed.length > 0 && (
           <div className="mt-2 border-t border-border/30 pt-2">
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-success">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-success">
               Achieved ({completed.length})
             </p>
             <div className="space-y-0.5">
@@ -128,7 +128,7 @@ export function BucketList() {
 
       <button
         onClick={() => openItemEditor({ type: "goal" })}
-        className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border/40 py-1.5 text-[11px] font-medium text-muted-foreground transition-all hover:border-type-journal/40 hover:text-type-journal"
+        className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border/40 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:border-type-journal/40 hover:text-type-journal"
       >
         <Icon name="Plus" className="h-3 w-3" />
         Add to bucket list

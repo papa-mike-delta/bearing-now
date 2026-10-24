@@ -72,7 +72,7 @@ export function FollowUpDue() {
           </span>
           <div>
             <h3 className="text-sm font-semibold">Reconnect</h3>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {dueContacts.length > 0
                 ? `${dueContacts.length} ${dueContacts.length === 1 ? "person" : "people"} to reach out to`
                 : "You're all caught up"}
@@ -103,13 +103,13 @@ export function FollowUpDue() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-medium">{c.title}</p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {c.metadata?.relationship || "contact"} · {c.daysSince}d ago
                 </p>
               </div>
               <span
                 className={cn(
-                  "flex-shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase",
+                  "flex-shrink-0 rounded-md px-1.5 py-0.5 text-xs font-bold uppercase",
                   urgency === "high" ? "bg-expense/15 text-expense" : "bg-priority-high/15 text-priority-high",
                 )}
               >
@@ -133,7 +133,7 @@ export function FollowUpDue() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-medium">{c.title}</p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {c.metadata?.relationship || "contact"} · in {c.dueIn}d
               </p>
             </div>

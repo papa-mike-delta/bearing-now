@@ -346,7 +346,7 @@ export function FocusView() {
                 {running ? "in progress" : remaining === 0 ? "complete" : "ready"}
               </div>
               {selectedItem && (
-                <div className="mt-2 max-w-[200px] truncate text-[11px] font-medium" style={{ color: preset.color }}>
+                <div className="mt-2 max-w-[200px] truncate text-xs font-medium" style={{ color: preset.color }}>
                   {selectedItemType === "habit" ? "Leaf " : "Circle "}{selectedItem.title}
                 </div>
               )}
@@ -393,11 +393,11 @@ export function FocusView() {
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-priority-high/10 p-4 text-center">
                 <div className="text-3xl font-bold text-priority-high">{completedSessions}</div>
-                <div className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">sessions</div>
+                <div className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">sessions</div>
               </div>
               <div className="rounded-xl bg-success/10 p-4 text-center">
                 <div className="text-3xl font-bold text-success">{todayMinutes}</div>
-                <div className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">focus minutes</div>
+                <div className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">focus minutes</div>
               </div>
             </div>
             {completedSessions > 0 && (
@@ -422,7 +422,7 @@ export function FocusView() {
           <SectionCard title="Focus on" icon="Target">
             {tasks.length > 0 && (
               <div className="mb-3">
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-priority-high">Tasks</p>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-priority-high">Tasks</p>
                 <Select value={selectedItemType === "task" ? selectedItemId : "none"} onValueChange={(v) => selectItem(v, "task")}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Pick a task…" /></SelectTrigger>
                   <SelectContent className="max-h-60">
@@ -439,7 +439,7 @@ export function FocusView() {
 
             {habits.length > 0 && (
               <div className="mb-3">
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-success">Habits</p>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-success">Habits</p>
                 <Select value={selectedItemType === "habit" ? selectedItemId : "none"} onValueChange={(v) => selectItem(v, "habit")}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Pick a habit…" /></SelectTrigger>
                   <SelectContent className="max-h-60">
@@ -457,7 +457,7 @@ export function FocusView() {
             <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => openItemEditor({ type: "task" })}>
               <Icon name="Plus" className="h-3.5 w-3.5" /> New task
             </Button>
-            <p className="mt-3 text-[11px] text-muted-foreground">
+            <p className="mt-3 text-xs text-muted-foreground">
               {selectedItemType === "habit"
                 ? "When the timer ends, this habit will be automatically logged for today. 🌿"
                 : "Pick a habit to auto-log it when the timer completes. Pick a task to anchor your focus."}

@@ -161,9 +161,9 @@ export function JournalEditorView() {
   if (journalEditId && isLoading) {
     return (
       <div aria-busy="true" aria-label="Loading journal entry">
-        <div className="sticky top-0 z-20 -mx-4 mb-4 flex items-center justify-between border-b border-border/40 bg-background/80 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6">
+        <div className="sticky top-0 z-20 -mx-4 mb-4 flex flex-wrap items-center justify-between border-b border-border/40 bg-background/80 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6">
           <div className="skeleton h-4 w-14 rounded" />
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="skeleton hidden h-3 w-24 rounded sm:block" />
             <div className="skeleton h-8 w-8 rounded-md" />
             <div className="skeleton h-8 w-20 rounded-md" />
@@ -172,7 +172,7 @@ export function JournalEditorView() {
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
-          <div className="flex items-center justify-between border-b border-border/40 bg-muted/20 px-5 py-2.5">
+          <div className="flex flex-wrap items-center justify-between border-b border-border/40 bg-muted/20 px-5 py-2.5">
             <div className="skeleton h-3 w-40 rounded" />
             <div className="flex gap-1">
               {Array.from({ length: 5 }).map((_, i) => <div key={i} className="skeleton h-6 w-6 rounded-md" />)}
@@ -186,7 +186,7 @@ export function JournalEditorView() {
             <div className="skeleton h-72 w-full rounded-xl" />
           </div>
           <div className="border-t border-border/40 bg-muted/20 px-5 py-3">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="skeleton h-7 w-36 rounded-md" />
               <div className="skeleton h-3 w-40 rounded" />
             </div>
@@ -199,7 +199,7 @@ export function JournalEditorView() {
   return (
     <div>
       {/* Sticky top bar */}
-      <div className="sticky top-0 z-20 -mx-4 mb-4 flex items-center justify-between border-b border-border/40 bg-background/80 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6">
+      <div className="sticky top-0 z-20 -mx-4 mb-4 flex flex-wrap items-center justify-between border-b border-border/40 bg-background/80 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6">
         <button
           onClick={() => setView(journalEditId ? "mind_soul" : "mind_soul")}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -207,8 +207,8 @@ export function JournalEditorView() {
           <Icon name="ArrowLeft" className="h-4 w-4" />
           Back
         </button>
-        <div className="flex items-center gap-2">
-          <span className="hidden text-[11px] text-muted-foreground sm:inline">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="hidden text-xs text-muted-foreground sm:inline">
             {stats.words} words · {stats.readTime} min
           </span>
           {/* Delete button with confirmation — only for existing entries */}
@@ -269,13 +269,13 @@ export function JournalEditorView() {
         style={{ borderColor: colorWithAlpha(ACCENT, 19) }}
       >
         {/* Date + mood bar */}
-        <div className="flex items-center justify-between border-b border-border/40 bg-muted/20 px-5 py-2.5">
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between border-b border-border/40 bg-muted/20 px-5 py-2.5">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Icon name="Calendar" className="h-3 w-3" style={{ color: ACCENT }} />
             {fmtDate(new Date(), "EEEE, MMMM d · p")}
           </div>
-          <div className="flex items-center gap-1">
-            <span className="mr-1 text-[10px] text-muted-foreground">Mood:</span>
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="mr-1 w-full text-xs text-muted-foreground sm:w-auto">Mood:</span>
             {[
               { v: 1, e: "Frown", c: "var(--mood-1)" },
               { v: 2, e: "Meh", c: "var(--mood-2)" },
@@ -285,6 +285,7 @@ export function JournalEditorView() {
             ].map((m) => (
               <button
                 key={m.v}
+                aria-label={`Mood ${m.v} of 5`} aria-pressed={mood === m.v}
                 onClick={() => setMood(m.v)}
                 className={cn(
                   "flex h-6 w-6 items-center justify-center rounded-md text-sm transition-all",
@@ -332,9 +333,9 @@ export function JournalEditorView() {
 
         {/* Live word count + writing goal bar */}
         <div className="border-t border-border/40 bg-muted/20 px-5 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Domain</span>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Domain</span>
               <Select value={domainId || "none"} onValueChange={(v) => setDomainId(v === "none" ? "" : v)}>
                 <SelectTrigger className="h-7 w-36 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
@@ -347,27 +348,27 @@ export function JournalEditorView() {
             </div>
 
             {/* Live word count with goal progress */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 {showGoalInput ? (
-                  <div className="flex items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-1">
                     <input
                       type="number"
                       value={goalInput}
                       onChange={(e) => setGoalInput(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleGoalSave()}
-                      className="h-6 w-16 rounded border border-border bg-background px-2 text-[10px] outline-none"
+                      className="h-6 w-16 rounded border border-border bg-background px-2 text-xs outline-none"
                       min={1}
                       autoFocus
                     />
-                    <span className="text-[10px] text-muted-foreground">words</span>
-                    <button onClick={handleGoalSave} className="text-[10px] text-type-journal hover:underline">Set</button>
-                    <button onClick={() => setShowGoalInput(false)} className="text-[10px] text-muted-foreground hover:underline">Cancel</button>
+                    <span className="text-xs text-muted-foreground">words</span>
+                    <button onClick={handleGoalSave} className="text-xs text-type-journal hover:underline">Set</button>
+                    <button onClick={() => setShowGoalInput(false)} className="text-xs text-muted-foreground hover:underline">Cancel</button>
                   </div>
                 ) : (
                   <button
                     onClick={() => setShowGoalInput(true)}
-                    className="group flex items-center gap-1.5 text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+                    className="group flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
                     title="Click to change daily writing goal"
                   >
                     <Icon name="Target" className="h-3 w-3" />
@@ -377,7 +378,7 @@ export function JournalEditorView() {
               </div>
 
               {/* Goal progress bar */}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
                   <motion.div
                     className={cn("h-full rounded-full", goalReached ? "bg-success" : "bg-type-journal")}
@@ -387,7 +388,7 @@ export function JournalEditorView() {
                   />
                 </div>
                 <span className={cn(
-                  "text-[10px] font-medium",
+                  "text-xs font-medium",
                   goalReached ? "text-success" : "text-muted-foreground",
                 )}>
                   {stats.words}/{dailyGoal}
@@ -400,7 +401,7 @@ export function JournalEditorView() {
           </div>
 
           {/* Detailed stats row */}
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Icon name="Type" className="h-2.5 w-2.5" />
               {stats.words} words
@@ -421,7 +422,7 @@ export function JournalEditorView() {
       </motion.div>
 
       {/* Tips */}
-      <div className="mt-4 flex items-center gap-2 text-[11px] text-muted-foreground">
+      <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
         <Icon name="Keyboard" className="h-3.5 w-3.5" />
         <span>
           The editor shows formatted text as you type — no raw markdown visible.
