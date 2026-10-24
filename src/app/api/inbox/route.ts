@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   const items = await Owned.items(session.userId, {
     where: { status: "inbox" },
     orderBy: { createdAt: "desc" },
-    include: { tags: { include: { tag: true } }, domain: true, project: { select: { id: true, name: true, color: true } } },
+    include: { tags: { include: { tag: true } }, domain: true, project: { select: { id: true, name: true, color: true, domain: { select: { key: true } } } } },
   });
   return ok({ items: parseListMeta(items as any[]) });
 }

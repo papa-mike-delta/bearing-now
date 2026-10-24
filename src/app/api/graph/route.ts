@@ -1,3 +1,4 @@
+import { itemColor, projectColor } from "@/lib/product-colors";
 import { Owned } from "@/lib/domain/owned";
 import { db } from "@/lib/db";
 import { ok, sessionUser } from "@/lib/api";
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
   const items = await Owned.items(userId, {
     where: centerId ? { id: { in: Array.from(itemIds) } } : { status: { not: "archived" } },
     take: limit,
-    include: { domain: true, project: { select: { id: true, name: true, color: true } } },
+    include: { domain: true, project: { select: { id: true, name: true, color: true, domain: { select: { key: true } } } } },
   });
 
   for (const it of items) {
@@ -55,6 +56,7 @@ export async function GET(req: NextRequest) {
   const projects = await Owned.projects(userId, {
     where: projectIds.size ? { id: { in: Array.from(projectIds) } } : { status: "active" },
     take: 30,
+    include: { domain: { select: { key: true } } },
   });
 
   const nodes = [
@@ -64,11 +66,11 @@ export async function GET(req: NextRequest) {
       type: it.type,
       title: it.title,
       status: it.status,
-      color: TYPE_COLORS[it.type] || "#71717a",
+      color: itemColor(it.type),
       domainId: it.domainId,
       projectId: it.projectId,
       projectName: it.project?.name,
-      projectColor: it.project?.color,
+      projectColor: it.project ? projectColor(it.project, it.type) : undefined,
       priority: it.priority,
     })),
     ...projects.map((p) => ({
@@ -77,7 +79,7 @@ export async function GET(req: NextRequest) {
       type: "project",
       title: p.name,
       status: p.status,
-      color: p.color,
+      color: projectColor(p),
       progress: p.progress,
       domainId: p.domainId,
     })),
@@ -96,10 +98,3 @@ export async function GET(req: NextRequest) {
 
   return ok({ nodes, edges });
 }
-
-const TYPE_COLORS: Record<string, string> = {
-  task: "#f59e0b", note: "#eab308", journal: "#a78bfa", habit: "#10b981", event: "#06b6d4",
-  finance: "#10b981", contact: "#06b6d4", idea: "#ec4899", goal: "#f43f5e", document: "#71717a",
-  bookmark: "#3b82f6", milestone: "#f59e0b", routine: "#eab308", symptom: "#f43f5e",
-  medication: "#f43f5e", affirmation: "#a78bfa", vision: "#a78bfa",
-};

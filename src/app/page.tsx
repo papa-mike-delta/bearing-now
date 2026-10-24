@@ -1,3 +1,4 @@
+import { colorWithAlpha } from "@/lib/product-colors";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { SmoothHashScroller, SmoothScrollLink } from "@/components/smooth-scroll-link";
@@ -218,10 +219,10 @@ export default function LandingPage() {
                 {/* Stat pills */}
                 <div className="grid grid-cols-4 gap-2">
                   {[
-                    { l: "Inbox", v: "9", c: "#f59e0b", ic: Zap },
-                    { l: "Due", v: "0", c: "#10b981", ic: Calendar },
-                    { l: "Overdue", v: "0", c: "#f43f5e", ic: AlertTriangle },
-                    { l: "Projects", v: "5", c: "#06b6d4", ic: BookOpen },
+                    { l: "Inbox", v: "9", c: "var(--priority-high)", ic: Zap },
+                    { l: "Due", v: "0", c: "var(--success)", ic: Calendar },
+                    { l: "Overdue", v: "0", c: "var(--expense)", ic: AlertTriangle },
+                    { l: "Projects", v: "5", c: "var(--info)", ic: BookOpen },
                   ].map((s) => (
                     <div key={s.l} className="rounded-lg border border-border/40 p-2.5">
                       <div className="flex items-center gap-1.5">
@@ -238,15 +239,15 @@ export default function LandingPage() {
                   <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Today's focus</p>
                   <div className="space-y-1.5">
                     {[
-                      { t: "Finish landing page copy", c: "#f59e0b", p: "Urgent", d: "Fri", proj: "Launch Startup", pc: "#10b981" },
-                      { t: "Morning run 5km", c: "#10b981", p: "Med", d: "Tomorrow", proj: "Health", pc: "#f43f5e" },
-                      { t: "Book flights to Tokyo", c: "#f59e0b", p: "High", d: "In 7d", proj: "Japan Trip", pc: "#ec4899" },
-                      { t: "Pay credit card bill", c: "#f59e0b", p: "Urgent", d: "Sat", proj: "Debt", pc: "#71717a" },
+                      { t: "Finish landing page copy", c: "var(--priority-high)", p: "Urgent", d: "Fri", proj: "Launch Startup", pc: "var(--success)" },
+                      { t: "Morning run 5km", c: "var(--success)", p: "Med", d: "Tomorrow", proj: "Health", pc: "var(--expense)" },
+                      { t: "Book flights to Tokyo", c: "var(--priority-high)", p: "High", d: "In 7d", proj: "Japan Trip", pc: "var(--type-idea)" },
+                      { t: "Pay credit card bill", c: "var(--priority-high)", p: "Urgent", d: "Sat", proj: "Debt", pc: "var(--muted-foreground)" },
                     ].map((item) => (
                       <div key={item.t} className="flex items-center gap-2 rounded-lg bg-muted/20 px-2 py-1.5">
                         <div className="h-3.5 w-3.5 rounded-md border-2" style={{ borderColor: item.c }} />
                         <span className="flex-1 truncate text-xs font-medium">{item.t}</span>
-                        <span className="rounded px-1 text-[8px] font-bold uppercase" style={{ background: `${item.c}20`, color: item.c }}>{item.p}</span>
+                        <span className="rounded px-1 text-[8px] font-bold uppercase" style={{ background: colorWithAlpha(item.c, 13), color: item.c }}>{item.p}</span>
                         <span className="text-[9px] text-muted-foreground">{item.d}</span>
                         <span className="hidden text-[9px] sm:inline" style={{ color: item.pc }}>{item.proj}</span>
                       </div>
@@ -257,8 +258,8 @@ export default function LandingPage() {
                 {/* Active projects with progress */}
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { n: "Japan Trip 2025", c: "#ec4899", p: 35 },
-                    { n: "Health Transformation", c: "#f43f5e", p: 55 },
+                    { n: "Japan Trip 2025", c: "var(--type-idea)", p: 35 },
+                    { n: "Health Transformation", c: "var(--expense)", p: 55 },
                   ].map((proj) => (
                     <div key={proj.n} className="rounded-lg border border-border/40 p-2.5">
                       <div className="flex items-center gap-1.5">
@@ -290,11 +291,11 @@ export default function LandingPage() {
                   <p className="mb-2 text-[10px] font-semibold uppercase text-muted-foreground">How are you feeling?</p>
                   <div className="flex justify-between">
                     {[
-                      { icon: Frown, c: "#f43f5e" },
-                      { icon: Meh, c: "#f59e0b" },
-                      { icon: Smile, c: "#eab308" },
-                      { icon: SmilePlus, c: "#10b981" },
-                      { icon: Laugh, c: "#06b6d4" },
+                      { icon: Frown, c: "var(--expense)" },
+                      { icon: Meh, c: "var(--priority-high)" },
+                      { icon: Smile, c: "var(--priority-medium)" },
+                      { icon: SmilePlus, c: "var(--success)" },
+                      { icon: Laugh, c: "var(--info)" },
                     ].map((m, i) => (
                       <div key={i} className={`flex h-7 w-7 items-center justify-center rounded-lg ${i === 3 ? "bg-violet-500/15 ring-1 ring-violet-500/30" : ""}`}>
                         {(() => {
@@ -399,16 +400,16 @@ export default function LandingPage() {
               </div>
               <p className="mb-4 text-sm text-muted-foreground">See your entire life as a visual network. Everything connects.</p>
               <svg viewBox="0 0 300 160" className="w-full">
-                <line x1="80" y1="50" x2="150" y2="80" stroke="#a78bfa" strokeOpacity="0.3" strokeWidth="1.5" />
-                <line x1="150" y1="80" x2="220" y2="50" stroke="#a78bfa" strokeOpacity="0.3" strokeWidth="1.5" />
-                <line x1="80" y1="50" x2="100" y2="120" stroke="#a78bfa" strokeOpacity="0.2" strokeWidth="1" strokeDasharray="3 3" />
-                <line x1="150" y1="80" x2="200" y2="120" stroke="#a78bfa" strokeOpacity="0.2" strokeWidth="1" strokeDasharray="3 3" />
-                <line x1="100" y1="120" x2="200" y2="120" stroke="#a78bfa" strokeOpacity="0.25" strokeWidth="1" />
-                <circle cx="80" cy="50" r="8" fill="#f59e0b" />
-                <rect x="142" y="72" width="16" height="16" rx="3" fill="#a78bfa" />
-                <circle cx="220" cy="50" r="8" fill="#10b981" />
-                <circle cx="100" cy="120" r="7" fill="#06b6d4" />
-                <circle cx="200" cy="120" r="7" fill="#ec4899" />
+                <line x1="80" y1="50" x2="150" y2="80" stroke="var(--type-journal)" strokeOpacity="0.3" strokeWidth="1.5" />
+                <line x1="150" y1="80" x2="220" y2="50" stroke="var(--type-journal)" strokeOpacity="0.3" strokeWidth="1.5" />
+                <line x1="80" y1="50" x2="100" y2="120" stroke="var(--type-journal)" strokeOpacity="0.2" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1="150" y1="80" x2="200" y2="120" stroke="var(--type-journal)" strokeOpacity="0.2" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1="100" y1="120" x2="200" y2="120" stroke="var(--type-journal)" strokeOpacity="0.25" strokeWidth="1" />
+                <circle cx="80" cy="50" r="8" fill="var(--priority-high)" />
+                <rect x="142" y="72" width="16" height="16" rx="3" fill="var(--type-journal)" />
+                <circle cx="220" cy="50" r="8" fill="var(--success)" />
+                <circle cx="100" cy="120" r="7" fill="var(--info)" />
+                <circle cx="200" cy="120" r="7" fill="var(--type-idea)" />
                 <text x="80" y="38" textAnchor="middle" className="fill-foreground text-[8px] font-medium">Task</text>
                 <text x="150" y="100" textAnchor="middle" className="fill-foreground text-[8px] font-medium">Project</text>
                 <text x="220" y="38" textAnchor="middle" className="fill-foreground text-[8px] font-medium">Habit</text>
@@ -429,7 +430,7 @@ export default function LandingPage() {
               <div className="flex items-center justify-center gap-4">
                 <svg viewBox="0 0 120 120" className="h-28 w-28">
                   <circle cx="60" cy="60" r="52" fill="none" stroke="var(--muted)" strokeWidth="6" />
-                  <circle cx="60" cy="60" r="52" fill="none" stroke="#f59e0b" strokeWidth="6" strokeLinecap="round" strokeDasharray="327" strokeDashoffset="82" transform="rotate(-90 60 60)" />
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="var(--priority-high)" strokeWidth="6" strokeLinecap="round" strokeDasharray="327" strokeDashoffset="82" transform="rotate(-90 60 60)" />
                 </svg>
                 <div>
                   <div className="font-mono text-3xl font-bold tabular-nums">17:30</div>
@@ -500,15 +501,15 @@ export default function LandingPage() {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {[
-              { icon: Brain, color: "#a78bfa", title: "Digital Brain", desc: "Everything is a node. Tasks link to journals, journals link to projects, projects link to goals. Bi-directional connections make your data come alive." },
-              { icon: Calendar, color: "#06b6d4", title: "Master Calendar", desc: "One calendar that auto-aggregates tasks, bills, appointments, and birthdays. Toggle layers to view your life through different lenses." },
-              { icon: Zap, color: "#f59e0b", title: "Frictionless Capture", desc: "Press ⌘K anywhere to capture a thought instantly. It goes to an inbox you process later. Never decide where to put something in the moment." },
-              { icon: Network, color: "#10b981", title: "Brain Graph", desc: "See your entire life as a visual network. Zoom, pan, and discover connections you never knew existed between your thoughts." },
-              { icon: PenLine, color: "#ec4899", title: "Rich Journal Editor", desc: "A full-page writing experience with markdown formatting, word counts, and mood tracking. Your thoughts deserve more than a text box." },
-              { icon: Repeat, color: "#10b981", title: "Habit Tracker", desc: "Build streaks with a beautiful heatmap. Mark habits with one tap. See your consistency over weeks at a glance." },
-              { icon: TrendingUp, color: "#10b981", title: "Insights & Charts", desc: "Mood trends, habit consistency, activity flow, and financial health — all visualized so you can spot patterns and grow." },
-              { icon: Leaf, color: "#a78bfa", title: "Sanctuary Mode", desc: "A calm space for breathing exercises, daily affirmations, and life visions. Sometimes the most productive thing is to pause." },
-              { icon: Command, color: "#71717a", title: "Keyboard First", desc: "⌘K to capture, ⌘P for command palette, g+d to navigate. Vim-style shortcuts make power users feel at home." },
+              { icon: Brain, color: "var(--type-journal)", title: "Digital Brain", desc: "Everything is a node. Tasks link to journals, journals link to projects, projects link to goals. Bi-directional connections make your data come alive." },
+              { icon: Calendar, color: "var(--info)", title: "Master Calendar", desc: "One calendar that auto-aggregates tasks, bills, appointments, and birthdays. Toggle layers to view your life through different lenses." },
+              { icon: Zap, color: "var(--priority-high)", title: "Frictionless Capture", desc: "Press ⌘K anywhere to capture a thought instantly. It goes to an inbox you process later. Never decide where to put something in the moment." },
+              { icon: Network, color: "var(--success)", title: "Brain Graph", desc: "See your entire life as a visual network. Zoom, pan, and discover connections you never knew existed between your thoughts." },
+              { icon: PenLine, color: "var(--type-idea)", title: "Rich Journal Editor", desc: "A full-page writing experience with markdown formatting, word counts, and mood tracking. Your thoughts deserve more than a text box." },
+              { icon: Repeat, color: "var(--success)", title: "Habit Tracker", desc: "Build streaks with a beautiful heatmap. Mark habits with one tap. See your consistency over weeks at a glance." },
+              { icon: TrendingUp, color: "var(--success)", title: "Insights & Charts", desc: "Mood trends, habit consistency, activity flow, and financial health — all visualized so you can spot patterns and grow." },
+              { icon: Leaf, color: "var(--type-journal)", title: "Sanctuary Mode", desc: "A calm space for breathing exercises, daily affirmations, and life visions. Sometimes the most productive thing is to pause." },
+              { icon: Command, color: "var(--muted-foreground)", title: "Keyboard First", desc: "⌘K to capture, ⌘P for command palette, g+d to navigate. Vim-style shortcuts make power users feel at home." },
             ].map((f) => (
               <div
                 key={f.title}
@@ -520,7 +521,7 @@ export default function LandingPage() {
                 />
                 <div
                   className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl shadow-sm"
-                  style={{ background: `${f.color}18`, color: f.color }}
+                  style={{ background: colorWithAlpha(f.color, 9), color: f.color }}
                 >
                   <f.icon className="h-6 w-6" />
                 </div>
@@ -544,23 +545,23 @@ export default function LandingPage() {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { icon: Compass, color: "#a78bfa", name: "Mind & Soul", desc: "Values, visions, affirmations, breathing exercises" },
-              { icon: Calendar, color: "#f59e0b", name: "Time & Action", desc: "Tasks, habits, routines, today's focus" },
-              { icon: Heart, color: "#f43f5e", name: "Health & Body", desc: "Symptoms, medications, appointments, vitals" },
-              { icon: Wallet, color: "#10b981", name: "Wealth & Career", desc: "Income, expenses, subscriptions, savings goals" },
-              { icon: Users, color: "#06b6d4", name: "Network", desc: "Contacts, follow-ups, birthdays, relationships" },
-              { icon: BookOpen, color: "#3b82f6", name: "Growth", desc: "Reading list, courses, skills, takeaways" },
-              { icon: Palette, color: "#ec4899", name: "Creativity & Joy", desc: "Ideas, media log, bucket list, events" },
-              { icon: Home, color: "#71717a", name: "Admin", desc: "Documents, home maintenance, grocery lists" },
+              { icon: Compass, color: "var(--type-journal)", name: "Mind & Soul", desc: "Values, visions, affirmations, breathing exercises" },
+              { icon: Calendar, color: "var(--priority-high)", name: "Time & Action", desc: "Tasks, habits, routines, today's focus" },
+              { icon: Heart, color: "var(--expense)", name: "Health & Body", desc: "Symptoms, medications, appointments, vitals" },
+              { icon: Wallet, color: "var(--success)", name: "Wealth & Career", desc: "Income, expenses, subscriptions, savings goals" },
+              { icon: Users, color: "var(--info)", name: "Network", desc: "Contacts, follow-ups, birthdays, relationships" },
+              { icon: BookOpen, color: "var(--type-bookmark)", name: "Growth", desc: "Reading list, courses, skills, takeaways" },
+              { icon: Palette, color: "var(--type-idea)", name: "Creativity & Joy", desc: "Ideas, media log, bucket list, events" },
+              { icon: Home, color: "var(--muted-foreground)", name: "Admin", desc: "Documents, home maintenance, grocery lists" },
             ].map((d) => (
               <div
                 key={d.name}
                 className="group rounded-2xl border border-border/60 bg-card/50 p-5 transition-all hover:shadow-md"
-                style={{ borderColor: `${d.color}30` }}
+                style={{ borderColor: colorWithAlpha(d.color, 19) }}
               >
                 <div
                   className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg"
-                  style={{ background: `${d.color}18`, color: d.color }}
+                  style={{ background: colorWithAlpha(d.color, 9), color: d.color }}
                 >
                   <d.icon className="h-5 w-5" />
                 </div>

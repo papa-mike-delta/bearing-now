@@ -91,3 +91,8 @@ it("surfaces upstream errors and rejects redirects or HTML instead of importing 
   vi.mocked(fetch).mockResolvedValueOnce(new Response("<html>Builder</html>"));
   await expect(ThemeOverride.parse("https://ui.shadcn.com/create")).rejects.toThrow();
 });
+
+it("preserves optional semantic overrides, non-hex values and extended palette variables", async () => {
+  const theme = { light: { "--type-task": "hsl(210 70% 35%)", "--domain-health": "var(--primary)", "--income": "oklch(0.4 0.1 150)" }, dark: { "--type-task": "oklch(0.8 0.1 240)", "--mood-5": "color-mix(in oklch, var(--chart-2) 60%, white)" } };
+  expect(await ThemeOverride.parse(ThemeOverride.serialize(theme))).toEqual(theme);
+});

@@ -105,6 +105,10 @@ export function useUpdateProject() {
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: qk.projects });
       qc.invalidateQueries({ queryKey: qk.project(vars.id) });
+      // These reads embed project labels/colors. Refresh after an explicit override changes.
+      for (const key of ["items", "item", "inbox", "calendar", "graph", "insights", "search", "onThisDay", "project"]) {
+        qc.invalidateQueries({ queryKey: [key] });
+      }
     },
   });
 }

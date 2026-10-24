@@ -32,7 +32,7 @@ export function AdminQuickActions() {
         className="rounded-2xl border border-dashed border-border/60 bg-card/30 p-4"
       >
         <div className="mb-2 flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-500/15 text-zinc-600">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted-foreground/15 text-muted-foreground">
             <Icon name="Home" className="h-3.5 w-3.5" />
           </span>
           <h3 className="text-sm font-semibold">Home & Admin</h3>
@@ -40,7 +40,7 @@ export function AdminQuickActions() {
         <p className="text-xs text-muted-foreground">Track home maintenance, grocery lists, and important documents.</p>
         <button
           onClick={() => openItemEditor({ type: "task" })}
-          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-zinc-600 hover:underline"
+          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:underline"
         >
           <Icon name="Plus" className="h-3 w-3" /> Add a task
         </button>
@@ -56,9 +56,9 @@ export function AdminQuickActions() {
     >
       {/* Grocery list */}
       {groceries.length > 0 && (
-        <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent p-4">
+        <div className="rounded-2xl border border-success/20 bg-gradient-to-br from-success/5 to-transparent p-4">
           <div className="mb-2 flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-success/15 text-success">
               <Icon name="ShoppingCart" className="h-3.5 w-3.5" />
             </span>
             <h3 className="text-sm font-semibold">Shopping list</h3>
@@ -75,7 +75,7 @@ export function AdminQuickActions() {
               >
                 <span className={cn(
                   "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border-2 transition-all",
-                  g.status === "done" ? "border-emerald-500 bg-emerald-500 text-white" : "border-muted-foreground/30"
+                  g.status === "done" ? "border-success bg-success/15 text-success" : "border-muted-foreground/30"
                 )}>
                   {g.status === "done" && <Icon name="Check" className="h-3 w-3" strokeWidth={3} />}
                 </span>
@@ -94,8 +94,8 @@ export function AdminQuickActions() {
       <div className="grid gap-3 sm:grid-cols-2">
         {/* Home maintenance */}
         {maintenance.length > 0 && (
-          <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-3">
-            <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-amber-600">
+          <div className="rounded-2xl border border-priority-high/20 bg-gradient-to-br from-priority-high/5 to-transparent p-3">
+            <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-priority-high">
               <Icon name="Wrench" className="h-3 w-3" />
               Maintenance
             </h4>
@@ -108,7 +108,7 @@ export function AdminQuickActions() {
                 >
                   <span className={cn(
                     "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border-2",
-                    m.status === "done" ? "border-emerald-500 bg-emerald-500 text-white" : "border-amber-500/40"
+                    m.status === "done" ? "border-success bg-success/15 text-success" : "border-priority-high/40"
                   )}>
                     {m.status === "done" && <Icon name="Check" className="h-2.5 w-2.5" strokeWidth={3} />}
                   </span>
@@ -136,7 +136,7 @@ export function AdminQuickActions() {
                   onClick={() => openItemDetail(d.id)}
                   className="flex w-full items-center gap-2 rounded-lg p-1.5 text-left transition-all hover:bg-muted/40"
                 >
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded bg-zinc-500/10 text-zinc-600">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded bg-muted-foreground/10 text-muted-foreground">
                     <Icon name="FileText" className="h-3 w-3" />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -165,11 +165,11 @@ export function AdminQuickActions() {
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs transition-all",
                   t.status === "done"
-                    ? "border-emerald-500/20 bg-emerald-500/5 text-muted-foreground line-through"
+                    ? "border-success/20 bg-success/5 text-muted-foreground line-through"
                     : "border-border/40 bg-background/40 hover:bg-background"
                 )}
               >
-                <span className={cn("h-1.5 w-1.5 rounded-full", t.status === "done" ? "bg-emerald-500" : "bg-zinc-400")} />
+                <span className={cn("h-1.5 w-1.5 rounded-full", t.status === "done" ? "bg-success" : "bg-muted-foreground")} />
                 {t.title}
               </button>
             ))}

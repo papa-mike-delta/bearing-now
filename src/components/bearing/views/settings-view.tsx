@@ -1,5 +1,7 @@
 "use client";
 
+import { colorWithAlpha } from "@/lib/product-colors";
+
 import { useDraftSession } from "../item-draft-session";
 
 import { useState, useEffect } from "react";
@@ -182,7 +184,7 @@ export function SettingsView() {
 
   if (loading) return (
     <div className="space-y-6" aria-busy="true" aria-label="Loading settings">
-      <PageHeader title="Settings" subtitle="Manage your account, security, AI, and preferences." icon="Settings" color="#71717a" />
+      <PageHeader title="Settings" subtitle="Manage your account, security, AI, and preferences." icon="Settings" color="var(--muted-foreground)" />
 
       {/* Profile section skeleton */}
       <div className="space-y-3 rounded-2xl border border-border/60 bg-card/50 p-4">
@@ -226,7 +228,7 @@ export function SettingsView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Settings" subtitle="Manage your account, security, AI, and preferences." icon="Settings" color="#71717a" />
+      <PageHeader title="Settings" subtitle="Manage your account, security, AI, and preferences." icon="Settings" color="var(--muted-foreground)" />
 
       {/* Profile */}
       <SectionCard title="Profile" icon="User">
@@ -249,11 +251,11 @@ export function SettingsView() {
       {/* Security */}
       <SectionCard title="Security" icon="Shield">
         <div className="space-y-4">
-          <ToggleRow icon="Smartphone" color="#10b981" title="Two-factor authentication" desc={twoFAEnabled ? "Enabled — requires code on login" : "Off — password only"} checked={twoFAEnabled} onChange={toggle2FA} />
+          <ToggleRow icon="Smartphone" color="var(--success)" title="Two-factor authentication" desc={twoFAEnabled ? "Enabled — requires code on login" : "Off — password only"} checked={twoFAEnabled} onChange={toggle2FA} />
           {show2FASetup && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="overflow-hidden">
-              <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
-                <h4 className="mb-3 text-sm font-semibold text-violet-600">Set up 2FA</h4>
+              <div className="rounded-xl border border-type-journal/20 bg-type-journal/5 p-4">
+                <h4 className="mb-3 text-sm font-semibold text-type-journal">Set up 2FA</h4>
                 {qr2faUrl && <div className="mb-3 flex justify-center"><img src={qr2faUrl} alt="2FA QR" className="rounded-lg border-2 border-border" width={180} height={180} /></div>}
                 <p className="mb-2 text-[11px] text-muted-foreground">Scan with Google Authenticator, Authy, etc.:</p>
                 <p className="mb-3 break-all rounded bg-muted/50 p-2 font-mono text-[10px]">{manualEntry}</p>
@@ -268,7 +270,7 @@ export function SettingsView() {
           {/* Login on another device */}
           <div className="flex items-center justify-between rounded-xl border border-border/40 p-3">
             <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10 text-violet-500"><Icon name="QrCode" className="h-4 w-4" /></span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-type-journal/10 text-type-journal"><Icon name="QrCode" className="h-4 w-4" /></span>
               <div><p className="text-sm font-medium">Login on another device</p><p className="text-[11px] text-muted-foreground">Generate a QR code to sign in on your phone</p></div>
             </div>
             <Button size="sm" variant="outline" onClick={startQrLogin} disabled={qrLoading} className="gap-1.5">
@@ -301,11 +303,11 @@ export function SettingsView() {
       {/* AI Features */}
       <SectionCard title="AI Features" icon="Bot">
         <div className="space-y-4">
-          <ToggleRow icon="Bot" color="#a78bfa" title="Enable AI features" desc="Master toggle for all AI-powered features" checked={prefs?.aiEnabled ?? true} onChange={(v) => updatePrefs({ aiEnabled: v })} />
+          <ToggleRow icon="Bot" color="var(--type-journal)" title="Enable AI features" desc="Master toggle for all AI-powered features" checked={prefs?.aiEnabled ?? true} onChange={(v) => updatePrefs({ aiEnabled: v })} />
 
           {prefs?.aiEnabled && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-              <ToggleRow icon="Inbox" color="#f59e0b" title="Smart Inbox Processing" desc="AI suggests type, domain & project for inbox items" checked={prefs?.aiSmartInbox ?? true} onChange={(v) => updatePrefs({ aiSmartInbox: v })} />
+              <ToggleRow icon="Inbox" color="var(--priority-high)" title="Smart Inbox Processing" desc="AI suggests type, domain & project for inbox items" checked={prefs?.aiSmartInbox ?? true} onChange={(v) => updatePrefs({ aiSmartInbox: v })} />
 
               <div>
                 <Label className="mb-1.5 block text-xs font-medium text-muted-foreground">AI Provider</Label>
@@ -367,7 +369,7 @@ export function SettingsView() {
           </div>
           <div className="flex items-center justify-between rounded-xl border border-border/40 p-3">
             <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600"><Icon name="Bell" className="h-4 w-4" /></span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-priority-high/10 text-priority-high"><Icon name="Bell" className="h-4 w-4" /></span>
               <div><p className="text-sm font-medium">Browser notifications</p><p className="text-[11px] text-muted-foreground">Overdue & due task alerts</p></div>
             </div>
             <Button size="sm" variant="outline" onClick={async () => { const g = await requestNotificationPermission(); if (g) { notify.success("Notifications enabled"); sendNotification("bearing.now", "Enabled!"); } else notify.error("Permission denied"); }}>Enable</Button>
@@ -379,7 +381,7 @@ export function SettingsView() {
       <SectionCard title="Database" icon="Database">
         <div className="space-y-3">
           <div className="flex items-center gap-2 rounded-lg border border-border/40 p-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600"><Icon name="HardDrive" className="h-4 w-4" /></span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success"><Icon name="HardDrive" className="h-4 w-4" /></span>
             <div className="flex-1">
               <p className="text-sm font-medium">SQLite (local file)</p>
               <p className="text-[11px] text-muted-foreground">Current database — stored at <code className="rounded bg-muted px-1 text-[10px]">db/custom.db</code></p>
@@ -390,7 +392,7 @@ export function SettingsView() {
             <p className="mb-2 text-xs font-medium">Want to use a cloud database?</p>
             <p className="text-[11px] text-muted-foreground">bearing.now supports any PostgreSQL database. To switch:</p>
             <ol className="mt-1.5 space-y-1 text-[11px] text-muted-foreground">
-              <li>1. Create a free database on <a href="https://neon.tech" target="_blank" className="text-blue-500 hover:underline">Neon</a> or <a href="https://supabase.com" target="_blank" className="text-blue-500 hover:underline">Supabase</a></li>
+              <li>1. Create a free database on <a href="https://neon.tech" target="_blank" className="text-type-bookmark hover:underline">Neon</a> or <a href="https://supabase.com" target="_blank" className="text-type-bookmark hover:underline">Supabase</a></li>
               <li>2. Set <code className="rounded bg-muted px-1">DATABASE_URL</code> in your <code className="rounded bg-muted px-1">.env</code> file</li>
               <li>3. Change Prisma provider from <code className="rounded bg-muted px-1">sqlite</code> to <code className="rounded bg-muted px-1">postgresql</code></li>
               <li>4. Run <code className="rounded bg-muted px-1">bun run db:push</code></li>
@@ -405,7 +407,7 @@ export function SettingsView() {
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5 text-rose-500 hover:bg-rose-500/10 hover:text-rose-600">
+              <Button variant="outline" size="sm" className="gap-1.5 text-expense hover:bg-expense/10 hover:text-expense">
                 <Icon name="Trash2" className="h-3.5 w-3.5" /> Reset database
               </Button>
             </AlertDialogTrigger>
@@ -421,7 +423,7 @@ export function SettingsView() {
                   const data = await res.json();
                   if (res.ok) { notify.success("Database reset. Reloading…"); setTimeout(() => window.location.reload(), 1500); }
                   else notify.error(data.error || "Reset failed");
-                }} className="bg-rose-500 hover:bg-rose-600">Reset everything</AlertDialogAction>
+                }} className="bg-expense hover:bg-expense">Reset everything</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -459,7 +461,7 @@ export function SettingsView() {
       <SectionCard title="Account" icon="UserCog">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">Sign out of your account</p>
-          <Button variant="outline" size="sm" className="gap-1.5 text-rose-500 hover:bg-rose-500/10 hover:text-rose-600" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); draftOwner.clear(); window.location.href = "/login"; }}>
+          <Button variant="outline" size="sm" className="gap-1.5 text-expense hover:bg-expense/10 hover:text-expense" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); draftOwner.clear(); window.location.href = "/login"; }}>
             <Icon name="LogOut" className="h-3.5 w-3.5" /> Sign out
           </Button>
         </div>
@@ -472,7 +474,7 @@ function ToggleRow({ icon, color, title, desc, checked, onChange }: { icon: stri
   return (
     <div className="flex items-center justify-between rounded-xl border border-border/40 p-3">
       <div className="flex items-center gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: `${color}1a`, color }}><Icon name={icon} className="h-4 w-4" /></span>
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: colorWithAlpha(color, 10), color }}><Icon name={icon} className="h-4 w-4" /></span>
         <div><p className="text-sm font-medium">{title}</p><p className="text-[11px] text-muted-foreground">{desc}</p></div>
       </div>
       <Switch checked={checked} onCheckedChange={onChange} />

@@ -1,5 +1,7 @@
 "use client";
 
+import { colorWithAlpha } from "@/lib/product-colors";
+
 import { useState } from "react";
 import { useBearing } from "@/store/bearing";
 import { useItems } from "@/lib/hooks";
@@ -35,7 +37,7 @@ export function AllItemsView() {
         title="All Items"
         subtitle="The full stream of your digital brain — every task, note, journal, habit, and idea."
         icon="Layers"
-        color="#71717a"
+        color="var(--muted-foreground)"
         actions={
           <Button onClick={() => openItemEditor()} className="gap-1.5">
             <Icon name="Plus" className="h-4 w-4" /> New item
@@ -90,7 +92,7 @@ export function AllItemsView() {
                 key={t.type}
                 onClick={() => setTypeFilter(t.type)}
                 className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-all", on ? "text-white" : "bg-muted text-muted-foreground hover:bg-muted/70")}
-                style={on ? { background: t.color } : {}}
+                style={on ? { background: colorWithAlpha(t.color, 16), color: "var(--foreground)" } : {}}
               >
                 <Icon name={t.icon} className="h-3 w-3" />
                 {t.name}

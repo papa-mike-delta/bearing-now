@@ -29,7 +29,7 @@ export function IdeaVault() {
         className="rounded-2xl border border-dashed border-border/60 bg-card/30 p-4"
       >
         <div className="mb-2 flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-pink-500/15 text-pink-500">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-type-idea/15 text-type-idea">
             <Icon name="Lightbulb" className="h-3.5 w-3.5" />
           </span>
           <h3 className="text-sm font-semibold">Idea vault</h3>
@@ -37,7 +37,7 @@ export function IdeaVault() {
         <p className="text-xs text-muted-foreground">Capture sparks of inspiration, log media you enjoy, and track milestones.</p>
         <button
           onClick={() => openItemEditor({ type: "idea" })}
-          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-pink-500 hover:underline"
+          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-type-idea hover:underline"
         >
           <Icon name="Plus" className="h-3 w-3" /> Capture an idea
         </button>
@@ -53,10 +53,10 @@ export function IdeaVault() {
     >
       {/* Idea vault */}
       {ideas.length > 0 && (
-        <div className="rounded-2xl border border-pink-500/20 bg-gradient-to-br from-pink-500/5 to-transparent p-4">
+        <div className="rounded-2xl border border-type-idea/20 bg-gradient-to-br from-type-idea/5 to-transparent p-4">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-pink-500/15 text-pink-500">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-type-idea/15 text-type-idea">
                 <Icon name="Lightbulb" className="h-3.5 w-3.5" />
               </span>
               <div>
@@ -75,9 +75,9 @@ export function IdeaVault() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05 }}
                 onClick={() => openItemDetail(idea.id)}
-                className="group flex w-full items-start gap-2 rounded-lg border border-border/40 bg-background/40 p-2.5 text-left transition-all hover:border-pink-500/30 hover:bg-background"
+                className="group flex w-full items-start gap-2 rounded-lg border border-border/40 bg-background/40 p-2.5 text-left transition-all hover:border-type-idea/30 hover:bg-background"
               >
-                <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-pink-500/10 text-pink-500">
+                <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-type-idea/10 text-type-idea">
                   <Icon name="Lightbulb" className="h-3 w-3" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -85,7 +85,7 @@ export function IdeaVault() {
                   {idea.content && <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">{idea.content}</p>}
                 </div>
                 {idea.status === "inbox" && (
-                  <span className="flex-shrink-0 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-600">NEW</span>
+                  <span className="flex-shrink-0 rounded-full bg-priority-high/15 px-1.5 py-0.5 text-[9px] font-bold text-priority-high">NEW</span>
                 )}
               </motion.button>
             ))}
@@ -109,13 +109,13 @@ export function IdeaVault() {
                   onClick={() => openItemDetail(m.id)}
                   className="flex w-full items-center gap-2 rounded-lg p-1.5 text-left transition-all hover:bg-muted/40"
                 >
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded bg-blue-500/10 text-blue-500">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded bg-type-bookmark/10 text-type-bookmark">
                     <Icon name={m.metadata?.medium === "movie" ? "Film" : m.metadata?.medium === "book" ? "BookOpen" : "PlayCircle"} className="h-3 w-3" />
                   </span>
                   <span className="flex-1 truncate text-xs font-medium">{m.title}</span>
                   {m.metadata?.rating > 0 && (
-                    <span className="flex items-center gap-0.5 text-[10px] text-amber-500">
-                      <Icon name="Star" className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                    <span className="flex items-center gap-0.5 text-[10px] text-priority-high">
+                      <Icon name="Star" className="h-2.5 w-2.5 fill-priority-high text-priority-high" />
                       {m.metadata.rating}
                     </span>
                   )}
@@ -139,7 +139,7 @@ export function IdeaVault() {
                   onClick={() => openItemDetail(e.id)}
                   className="flex w-full items-center gap-2 rounded-lg p-1.5 text-left transition-all hover:bg-muted/40"
                 >
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded bg-cyan-500/10 text-cyan-500">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded bg-info/10 text-info">
                     <Icon name="Calendar" className="h-3 w-3" />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -155,8 +155,8 @@ export function IdeaVault() {
 
       {/* Recent milestones */}
       {milestones.length > 0 && (
-        <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-3">
-          <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-amber-600">
+        <div className="rounded-2xl border border-priority-high/20 bg-gradient-to-br from-priority-high/5 to-transparent p-3">
+          <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-priority-high">
             <Icon name="Flag" className="h-3 w-3" />
             Milestones
           </h4>
@@ -168,7 +168,7 @@ export function IdeaVault() {
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs transition-all",
                   ms.status === "done"
-                    ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-600"
+                    ? "border-success/20 bg-success/5 text-success"
                     : "border-border/40 bg-background/40 hover:bg-background"
                 )}
               >

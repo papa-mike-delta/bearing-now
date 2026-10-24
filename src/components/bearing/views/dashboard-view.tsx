@@ -1,5 +1,7 @@
 "use client";
 
+import { projectColor } from "@/lib/product-colors";
+
 import { useBearing } from "@/store/bearing";
 import { useStats, useItems, useProjects, useReviews } from "@/lib/hooks";
 import { Icon } from "../icon";
@@ -45,13 +47,13 @@ export function DashboardView() {
     return (
       <div className="space-y-6" aria-busy="true" aria-label="Loading dashboard">
         {/* Hero skeleton */}
-        <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent p-6">
+        <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-success/10 via-success/5 to-transparent p-6">
           <div className="space-y-2">
             <div className="skeleton h-4 w-28 rounded" />
             <div className="skeleton h-9 w-72 max-w-full rounded-lg" />
             <div className="skeleton h-4 w-44 rounded" />
           </div>
-          <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl" />
+          <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-success/10 blur-3xl" />
         </div>
 
         {/* Stat pills skeleton */}
@@ -178,10 +180,10 @@ export function DashboardView() {
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent p-6"
+        className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-success/10 via-success/5 to-transparent p-6"
       >
         <div className="relative z-10">
-          <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">{greeting}.</p>
+          <p className="text-sm font-medium text-success dark:text-success">{greeting}.</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">
             {tasksToday.length > 0
               ? `You have ${tasksToday.length} task${tasksToday.length > 1 ? "s" : ""} due today.`
@@ -194,23 +196,23 @@ export function DashboardView() {
             {stats?.completedToday ? ` · ${stats.completedToday} completed today` : ""}
           </p>
         </div>
-        <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 right-24 h-40 w-40 rounded-full bg-teal-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-success/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 right-24 h-40 w-40 rounded-full bg-success/10 blur-3xl" />
       </motion.div>
 
       {/* Stat pills */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <button onClick={() => setView("inbox")} className="text-left">
-          <StatPill label="In inbox" value={stats?.inboxCount ?? "—"} color="#f59e0b" icon="Inbox" />
+          <StatPill label="In inbox" value={stats?.inboxCount ?? "—"} color="var(--priority-high)" icon="Inbox" />
         </button>
         <button onClick={() => setView("calendar")} className="text-left">
-          <StatPill label="Due today" value={stats?.tasksToday ?? "—"} color="#10b981" icon="CalendarClock" />
+          <StatPill label="Due today" value={stats?.tasksToday ?? "—"} color="var(--success)" icon="CalendarClock" />
         </button>
         <button onClick={() => setView("calendar")} className="text-left">
-          <StatPill label="Overdue" value={stats?.tasksOverdue ?? "—"} color="#f43f5e" icon="AlertTriangle" />
+          <StatPill label="Overdue" value={stats?.tasksOverdue ?? "—"} color="var(--expense)" icon="AlertTriangle" />
         </button>
         <button onClick={() => setView("projects")} className="text-left">
-          <StatPill label="Active projects" value={stats?.activeProjects ?? "—"} color="#06b6d4" icon="FolderKanban" />
+          <StatPill label="Active projects" value={stats?.activeProjects ?? "—"} color="var(--info)" icon="FolderKanban" />
         </button>
       </div>
 
@@ -237,7 +239,7 @@ export function DashboardView() {
               <div className="space-y-4">
                 {overdue.length > 0 && (
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-rose-500">Overdue</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-expense">Overdue</p>
                     <div className="space-y-2">
                       {overdue.slice(0, 4).map((t) => (
                         <ItemCard key={t.id} item={t} showProject onClick={() => openItemDetail(t.id)} />
@@ -247,7 +249,7 @@ export function DashboardView() {
                 )}
                 {tasksToday.length > 0 && (
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-500">Today</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-priority-high">Today</p>
                     <div className="space-y-2">
                       {tasksToday.map((t) => (
                         <ItemCard key={t.id} item={t} showProject onClick={() => openItemDetail(t.id)} />
@@ -286,7 +288,7 @@ export function DashboardView() {
                     className="group rounded-xl border border-border/60 p-4 text-left transition-all hover:border-border hover:shadow-sm"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full" style={{ background: p.color }} />
+                      <span className="h-3 w-3 rounded-full" style={{ background: projectColor(p) }} />
                       <span className="flex-1 truncate text-sm font-semibold">{p.name}</span>
                       <Icon name="ArrowUpRight" className="h-3.5 w-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                     </div>
@@ -321,7 +323,7 @@ export function DashboardView() {
                           <div
                             key={i}
                             className="h-2 flex-1 rounded-full"
-                            style={{ background: i < h.doneThisWeek ? "#10b981" : "var(--muted)" }}
+                            style={{ background: i < h.doneThisWeek ? "var(--success)" : "var(--muted)" }}
                           />
                         ))}
                       </div>
@@ -361,7 +363,7 @@ export function DashboardView() {
           <MoodCheckIn />
 
           {/* Review prompt */}
-          <SectionCard title="Reflection" icon="NotebookPen" className="bg-gradient-to-br from-violet-500/10 to-fuchsia-500/5">
+          <SectionCard title="Reflection" icon="NotebookPen" className="bg-gradient-to-br from-type-journal/10 to-type-idea/5">
             {reviewAge > 1 ? (
               <div>
                 <p className="text-sm">
@@ -389,13 +391,13 @@ export function DashboardView() {
           {stats?.week && (stats.week.income > 0 || stats.week.expense > 0) && (
             <SectionCard title="This week" icon="Wallet">
               <div className="grid grid-cols-2 gap-2 text-center">
-                <div className="rounded-lg bg-emerald-500/10 p-2.5">
-                  <p className="text-[9px] uppercase tracking-wide text-emerald-600">Income</p>
-                  <p className="mt-0.5 text-base font-bold text-emerald-600">${stats.week.income.toLocaleString()}</p>
+                <div className="rounded-lg bg-success/10 p-2.5">
+                  <p className="text-[9px] uppercase tracking-wide text-success">Income</p>
+                  <p className="mt-0.5 text-base font-bold text-success">${stats.week.income.toLocaleString()}</p>
                 </div>
-                <div className="rounded-lg bg-rose-500/10 p-2.5">
-                  <p className="text-[9px] uppercase tracking-wide text-rose-500">Expenses</p>
-                  <p className="mt-0.5 text-base font-bold text-rose-500">${stats.week.expense.toLocaleString()}</p>
+                <div className="rounded-lg bg-expense/10 p-2.5">
+                  <p className="text-[9px] uppercase tracking-wide text-expense">Expenses</p>
+                  <p className="mt-0.5 text-base font-bold text-expense">${stats.week.expense.toLocaleString()}</p>
                 </div>
               </div>
             </SectionCard>

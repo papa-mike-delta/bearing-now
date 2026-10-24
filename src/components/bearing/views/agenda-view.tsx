@@ -1,5 +1,7 @@
 "use client";
 
+import { projectColor } from "@/lib/product-colors";
+
 import { useState, useMemo } from "react";
 import { useCalendar, useItems } from "@/lib/hooks";
 import { useBearing } from "@/store/bearing";
@@ -40,7 +42,7 @@ export function AgendaView() {
         title="Weekly Agenda"
         subtitle="A calm, time-blocked view of your week. See everything ahead at a glance."
         icon="CalendarRange"
-        color="#06b6d4"
+        color="var(--info)"
         actions={
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setWeekStart(subWeeks(weekStart, 1))}>
@@ -57,7 +59,7 @@ export function AgendaView() {
       />
 
       {/* week summary bar */}
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/60 bg-gradient-to-r from-cyan-500/5 to-transparent p-4">
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/60 bg-gradient-to-r from-info/5 to-transparent p-4">
         <div>
           <p className="text-sm font-semibold">
             {format(weekStart, "MMM d")} – {format(addDays(weekStart, 6), "MMM d, yyyy")}
@@ -77,7 +79,7 @@ export function AgendaView() {
                 <span className="text-sm font-bold leading-none">{format(d.date, "d")}</span>
               </div>
               {d.items.length > 0 && (
-                <span className="mt-0.5 inline-block h-1 w-1 rounded-full bg-cyan-500" />
+                <span className="mt-0.5 inline-block h-1 w-1 rounded-full bg-info" />
               )}
             </div>
           ))}
@@ -130,7 +132,7 @@ export function AgendaView() {
                     <p className="py-4 text-center text-[11px] text-muted-foreground/50">—</p>
                   ) : (
                     d.items.map((item: any) => {
-                      const m = ITEM_TYPE_MAP[item.type] || { icon: "Circle", color: "#71717a", name: item.type };
+                      const m = ITEM_TYPE_MAP[item.type] || { icon: "Circle", color: "var(--muted-foreground)", name: item.type };
                       const isDone = item.status === "done";
                       const timeField = item.dueDate || item.scheduledAt || item.startDate;
                       const time = timeField ? format(new Date(timeField), "HH:mm") : null;
@@ -158,12 +160,12 @@ export function AgendaView() {
                               {item.title}
                             </p>
                             {item.project && (
-                              <span className="text-[9px]" style={{ color: item.project.color }}>
+                              <span className="text-[9px]" style={{ color: projectColor(item.project, item.type) }}>
                                 {item.project.name}
                               </span>
                             )}
                             {item.metadata?.amount != null && (
-                              <span className="ml-1 text-[9px] font-semibold" style={{ color: item.metadata.kind === "income" ? "#10b981" : "#f43f5e" }}>
+                              <span className="ml-1 text-[9px] font-semibold" style={{ color: item.metadata.kind === "income" ? "var(--income)" : "var(--expense)" }}>
                                 ${item.metadata.amount}
                               </span>
                             )}

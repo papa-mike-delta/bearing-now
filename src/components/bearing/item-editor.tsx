@@ -1,5 +1,7 @@
 "use client";
 
+import { colorGradient, colorWithAlpha, domainColor, projectColor } from "@/lib/product-colors";
+
 import { reportWriteError } from "@/hooks/use-browser-writes";
 
 import { useItemDraft, DraftNotice } from "./item-draft-session";
@@ -159,13 +161,13 @@ export function ItemEditor() {
         {/* ── Gradient header ── */}
         <div
           className="flex-shrink-0 px-6 pb-4 pt-5"
-          style={{ background: `linear-gradient(135deg, ${typeMeta.color}18, transparent 80%)` }}
+          style={{ background: colorGradient(typeMeta.color, 9, "80%") }}
         >
           <DialogHeader className="space-y-0 p-0">
             <DialogTitle className="flex items-center gap-2.5 text-base font-semibold">
               <span
                 className="flex h-9 w-9 items-center justify-center rounded-xl shadow-sm"
-                style={{ background: `${typeMeta.color}22`, color: typeMeta.color }}
+                style={{ background: colorWithAlpha(typeMeta.color, 13), color: typeMeta.color }}
               >
                 <Icon name={typeMeta.icon} className="h-4.5 w-4.5" />
               </span>
@@ -194,7 +196,7 @@ export function ItemEditor() {
                       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all ${
                         on ? "border-transparent text-white shadow-sm" : "border-border/60 text-muted-foreground hover:bg-muted/50"
                       }`}
-                      style={on ? { background: t.color } : {}}
+                      style={on ? { background: colorWithAlpha(t.color, 16), color: "var(--foreground)" } : {}}
                     >
                       <Icon name={t.icon} className="h-3 w-3" />
                       {t.name}
@@ -230,7 +232,7 @@ export function ItemEditor() {
                     {DOMAINS.map((d) => (
                       <SelectItem key={d.key} value={domains.find((dd: any) => dd.key === d.key)?.id || d.key}>
                         <span className="inline-flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full" style={{ background: d.color }} />
+                          <span className="h-2 w-2 rounded-full" style={{ background: domainColor(d) }} />
                           {d.name}
                         </span>
                       </SelectItem>
@@ -244,7 +246,7 @@ export function ItemEditor() {
                     {projects.map((p: any) => (
                       <SelectItem key={p.id} value={p.id}>
                         <span className="inline-flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full" style={{ background: p.color }} />
+                          <span className="h-2 w-2 rounded-full" style={{ background: projectColor(p) }} />
                           {p.name}
                         </span>
                       </SelectItem>
@@ -502,7 +504,7 @@ export function ItemEditor() {
                 {form.tagNames?.map((t: string) => (
                   <span key={t} className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
                     #{t}
-                    <button onClick={() => set("tagNames", form.tagNames.filter((x: string) => x !== t))} className="text-muted-foreground transition-colors hover:text-rose-500">
+                    <button onClick={() => set("tagNames", form.tagNames.filter((x: string) => x !== t))} className="text-muted-foreground transition-colors hover:text-expense">
                       <Icon name="X" className="h-3 w-3" />
                     </button>
                   </span>
@@ -537,7 +539,7 @@ export function ItemEditor() {
             onClick={save}
             disabled={!draft || !!draft.pending || create.isPending || update.isPending}
             className="h-9 gap-1.5"
-            style={{ background: typeMeta.color, color: "white" }}
+            style={{ background: colorWithAlpha(typeMeta.color, 16), color: "var(--foreground)" }}
           >
             <Icon name={form.id ? "Save" : "Plus"} className="h-3.5 w-3.5" />
             {form.id ? "Save changes" : "Create"}
@@ -564,7 +566,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 
 function MetadataSection({ icon, label, color, children }: { icon: string; label: string; color: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border p-3" style={{ borderColor: `${color}30`, background: `${color}08` }}>
+    <div className="rounded-xl border p-3" style={{ borderColor: colorWithAlpha(color, 19), background: colorWithAlpha(color, 3) }}>
       <div className="mb-2.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color }}>
         <Icon name={icon} className="h-3 w-3" />
         {label}

@@ -1,3 +1,4 @@
+import { isProjectColor } from "@/lib/product-colors";
 import { db } from "@/lib/db";
 import { Owned } from "@/lib/domain/owned";
 import { ok, bad, notFound, parseBody, parseMeta, sessionUser } from "@/lib/api";
@@ -52,7 +53,8 @@ export async function POST(req: NextRequest) {
   const body = await parseBody(req);
   if (!body.name) return bad("name is required");
   const { userId: _userId, ...data } = body;
+  if (data.color !== undefined && data.color !== null && !isProjectColor(data.color)) return bad("color must be a hex color or null");
   if (data.domainId && !await Owned.domain(session.userId, data.domainId)) return notFound();
-  const project = await db.project.create({ data: { ...data, userId: session.userId }, include: { domain: true } });
+  const project = await db.project.create({ data: { ...data, color: data.color ?? null, userId: session.userId }, include: { domain: true } });
   return ok(parseMeta(project as any));
 }

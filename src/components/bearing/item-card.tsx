@@ -1,5 +1,7 @@
 "use client";
 
+import { colorWithAlpha, projectColor } from "@/lib/product-colors";
+
 import { cn } from "@/lib/utils";
 import { Icon } from "./icon";
 import { ITEM_TYPE_MAP, DOMAIN_MAP, PRIORITY_META } from "@/lib/constants";
@@ -20,7 +22,7 @@ interface ItemCardProps {
 
 export function ItemCard({ item, onClick, compact, showProject, className }: ItemCardProps) {
   const update = useUpdateItem();
-  const typeMeta = ITEM_TYPE_MAP[item.type] || { icon: "Circle", color: "#71717a", name: item.type };
+  const typeMeta = ITEM_TYPE_MAP[item.type] || { icon: "Circle", color: "var(--muted-foreground)", name: item.type };
   const domain = item.domainId ? DOMAIN_MAP[item.domainId] : null;
   const completable = typeMeta.completable || item.type === "task";
   const done = item.status === "done";
@@ -56,7 +58,7 @@ export function ItemCard({ item, onClick, compact, showProject, className }: Ite
                 "flex h-[18px] w-[18px] items-center justify-center rounded-md border-2 transition-all",
                 done ? "border-transparent text-white" : "border-muted-foreground/40 hover:border-foreground/60",
               )}
-              style={done ? { background: typeMeta.color } : {}}
+              style={done ? { background: colorWithAlpha(typeMeta.color, 16), color: "var(--foreground)" } : {}}
             >
               {done && <Icon name="Check" className="h-3 w-3" strokeWidth={3} />}
             </div>
@@ -64,7 +66,7 @@ export function ItemCard({ item, onClick, compact, showProject, className }: Ite
         ) : (
           <div
             className="flex h-7 w-7 items-center justify-center rounded-lg"
-            style={{ background: `${typeMeta.color}1a`, color: typeMeta.color }}
+            style={{ background: colorWithAlpha(typeMeta.color, 10), color: typeMeta.color }}
           >
             <Icon name={typeMeta.icon} className="h-3.5 w-3.5" />
           </div>
@@ -84,7 +86,7 @@ export function ItemCard({ item, onClick, compact, showProject, className }: Ite
           {item.priority > 0 && (
             <span
               className="mt-0.5 flex-shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-              style={{ background: `${PRIORITY_META[item.priority]?.color}1a`, color: PRIORITY_META[item.priority]?.color }}
+              style={{ background: colorWithAlpha(PRIORITY_META[item.priority]?.color, 10), color: PRIORITY_META[item.priority]?.color }}
             >
               {PRIORITY_META[item.priority]?.name}
             </span>
@@ -111,7 +113,7 @@ export function ItemCard({ item, onClick, compact, showProject, className }: Ite
           {showProject && item.project && (
             <span
               className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium"
-              style={{ background: `${item.project.color}1a`, color: item.project.color }}
+              style={{ background: colorWithAlpha(projectColor(item.project, item.type), 10), color: projectColor(item.project, item.type) }}
             >
               <Icon name="Folder" className="h-2.5 w-2.5" />
               {item.project.name}
@@ -122,19 +124,19 @@ export function ItemCard({ item, onClick, compact, showProject, className }: Ite
               <span
                 key={t.tag.id}
                 className="rounded-md px-1.5 py-0.5 text-[10px] font-medium"
-                style={{ background: `${t.tag.color}1a`, color: t.tag.color }}
+                style={{ background: colorWithAlpha(t.tag.color, 10), color: t.tag.color }}
               >
                 #{t.tag.name}
               </span>
             ))}
           {item.metadata?.amount != null && (
-            <span className="text-[11px] font-semibold" style={{ color: item.metadata.kind === "income" ? "#10b981" : "#f43f5e" }}>
+            <span className="text-[11px] font-semibold" style={{ color: item.metadata.kind === "income" ? "var(--income)" : "var(--expense)" }}>
               {item.metadata.kind === "income" ? "+" : "−"}${Number(item.metadata.amount).toLocaleString()}
             </span>
           )}
           {item.metadata?.rating && (
-            <span className="inline-flex items-center gap-0.5 text-[11px] text-amber-500">
-              <Icon name="Star" className="h-3 w-3 fill-amber-400 text-amber-400" />
+            <span className="inline-flex items-center gap-0.5 text-[11px] text-priority-high">
+              <Icon name="Star" className="h-3 w-3 fill-priority-high text-priority-high" />
               {item.metadata.rating}
             </span>
           )}

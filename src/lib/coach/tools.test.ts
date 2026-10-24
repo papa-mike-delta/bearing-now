@@ -63,7 +63,7 @@ it("gets only one hop of Links in both directions", async () => {
   });
   expect(db.link.findMany).toHaveBeenCalledWith({
     where: { fromId: "item", from: { userId: "alice" }, to: { userId: "alice" } },
-    include: { to: { include: { domain: true, project: { select: { id: true, name: true, color: true } } } } },
+    include: { to: { include: { domain: true, project: { select: { id: true, name: true, color: true, domain: { select: { key: true } } } } } } },
   });
   expect(db.link.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { toId: "item", from: { userId: "alice" }, to: { userId: "alice" } } }));
 });

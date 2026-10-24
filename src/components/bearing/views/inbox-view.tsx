@@ -110,7 +110,7 @@ export function InboxView() {
         title="Inbox"
         subtitle="Process your captures. Decide what each one is and where it belongs."
         icon="Inbox"
-        color="#f59e0b"
+        color="var(--priority-high)"
         actions={
           <div className="flex gap-2">
             {items.length > 0 && aiEnabled && (
@@ -119,13 +119,13 @@ export function InboxView() {
                 size="sm"
                 onClick={runAiSmartProcess}
                 disabled={aiLoading}
-                className="gap-1.5 border-violet-500/30 text-violet-600 hover:bg-violet-500/10"
+                className="gap-1.5 border-type-journal/30 text-type-journal hover:bg-type-journal/10"
               >
                 <Icon name={aiLoading ? "Loader2" : "Bot"} className={`h-3.5 w-3.5 ${aiLoading ? "animate-spin" : ""}`} />
                 <span className="hidden sm:inline">{aiLoading ? "AI analyzing…" : "AI Smart Process"}</span>
               </Button>
             )}
-            <Button onClick={() => setQuickCaptureOpen(true)} className="gap-1.5 bg-gradient-to-br from-amber-500 to-orange-600 text-white">
+            <Button onClick={() => setQuickCaptureOpen(true)} className="gap-1.5 bg-primary text-primary-foreground">
               <Icon name="Zap" className="h-4 w-4" /> Capture
             </Button>
           </div>
@@ -190,7 +190,7 @@ export function InboxView() {
         <div className="space-y-2">
           <AnimatePresence>
             {items.map((item) => {
-              const m = ITEM_TYPE_MAP[item.type] || { icon: "Circle", color: "#71717a" };
+              const m = ITEM_TYPE_MAP[item.type] || { icon: "Circle", color: "var(--muted-foreground)" };
               return (
                 <motion.div
                   key={item.id}
@@ -203,7 +203,7 @@ export function InboxView() {
                   <button
                     onClick={() => toggle(item.id)}
                     className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border-2 transition-all ${
-                      selected.has(item.id) ? "border-emerald-500 bg-emerald-500 text-white" : "border-muted-foreground/30"
+                      selected.has(item.id) ? "border-success bg-success/15 text-success" : "border-muted-foreground/30"
                     }`}
                   >
                     {selected.has(item.id) && <Icon name="Check" className="h-3 w-3" strokeWidth={3} />}
@@ -214,11 +214,11 @@ export function InboxView() {
                       <motion.div
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mt-1.5 flex items-center gap-2 rounded-lg border border-violet-500/20 bg-violet-500/5 p-2"
+                        className="mt-1.5 flex items-center gap-2 rounded-lg border border-type-journal/20 bg-type-journal/5 p-2"
                       >
-                        <Icon name="Bot" className="h-3 w-3 flex-shrink-0 text-violet-500" />
+                        <Icon name="Bot" className="h-3 w-3 flex-shrink-0 text-type-journal" />
                         <div className="min-w-0 flex-1 text-[11px]">
-                          <span className="font-medium text-violet-600">
+                          <span className="font-medium text-type-journal">
                             {aiSuggestions[item.id].suggestedType}
                             {aiSuggestions[item.id].suggestedDomainKey && ` · ${aiSuggestions[item.id].suggestedDomainKey.replace("_", " ")}`}
                           </span>
@@ -228,7 +228,7 @@ export function InboxView() {
                         </div>
                         <button
                           onClick={() => applyAiSuggestion(item.id)}
-                          className="flex-shrink-0 rounded-md bg-violet-500 px-2 py-0.5 text-[10px] font-medium text-white hover:bg-violet-600"
+                          className="flex-shrink-0 rounded-md bg-type-journal/15 px-2 py-0.5 text-[10px] font-medium text-type-journal hover:bg-type-journal/25"
                         >
                           Apply
                         </button>
@@ -238,7 +238,7 @@ export function InboxView() {
                   <div className="flex flex-shrink-0 gap-1">
                     <button
                       onClick={() => { update.mutate({ id: item.id, revision: item.revision, status: "active" }, { onSuccess: () => notify.success("Activated") }); }}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-success/10 hover:text-success"
                       title="Activate"
                     >
                       <Icon name="Check" className="h-4 w-4" />
@@ -252,7 +252,7 @@ export function InboxView() {
                     </button>
                     <button
                       onClick={() => { del.mutate({ id: item.id, revision: item.revision }, { onSuccess: () => notify.success("Archived") }); }}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-expense/10 hover:text-expense"
                       title="Archive"
                     >
                       <Icon name="Trash2" className="h-4 w-4" />

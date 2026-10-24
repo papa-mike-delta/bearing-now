@@ -1,5 +1,7 @@
 "use client";
 
+import { colorWithAlpha } from "@/lib/product-colors";
+
 import { reportWriteError } from "@/hooks/use-browser-writes";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -118,7 +120,7 @@ export function QuickCapture() {
         </DialogHeader>
 
         <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3">
-          <Icon name="Zap" className="h-4 w-4 shrink-0 text-amber-500" />
+          <Icon name="Zap" className="h-4 w-4 shrink-0 text-priority-high" />
           <span className="text-sm font-medium">Quick Capture</span>
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <span className="hidden items-center gap-1 text-[10px] text-muted-foreground sm:inline-flex">
@@ -171,13 +173,13 @@ export function QuickCapture() {
                     "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-all",
                     type === t ? "text-white" : "bg-muted text-muted-foreground hover:bg-muted/70",
                   )}
-                  style={type === t ? { background: m.color } : {}}
+                  style={type === t ? { background: colorWithAlpha(m.color, 16), color: "var(--foreground)" } : {}}
                 >
                   <Icon name={m.icon} className="h-3 w-3" />
                   {m.name}
                   <span className={cn(
                     "ml-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded text-[8px] font-bold leading-none",
-                    type === t ? "text-white/60" : "text-muted-foreground/50"
+                    type === t ? "text-muted-foreground" : "text-muted-foreground/50"
                   )}>
                     {idx + 1}
                   </span>

@@ -163,3 +163,32 @@ it("serializes restore and concurrent agent Link creates at the cap boundary", a
   expect(results.filter((r) => r.ok)).toHaveLength(1);
   expect(await db.operationLedger.count({ where: { userId: owner, actor: agent, operation: "link.create", status: "success" } })).toBe(50);
 });
+
+it("round-trips explicit, inherited and legacy omitted project colors", async () => {
+  const untouched = await snapshot(other);
+  await db.project.create({ data: { id: "explicit-color", userId: owner, name: "Explicit", color: "#123abc" } });
+  await db.project.create({ data: { id: "inherited-color", userId: owner, name: "Inherited", color: null } });
+  const before = await snapshot(owner);
+  const payload = JSON.parse(JSON.stringify({ version: 1, domains: before.domains, projects: before.projects }));
+  expect((await BackupDomain.restore(owner, payload, user)).ok).toBe(true);
+  expect(await db.project.findUnique({ where: { id: "explicit-color" } })).toMatchObject({ color: "#123abc" });
+  expect(await db.project.findUnique({ where: { id: "inherited-color" } })).toMatchObject({ color: null });
+  expect((await BackupDomain.restore(owner, { version: 1, projects: [{ id: "legacy-color", name: "Legacy" }] }, user)).ok).toBe(true);
+  expect(await db.project.findUnique({ where: { id: "legacy-color" } })).toMatchObject({ color: null });
+  expect(await snapshot(other)).toEqual(untouched);
+});
+
+it("migrates existing project colors without rewriting them and defaults new rows to null", async () => {
+  const { readFileSync } = await import("node:fs");
+  const sql = readFileSync(new URL("../prisma/migrations/20261024000000_optional_project_color/migration.sql", import.meta.url), "utf8");
+  await db.$transaction(async (tx) => {
+    // A temporary table shadows Project on this connection, reproducing the old column contract.
+    await tx.$executeRawUnsafe('CREATE TEMP TABLE "Project" (id text PRIMARY KEY, color text NOT NULL DEFAULT \'#71717a\') ON COMMIT DROP');
+    await tx.$executeRawUnsafe('INSERT INTO "Project" (id, color) VALUES (\'existing\', \'#abcdef\')');
+    for (const statement of sql.split(";").filter((part) => part.trim())) await tx.$executeRawUnsafe(statement);
+    await tx.$executeRawUnsafe('INSERT INTO "Project" (id) VALUES (\'new\')');
+    expect(await tx.$queryRawUnsafe('SELECT id, color FROM "Project" ORDER BY id')).toEqual([
+      { id: "existing", color: "#abcdef" }, { id: "new", color: null },
+    ]);
+  });
+});

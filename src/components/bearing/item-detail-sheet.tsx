@@ -1,5 +1,7 @@
 "use client";
 
+import { colorGradient, colorWithAlpha, projectColor } from "@/lib/product-colors";
+
 import { reportWriteError } from "@/hooks/use-browser-writes";
 
 import { format } from "date-fns";
@@ -61,7 +63,7 @@ export function ItemDetailSheet() {
 
   if (!itemDetailId) return null;
 
-  const typeMeta = ITEM_TYPE_MAP[item?.type] || { icon: "Circle", color: "#71717a", name: item?.type };
+  const typeMeta = ITEM_TYPE_MAP[item?.type] || { icon: "Circle", color: "var(--muted-foreground)", name: item?.type };
   const domain = item?.domainId ? DOMAIN_MAP[item.domainId] : null;
   const isDone = item?.status === "done";
 
@@ -120,7 +122,7 @@ export function ItemDetailSheet() {
             <div
               className="relative flex-shrink-0 overflow-hidden px-6 pb-5 pt-6"
               style={{
-                background: `linear-gradient(135deg, ${typeMeta.color}18, transparent 70%)`,
+                background: colorGradient(typeMeta.color, 9, "70%"),
               }}
             >
               <SheetHeader className="space-y-0 p-0">
@@ -145,7 +147,7 @@ export function ItemDetailSheet() {
                   {item.project && (
                     <>
                       <Icon name="ChevronRight" className="h-3 w-3 opacity-40" />
-                      <span className="inline-flex items-center gap-1" style={{ color: item.project.color }}>
+                      <span className="inline-flex items-center gap-1" style={{ color: projectColor(item.project, item.type) }}>
                         <Icon name="Folder" className="h-3 w-3" />
                         {item.project.name}
                       </span>
@@ -157,7 +159,7 @@ export function ItemDetailSheet() {
                 <div className="flex items-start gap-3">
                   <span
                     className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl shadow-sm"
-                    style={{ background: `${typeMeta.color}22`, color: typeMeta.color }}
+                    style={{ background: colorWithAlpha(typeMeta.color, 13), color: typeMeta.color }}
                   >
                     <Icon name={typeMeta.icon} className="h-6 w-6" />
                   </span>
@@ -176,8 +178,8 @@ export function ItemDetailSheet() {
                   <span
                     className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize"
                     style={{
-                      background: `${(STATUS_META as any)[item.status]?.color || "#71717a"}20`,
-                      color: (STATUS_META as any)[item.status]?.color || "#71717a",
+                      background: colorWithAlpha((STATUS_META as any)[item.status]?.color || "var(--muted-foreground)", 13),
+                      color: (STATUS_META as any)[item.status]?.color || "var(--muted-foreground)",
                     }}
                   >
                     <span className="h-1.5 w-1.5 rounded-full" style={{ background: (STATUS_META as any)[item.status]?.color }} />
@@ -186,7 +188,7 @@ export function ItemDetailSheet() {
                   {item.priority > 0 && (
                     <span
                       className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-                      style={{ background: `${PRIORITY_META[item.priority]?.color}20`, color: PRIORITY_META[item.priority]?.color }}
+                      style={{ background: colorWithAlpha(PRIORITY_META[item.priority]?.color, 13), color: PRIORITY_META[item.priority]?.color }}
                     >
                       <Icon name="Flag" className="h-2.5 w-2.5" />
                       {PRIORITY_META[item.priority]?.name}
@@ -228,7 +230,7 @@ export function ItemDetailSheet() {
                       <span
                         key={t.tag.id}
                         className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium"
-                        style={{ background: `${t.tag.color}18`, color: t.tag.color }}
+                        style={{ background: colorWithAlpha(t.tag.color, 9), color: t.tag.color }}
                       >
                         <span className="h-1 w-1 rounded-full" style={{ background: t.tag.color }} />
                         {t.tag.name}
@@ -325,14 +327,14 @@ export function ItemDetailSheet() {
                           className="absolute z-10 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-lg"
                         >
                           {linkResults.filter((i: any) => i.id !== item.id).slice(0, 8).map((i: any) => {
-                            const m = ITEM_TYPE_MAP[i.type] || { icon: "Circle", color: "#71717a" };
+                            const m = ITEM_TYPE_MAP[i.type] || { icon: "Circle", color: "var(--muted-foreground)" };
                             return (
                               <button
                                 key={i.id}
                                 onClick={() => addLink(i.id)}
                                 className="flex w-full items-center gap-2 border-b border-border/40 p-2 text-left text-sm last:border-0 hover:bg-muted/50"
                               >
-                                <span className="flex h-6 w-6 items-center justify-center rounded" style={{ background: `${m.color}18`, color: m.color }}>
+                                <span className="flex h-6 w-6 items-center justify-center rounded" style={{ background: colorWithAlpha(m.color, 9), color: m.color }}>
                                   <Icon name={m.icon} className="h-3 w-3" />
                                 </span>
                                 <span className="flex-1 truncate">{i.title}</span>
@@ -348,7 +350,7 @@ export function ItemDetailSheet() {
                   {/* Connection list — compact rows */}
                   <div className="space-y-1.5">
                     {item.linksFrom?.map((l: any) => {
-                      const m = ITEM_TYPE_MAP[l.to.type] || { icon: "Circle", color: "#71717a" };
+                      const m = ITEM_TYPE_MAP[l.to.type] || { icon: "Circle", color: "var(--muted-foreground)" };
                       return (
                         <ConnectionRow
                           key={l.id}
@@ -363,7 +365,7 @@ export function ItemDetailSheet() {
                       );
                     })}
                     {item.linksTo?.map((l: any) => {
-                      const m = ITEM_TYPE_MAP[l.from.type] || { icon: "Circle", color: "#71717a" };
+                      const m = ITEM_TYPE_MAP[l.from.type] || { icon: "Circle", color: "var(--muted-foreground)" };
                       return (
                         <ConnectionRow
                           key={l.id}
@@ -421,7 +423,7 @@ export function ItemDetailSheet() {
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="ghost" className="ml-auto gap-1.5 text-rose-500 hover:bg-rose-500/10 hover:text-rose-600">
+                    <Button size="sm" variant="ghost" className="ml-auto gap-1.5 text-expense hover:bg-expense/10 hover:text-expense">
                       <Icon name="Trash2" className="h-3.5 w-3.5" />
                     </Button>
                   </AlertDialogTrigger>
@@ -434,7 +436,7 @@ export function ItemDetailSheet() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDelete} className="bg-rose-500 hover:bg-rose-600">Archive</AlertDialogAction>
+                      <AlertDialogAction onClick={handleDelete} className="bg-expense hover:bg-expense">Archive</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
@@ -460,7 +462,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         className="rounded-xl p-4"
-        style={{ background: `linear-gradient(135deg, ${isIncome ? "#10b981" : isGoal ? "#3b82f6" : "#f43f5e"}15, transparent)` }}
+        style={{ background: colorGradient(isIncome ? "var(--income)" : isGoal ? "var(--type-bookmark)" : "var(--expense)", 8, "100%") }}
       >
         <div className="flex items-end justify-between">
           <div>
@@ -469,7 +471,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
             </p>
             <p
               className="mt-0.5 text-3xl font-bold tabular-nums"
-              style={{ color: isIncome ? "#10b981" : isGoal ? "#3b82f6" : "#f43f5e" }}
+              style={{ color: isIncome ? "var(--income)" : isGoal ? "var(--type-bookmark)" : "var(--expense)" }}
             >
               {isIncome ? "+" : isGoal ? "" : "−"}${Number(m.amount).toLocaleString()}
             </p>
@@ -492,7 +494,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
                 initial={{ width: 0 }}
                 animate={{ width: `${(m.current / m.amount) * 100}%` }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
-                className="h-full rounded-full bg-blue-500"
+                className="h-full rounded-full bg-type-bookmark"
               />
             </div>
           </div>
@@ -506,7 +508,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
     const isBook = m.medium === "book";
     const isMedia = m.medium === "movie" || m.medium === "video" || m.medium === "podcast";
     const statusLabel = m.status === "reading" ? "Reading" : m.status === "finished" ? "Finished" : isMedia ? "To watch" : "Queued";
-    const statusColor = m.status === "finished" ? "#10b981" : m.status === "reading" ? "#3b82f6" : isMedia ? "#ec4899" : "#71717a";
+    const statusColor = m.status === "finished" ? "var(--success)" : m.status === "reading" ? "var(--type-bookmark)" : isMedia ? "var(--type-idea)" : "var(--muted-foreground)";
     const readingPct = isBook && m.totalPages > 0 ? Math.min(100, Math.round(((m.currentPage || 0) / m.totalPages) * 100)) : 0;
 
     return (
@@ -516,7 +518,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
         className="rounded-xl border border-border/50 bg-card/30 p-4"
       >
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: `${typeMeta.color}18`, color: typeMeta.color }}>
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: colorWithAlpha(typeMeta.color, 9), color: typeMeta.color }}>
             <Icon name={m.medium === "book" ? "BookOpen" : m.medium === "movie" ? "Film" : m.medium === "podcast" ? "Mic" : m.medium === "article" ? "FileText" : m.medium === "course" ? "GraduationCap" : "Bookmark"} className="h-5 w-5" />
           </span>
           <div className="flex-1">
@@ -525,7 +527,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
           </div>
           <span
             className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase"
-            style={{ background: `${statusColor}20`, color: statusColor }}
+            style={{ background: colorWithAlpha(statusColor, 13), color: statusColor }}
           >
             {m.status === "finished" && <Icon name="Check" className="h-2.5 w-2.5" />}
             {statusLabel}
@@ -567,7 +569,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
                 <Icon
                   key={i}
                   name="Star"
-                  className={cn("h-3.5 w-3.5", i < m.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30")}
+                  className={cn("h-3.5 w-3.5", i < m.rating ? "fill-priority-high text-priority-high" : "text-muted-foreground/30")}
                 />
               ))}
             </div>
@@ -580,7 +582,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
             href={m.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-blue-500 hover:underline"
+            className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-type-bookmark hover:underline"
           >
             <Icon name="ExternalLink" className="h-3 w-3" />
             {m.url.replace(/^https?:\/\//, "").slice(0, 40)}
@@ -599,7 +601,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center gap-3 rounded-xl border border-border/50 bg-card/30 p-3"
       >
-        <span className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold" style={{ background: `${typeMeta.color}20`, color: typeMeta.color }}>
+        <span className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold" style={{ background: colorWithAlpha(typeMeta.color, 13), color: typeMeta.color }}>
           {initials}
         </span>
         <div className="flex-1">
@@ -627,7 +629,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center gap-4 rounded-xl p-4"
-        style={{ background: `linear-gradient(135deg, ${typeMeta.color}15, transparent)` }}
+        style={{ background: colorGradient(typeMeta.color, 8, "100%") }}
       >
         <div className="text-center">
           <p className="text-2xl font-bold" style={{ color: typeMeta.color }}>{m.streak || 0}</p>
@@ -644,14 +646,14 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
 
   // Symptom: severity meter
   if (item.type === "symptom" && m.severity != null) {
-    const sevColor = m.severity >= 4 ? "#f43f5e" : m.severity >= 3 ? "#f59e0b" : "#eab308";
+    const sevColor = m.severity >= 4 ? "var(--expense)" : m.severity >= 3 ? "var(--priority-high)" : "var(--priority-medium)";
     return (
       <motion.div
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center gap-3 rounded-xl border border-border/50 bg-card/30 p-3"
       >
-        <span className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: `${sevColor}18`, color: sevColor }}>
+        <span className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: colorWithAlpha(sevColor, 9), color: sevColor }}>
           <Icon name="Activity" className="h-5 w-5" />
         </span>
         <div className="flex-1">
@@ -688,7 +690,7 @@ function JournalEditor({
 
   if (editing) {
     return (
-      <div className="overflow-hidden rounded-xl border" style={{ borderColor: `${accentColor}40` }}>
+      <div className="overflow-hidden rounded-xl border" style={{ borderColor: colorWithAlpha(accentColor, 25) }}>
         {/* Editor toolbar */}
         <div className="flex items-center justify-between border-b border-border/50 bg-muted/30 px-3 py-1.5">
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
@@ -701,7 +703,7 @@ function JournalEditor({
           </div>
           <div className="flex gap-1">
             <button onClick={onCancel} className="rounded px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted">Cancel</button>
-            <button onClick={onSave} className="rounded px-2 py-0.5 text-[11px] font-medium text-white" style={{ background: accentColor }}>Save</button>
+            <button onClick={onSave} className="rounded px-2 py-0.5 text-[11px] font-medium text-white" style={{ background: colorWithAlpha(accentColor, 16), color: "var(--foreground)" }}>Save</button>
           </div>
         </div>
         <Textarea
@@ -830,7 +832,7 @@ function ReadingProgressUpdater({ item, currentPage, totalPages, accentColor }: 
         <button
           onClick={() => updatePage(totalPages)}
           className="rounded-md px-2 py-0.5 text-[10px] font-medium text-white"
-          style={{ background: accentColor }}
+          style={{ background: colorWithAlpha(accentColor, 16), color: "var(--foreground)" }}
           title="Mark as finished"
         >
           Done
@@ -881,7 +883,7 @@ function ConnectionRow({
       className="group flex items-center gap-2 rounded-lg border border-border/40 bg-background/40 p-2 transition-all hover:border-border hover:bg-background"
     >
       <button onClick={onClick} className="flex flex-1 items-center gap-2 text-left">
-        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md" style={{ background: `${color}18`, color }}>
+        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md" style={{ background: colorWithAlpha(color, 9), color }}>
           <Icon name={icon} className="h-3.5 w-3.5" />
         </span>
         <div className="min-w-0 flex-1">
@@ -893,7 +895,7 @@ function ConnectionRow({
       </button>
       <button
         onClick={onRemove}
-        className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-all hover:bg-rose-500/10 hover:text-rose-500 group-hover:opacity-100"
+        className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-all hover:bg-expense/10 hover:text-expense group-hover:opacity-100"
         title="Remove connection"
       >
         <Icon name="X" className="h-3.5 w-3.5" />
@@ -934,7 +936,7 @@ function HabitSection({ itemId, logs, meta, accentColor }: { itemId: string; log
           variant={doneToday ? "secondary" : "default"}
           onClick={() => toggle.mutate({ id: itemId, date: todayKey })}
           className="gap-1.5"
-          style={!doneToday ? { background: accentColor } : {}}
+          style={!doneToday ? { background: colorWithAlpha(accentColor, 16), color: "var(--foreground)" } : {}}
         >
           <Icon name={doneToday ? "Check" : "Plus"} className="h-3.5 w-3.5" />
           {doneToday ? "Done today" : "Mark today"}

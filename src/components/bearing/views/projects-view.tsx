@@ -1,8 +1,10 @@
 "use client";
 
+import { colorGradient, colorWithAlpha, domainColor, projectColor } from "@/lib/product-colors";
+
 import { useState } from "react";
 import { useBearing } from "@/store/bearing";
-import { useProjects, useProject, useCreateProject, useDeleteProject, useUpdateItem, useDomains } from "@/lib/hooks";
+import { useProjects, useProject, useCreateProject, useUpdateProject, useDeleteProject, useUpdateItem, useDomains } from "@/lib/hooks";
 import { Icon } from "../icon";
 import { PageHeader, SectionCard, EmptyState } from "../layout";
 import { ItemCard } from "../item-card";
@@ -42,7 +44,7 @@ export function ProjectsView() {
         title="Projects & Threads"
         subtitle="Unified dashboards that weave together every related task, note, journal, and deadline."
         icon="FolderKanban"
-        color="#06b6d4"
+        color="var(--info)"
         actions={
           <div className="flex gap-2">
             <div className="flex gap-1 rounded-lg bg-muted p-1">
@@ -107,11 +109,11 @@ export function ProjectsView() {
               onClick={() => openProject(p.id)}
               className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/50 p-5 text-left transition-all hover:border-border hover:shadow-md"
             >
-              <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-10 blur-2xl" style={{ background: p.color }} />
+              <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-10 blur-2xl" style={{ background: projectColor(p) }} />
               <div className="mb-3 flex items-center gap-3">
                 <span
                   className="flex h-11 w-11 items-center justify-center rounded-xl shadow-sm"
-                  style={{ background: `${p.color}1a`, color: p.color }}
+                  style={{ background: colorWithAlpha(projectColor(p), 10), color: projectColor(p) }}
                 >
                   <Icon name={p.icon || "FolderKanban"} className="h-5 w-5" />
                 </span>
@@ -129,7 +131,7 @@ export function ProjectsView() {
               <div>
                 <div className="mb-1.5 flex items-center justify-between text-[11px]">
                   <span className="text-muted-foreground">{p.taskDone}/{p.taskTotal || p.itemCount} tasks · {p.itemCount} items</span>
-                  <span className="font-semibold" style={{ color: p.color }}>{p.progress}%</span>
+                  <span className="font-semibold" style={{ color: projectColor(p) }}>{p.progress}%</span>
                 </div>
                 <Progress value={p.progress} className="h-1.5" />
               </div>
@@ -148,6 +150,7 @@ function ProjectDetail({ id }: { id: string }) {
   const { data, isLoading } = useProject(id);
   const del = useDeleteProject();
   const updateItem = useUpdateItem();
+  const [editOpen, setEditOpen] = useState(false);
 
   if (isLoading || !data) {
     return <div className="space-y-4">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-32 skeleton rounded-2xl bg-muted/40" />)}</div>;
@@ -165,8 +168,8 @@ function ProjectDetail({ id }: { id: string }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-3xl border border-border/60 p-6" style={{ background: `linear-gradient(135deg, ${project.color}15, transparent 60%)` }}>
-        <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full opacity-20 blur-3xl" style={{ background: project.color }} />
+      <div className="relative overflow-hidden rounded-3xl border border-border/60 p-6" style={{ background: colorGradient(projectColor(project), 8, "60%") }}>
+        <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full opacity-20 blur-3xl" style={{ background: projectColor(project) }} />
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-4">
             <button onClick={() => setView("projects")} className="mt-1 flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 hover:bg-muted">
@@ -174,7 +177,7 @@ function ProjectDetail({ id }: { id: string }) {
             </button>
             <span
               className="flex h-14 w-14 items-center justify-center rounded-2xl shadow-sm"
-              style={{ background: `${project.color}1a`, color: project.color }}
+              style={{ background: colorWithAlpha(projectColor(project), 10), color: projectColor(project) }}
             >
               <Icon name={project.icon || "FolderKanban"} className="h-7 w-7" />
             </span>
@@ -188,9 +191,12 @@ function ProjectDetail({ id }: { id: string }) {
               </div>
             </div>
           </div>
+          <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}><Icon name="Pencil" className="mr-1 h-3.5 w-3.5" />Edit project</Button>
           <Button variant="outline" size="sm" onClick={() => openItemEditor({ type: "task", projectId: id })} className="gap-1.5">
             <Icon name="Plus" className="h-3.5 w-3.5" /> Add item
           </Button>
+          </div>
         </div>
         <div className="relative mt-4">
           <Progress value={project.progress} className="h-2" />
@@ -209,11 +215,11 @@ function ProjectDetail({ id }: { id: string }) {
         </div>
         <div className="rounded-xl border border-border/60 bg-card/40 p-3">
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Income</p>
-          <p className="mt-1 text-xl font-bold text-emerald-500">${stats.income.toLocaleString()}</p>
+          <p className="mt-1 text-xl font-bold text-income">${stats.income.toLocaleString()}</p>
         </div>
         <div className="rounded-xl border border-border/60 bg-card/40 p-3">
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Expense</p>
-          <p className="mt-1 text-xl font-bold text-rose-500">${stats.expense.toLocaleString()}</p>
+          <p className="mt-1 text-xl font-bold text-expense">${stats.expense.toLocaleString()}</p>
         </div>
       </div>
 
@@ -253,7 +259,7 @@ function ProjectDetail({ id }: { id: string }) {
             <SectionCard title="Budget" icon="Wallet">
               <div className="mb-3 flex items-center justify-between rounded-lg bg-muted/40 p-2.5">
                 <span className="text-xs text-muted-foreground">Net</span>
-                <span className="font-bold" style={{ color: stats.net >= 0 ? "#10b981" : "#f43f5e" }}>
+                <span className="font-bold" style={{ color: stats.net >= 0 ? "var(--income)" : "var(--expense)" }}>
                   {stats.net >= 0 ? "+" : "−"}${Math.abs(stats.net).toLocaleString()}
                 </span>
               </div>
@@ -286,28 +292,37 @@ function ProjectDetail({ id }: { id: string }) {
           )}
         </div>
       </div>
+      {editOpen && <CreateProjectDialog open={editOpen} onOpenChange={setEditOpen} project={project} />}
     </div>
   );
 }
 
-function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+type ProjectFormData = { id: string; name: string; description?: string | null; color?: string | null; icon?: string | null; domainId?: string | null; targetDate?: string | null };
+function CreateProjectDialog({ open, onOpenChange, project }: { open: boolean; onOpenChange: (v: boolean) => void; project?: ProjectFormData }) {
   const create = useCreateProject();
+  const update = useUpdateProject();
   const { data: domData } = useDomains();
   const domains = domData?.domains || [];
-  const [form, setForm] = useState({ name: "", description: "", color: COLORS[0], icon: ICONS[0], domainId: "", targetDate: "" });
+  const [form, setForm] = useState({ name: project?.name ?? "", description: project?.description ?? "", color: project?.color ?? null as string | null, icon: project?.icon ?? ICONS[0], domainId: project?.domainId ?? "", targetDate: project?.targetDate?.slice(0, 10) ?? "" });
+
+  const effectiveColor = projectColor({ color: form.color, domain: domains.find((d) => d.id === form.domainId) });
 
   async function save() {
     if (!form.name.trim()) { notify.error("Name required"); return; }
-    await create.mutateAsync({
+    const payload = {
       name: form.name.trim(),
       description: form.description,
       color: form.color,
       icon: form.icon,
       domainId: form.domainId || null,
       targetDate: form.targetDate ? new Date(form.targetDate).toISOString() : null,
-    });
-    notify.success("Project created");
-    setForm({ name: "", description: "", color: COLORS[0], icon: ICONS[0], domainId: "", targetDate: "" });
+    };
+    try {
+      if (project) await update.mutateAsync({ id: project.id, ...payload });
+      else await create.mutateAsync(payload);
+    } catch { notify.error("Unable to save project. Please try again."); return; }
+    notify.success(project ? "Project updated" : "Project created");
+    setForm({ name: "", description: "", color: null, icon: ICONS[0], domainId: "", targetDate: "" });
     onOpenChange(false);
   }
 
@@ -315,13 +330,13 @@ function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onOpenChan
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>New project / thread</DialogTitle>
+          <DialogTitle>{project ? "Edit project" : "New project / thread"}</DialogTitle>
           <DialogDescription>A thread unifies related items across domains into one dashboard.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-2">
           <div>
-            <Label className="mb-1.5 block text-xs font-medium text-muted-foreground">Name</Label>
-            <Input autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Japan Trip 2025" />
+            <Label htmlFor="project-name" className="mb-1.5 block text-xs font-medium text-muted-foreground">Name</Label>
+            <Input id="project-name" autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Japan Trip 2025" />
           </div>
           <div>
             <Label className="mb-1.5 block text-xs font-medium text-muted-foreground">Description</Label>
@@ -339,7 +354,7 @@ function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onOpenChan
                   {domains.map((domain: any) => (
                     <SelectItem key={domain.id} value={domain.id}>
                       <span className="inline-flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full" style={{ background: domain.color }} />
+                        <span className="h-2 w-2 rounded-full" style={{ background: domainColor(domain) }} />
                         {domain.name}
                       </span>
                     </SelectItem>
@@ -355,15 +370,23 @@ function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onOpenChan
           <div>
             <Label className="mb-1.5 block text-xs font-medium text-muted-foreground">Color</Label>
             <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" aria-pressed={form.color === null} onClick={() => setForm({ ...form, color: null })} className={cn(form.color === null && "ring-2 ring-ring")}>
+                <span className="h-3 w-3 rounded-full" style={{ background: effectiveColor }} />Use theme default
+              </Button>
               {COLORS.map((c) => (
                 <button
                   key={c}
+                  type="button" aria-label={`Project color ${c}`} aria-pressed={form.color === c}
                   onClick={() => setForm({ ...form, color: c })}
                   className={cn("h-7 w-7 rounded-full transition-all", form.color === c && "ring-2 ring-offset-2 ring-offset-background")}
                   style={{ background: c, ...(form.color === c ? { boxShadow: `0 0 0 2px ${c}` } : {}) }}
                 />
               ))}
+              <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">Custom color
+                <input type="color" aria-label="Custom project color" value={form.color?.length === 7 ? form.color : COLORS[0]} onChange={(e) => setForm({ ...form, color: e.target.value })} className="h-8 w-8 cursor-pointer" />
+              </label>
             </div>
+            <p className="mt-2 text-xs text-muted-foreground">Theme default follows the project’s life domain, or the primary theme color.</p>
           </div>
           <div>
             <Label className="mb-1.5 block text-xs font-medium text-muted-foreground">Icon</Label>
@@ -371,9 +394,10 @@ function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onOpenChan
               {ICONS.map((ic) => (
                 <button
                   key={ic}
+                  type="button" aria-label={`Project icon ${ic}`} aria-pressed={form.icon === ic}
                   onClick={() => setForm({ ...form, icon: ic })}
                   className={cn("flex h-9 w-9 items-center justify-center rounded-lg border transition-all", form.icon === ic ? "border-foreground" : "border-border/60 hover:bg-muted")}
-                  style={form.icon === ic ? { background: `${form.color}1a`, color: form.color, borderColor: form.color } : {}}
+                  style={form.icon === ic ? { background: colorWithAlpha(effectiveColor, 10), color: effectiveColor, borderColor: effectiveColor } : {}}
                 >
                   <Icon name={ic} className="h-4 w-4" />
                 </button>
@@ -383,7 +407,7 @@ function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onOpenChan
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={create.isPending}>Create</Button>
+          <Button onClick={save} disabled={create.isPending || update.isPending}>{project ? "Save changes" : "Create"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

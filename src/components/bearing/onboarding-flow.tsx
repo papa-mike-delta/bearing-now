@@ -1,5 +1,7 @@
 "use client";
 
+import { colorWithAlpha, colorGradient } from "@/lib/product-colors";
+
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -16,31 +18,31 @@ import { useBearing } from "@/store/bearing";
 const STEPS = [
   {
     icon: "Brain",
-    color: "#a78bfa",
+    color: "var(--type-journal)",
     title: "Welcome to your Digital Brain",
     desc: "bearing.now connects everything — tasks, notes, journals, habits, finances, and more — into one interconnected system. Nothing lives in isolation.",
   },
   {
     icon: "Zap",
-    color: "#f59e0b",
+    color: "var(--priority-high)",
     title: "Capture anything, instantly",
     desc: "Press ⌘K anywhere to capture a thought. It goes to your Inbox. Process it later — no need to decide where it belongs in the moment.",
   },
   {
     icon: "CalendarDays",
-    color: "#06b6d4",
+    color: "var(--info)",
     title: "One calendar for everything",
     desc: "Tasks, bills, appointments, and birthdays all appear on your Master Calendar automatically. Toggle layers to see your life through different lenses.",
   },
   {
     icon: "Network",
-    color: "#10b981",
+    color: "var(--success)",
     title: "Everything connects",
     desc: "Link a journal entry to a project. Connect a task to a goal. See your whole life as a graph. The connections make your data come alive.",
   },
   {
     icon: "NotebookPen",
-    color: "#ec4899",
+    color: "var(--type-idea)",
     title: "Reflect and grow",
     desc: "Daily reflections, weekly reviews, mood tracking, and insights keep your system — and your mind — trustworthy over time.",
   },
@@ -92,11 +94,11 @@ export function OnboardingFlow() {
           {/* Gradient background */}
           <div
             className="h-48 overflow-hidden"
-            style={{ background: `linear-gradient(135deg, ${current.color}20, transparent)` }}
+            style={{ background: colorGradient(current.color, 13, "100%") }}
           >
             <div
               className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full opacity-20 blur-2xl"
-              style={{ background: current.color }}
+              style={{ background: colorWithAlpha(current.color, 16), color: "var(--foreground)" }}
             />
             <div className="flex h-full items-center justify-center">
               <motion.div
@@ -105,7 +107,7 @@ export function OnboardingFlow() {
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: "spring", delay: 0.1 }}
                 className="flex h-20 w-20 items-center justify-center rounded-2xl shadow-lg"
-                style={{ background: `${current.color}22`, color: current.color }}
+                style={{ background: colorWithAlpha(current.color, 13), color: current.color }}
               >
                 <Icon name={current.icon} className="h-10 w-10" />
               </motion.div>
@@ -141,7 +143,7 @@ export function OnboardingFlow() {
                 {step < STEPS.length - 1 && (
                   <Button variant="ghost" size="sm" onClick={skip}>Skip</Button>
                 )}
-                <Button size="sm" onClick={next} className="gap-1.5" style={{ background: current.color, color: "white" }}>
+                <Button size="sm" onClick={next} className="gap-1.5" style={{ background: colorWithAlpha(current.color, 16), color: "var(--foreground)" }}>
                   {step < STEPS.length - 1 ? "Next" : "Get started"}
                   <Icon name={step < STEPS.length - 1 ? "ArrowRight" : "Check"} className="h-3.5 w-3.5" />
                 </Button>

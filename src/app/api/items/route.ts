@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     include: {
       tags: { include: { tag: true } },
       domain: true,
-      project: { select: { id: true, name: true, color: true } },
+      project: { select: { id: true, name: true, color: true, domain: { select: { key: true } } } },
     },
   });
 
