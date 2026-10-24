@@ -2,6 +2,8 @@
 
 import { format } from "date-fns";
 
+import { itemDraftKey } from "@/lib/item-drafts";
+import { useItemDraft, DraftNotice } from "./item-draft-session";
 import { useOpenItem } from "@/hooks/use-open-item";
 
 import { useState } from "react";
@@ -45,9 +47,12 @@ export function ItemDetailSheet() {
   const createLink = useCreateLink();
   const deleteLink = useDeleteLink();
   const [linkSearch, setLinkSearch] = useState("");
-  const [editingContent, setEditingContent] = useState(false);
-  const [contentDraft, setContentDraft] = useState("");
-  const [contentRevision, setContentRevision] = useState<number>(0);
+  const draftKey = itemDetailId ? itemDraftKey(itemDetailId) : null;
+  const { owner, draft, data } = useItemDraft(draftKey, item);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const editingContent = !!draftKey && editingKey === draftKey;
+  const contentDraft = data.content;
+  const setContentDraft = (content: string) => draftKey && owner.change(draftKey, { content });
 
   const { data: searchResults } = useItems(linkSearch ? { q: linkSearch } : {});
   const linkResults = searchResults?.items ?? [];
@@ -59,9 +64,18 @@ export function ItemDetailSheet() {
   const isDone = item?.status === "done";
 
   async function saveContent() {
-    await update.mutateAsync({ id: item.id, revision: contentRevision, content: contentDraft });
-    setEditingContent(false);
-    notify.success("Notes saved");
+    if (!draftKey) return;
+    const ticket = owner.beginSave(draftKey, ["content"]);
+    if (!ticket) return;
+    try {
+      const saved = await update.mutateAsync({ id: ticket.data.id, revision: ticket.data.revision, content: ticket.data.content });
+      const completed = owner.complete(ticket, saved);
+      if (!completed) return;
+      if (useBearing.getState().itemDetailId === ticket.data.id && !completed.dirtyFields.includes("content")) setEditingKey(null);
+      notify.success("Notes saved");
+    } catch (error) {
+      owner.fail(ticket, error);
+    }
   }
 
   async function addLink(toId: string) {
@@ -86,7 +100,9 @@ export function ItemDetailSheet() {
   }
 
   return (
-    <Sheet open={!!itemDetailId} onOpenChange={(o) => !o && closeItemDetail()}>
+    <Sheet key={itemDetailId} open={!!itemDetailId} onOpenChange={(o) => {
+      if (!o && useBearing.getState().itemDetailId === itemDetailId) closeItemDetail();
+    }}>
       <SheetContent className="w-full gap-0 overflow-hidden p-0 sm:max-w-[600px]">
         {isLoading || !item ? (
           <DetailSkeleton />
@@ -185,6 +201,7 @@ export function ItemDetailSheet() {
               </SheetHeader>
             </div>
 
+            <DraftNotice draft={draft} onDiscard={() => draftKey && owner.discard(draftKey)} />
             {/* ── Scrollable body ── */}
             <div className="flex-1 overflow-y-auto px-6 py-5">
               <div className="space-y-5">
@@ -218,8 +235,8 @@ export function ItemDetailSheet() {
                     content={item.content}
                     editing={editingContent}
                     draft={contentDraft}
-                    onEdit={() => { setContentRevision(item.revision); setContentDraft(item.content || ""); setEditingContent(true); }}
-                    onCancel={() => setEditingContent(false)}
+                    onEdit={() => { setEditingKey(draftKey); }}
+                    onCancel={() => setEditingKey(null)}
                     onSave={saveContent}
                     onChange={setContentDraft}
                     accentColor={typeMeta.color}
@@ -234,14 +251,14 @@ export function ItemDetailSheet() {
                     </h4>
                     {!editingContent ? (
                       <button
-                        onClick={() => { setContentRevision(item.revision); setContentDraft(item.content || ""); setEditingContent(true); }}
+                        onClick={() => { setEditingKey(draftKey); }}
                         className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
                       >
                         <Icon name="Pencil" className="h-3 w-3" /> Edit
                       </button>
                     ) : (
                       <div className="flex gap-1">
-                        <button onClick={() => setEditingContent(false)} className="rounded px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted">Cancel</button>
+                        <button onClick={() => setEditingKey(null)} className="rounded px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted">Cancel</button>
                         <button onClick={saveContent} className="rounded bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground hover:bg-primary/90">Save</button>
                       </div>
                     )}
@@ -744,23 +761,29 @@ function JournalEditor({
 // ── Reading progress updater (for books) ──
 function ReadingProgressUpdater({ item, currentPage, totalPages, accentColor }: { item: any; currentPage: number; totalPages: number; accentColor: string }) {
   const update = useUpdateItem();
-  const [pageDraft, setPageDraft] = useState<{ value: string; revision: number } | null>(null);
-  const pageInput = pageDraft?.value ?? String(currentPage);
+  const key = itemDraftKey(item.id);
+  const { owner, draft, data } = useItemDraft(key, item);
+  const pageInput = String(data.metadata.currentPage ?? currentPage);
 
-  function updatePage(val: number, revision = item.revision) {
-    if (update.isPending) return;
+  async function updatePage(val: number) {
+    if (owner.get(key)?.pending) return;
     const clamped = Math.max(0, Math.min(totalPages, val));
-    const newMeta = { ...item.metadata, currentPage: clamped };
     const isFinished = clamped >= totalPages;
-    update.mutate({
-      id: item.id,
-      revision,
-      metadata: { ...newMeta, ...(isFinished ? { status: "finished" } : {}) },
+    owner.change(key, {
+      metadata: { ...owner.get(key)?.data.metadata, currentPage: clamped, ...(isFinished ? { status: "finished" } : {}) },
       ...(isFinished ? { status: "done" } : {}),
-    }, { onSuccess: () => {
-      setPageDraft(null);
-      if (isFinished) notify.success("Finished reading!");
-    } });
+    });
+    const ticket = owner.beginSave(key, ["metadata", ...(isFinished ? ["status"] : [])]);
+    if (!ticket) return;
+    try {
+      const saved = await update.mutateAsync({
+        id: ticket.data.id, revision: ticket.data.revision, metadata: ticket.data.metadata,
+        ...(isFinished ? { status: "done" } : {}),
+      });
+      if (owner.complete(ticket, saved) && isFinished) notify.success("Finished reading!");
+    } catch (error) {
+      owner.fail(ticket, error);
+    }
   }
 
   return (
@@ -770,10 +793,10 @@ function ReadingProgressUpdater({ item, currentPage, totalPages, accentColor }: 
         min={0}
         max={totalPages}
         value={pageInput}
-        onChange={(e) => setPageDraft({ value: e.target.value, revision: pageDraft?.revision ?? item.revision })}
+        onChange={(e) => owner.change(key, { metadata: { ...owner.get(key)?.data.metadata, currentPage: e.target.value } })}
         onBlur={(e) => {
           const v = Number(e.target.value);
-          if (!isNaN(v) && v !== currentPage) updatePage(v, pageDraft?.revision ?? item.revision);
+          if (!isNaN(v) && v !== currentPage) updatePage(v);
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter") e.currentTarget.blur();

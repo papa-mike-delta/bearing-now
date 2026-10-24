@@ -1,5 +1,7 @@
 "use client";
 
+import { useDraftSession } from "./item-draft-session";
+
 import { useBearing } from "@/store/bearing";
 import { useStats, useInbox } from "@/lib/hooks";
 import { Icon } from "./icon";
@@ -30,6 +32,7 @@ const NAV = [
 ] as const;
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  const { owner: draftOwner } = useDraftSession();
   const { view, setView } = useBearing();
   const { data: stats } = useStats();
   const { data: inbox } = useInbox();
@@ -119,7 +122,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           Settings
         </button>
         <button
-          onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); window.location.href = "/login"; }}
+          onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); draftOwner.clear(); window.location.href = "/login"; }}
           className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-500"
         >
           <Icon name="LogOut" className="h-3.5 w-3.5" />

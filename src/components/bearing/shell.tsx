@@ -1,5 +1,6 @@
 "use client";
 
+import { ItemDraftSession } from "./item-draft-session";
 import { useBearing } from "@/store/bearing";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
@@ -30,7 +31,11 @@ import { useEffect } from "react";
 import { CoachPanel } from "./coach-panel";
 import { StoredThemeOverride } from "@/components/theme-override";
 
-export function Shell({ coachEnabled = false }: { coachEnabled?: boolean }) {
+export function Shell({ userId, coachEnabled = false }: { userId: string; coachEnabled?: boolean }) {
+  return <ItemDraftSession key={userId} userId={userId}><ShellContent coachEnabled={coachEnabled} /></ItemDraftSession>;
+}
+
+function ShellContent({ coachEnabled }: { coachEnabled: boolean }) {
   const { view, setQuickCaptureOpen, setCommandOpen, setView } = useBearing();
 
   // global hotkeys: "/" focuses search, "g + key" Vim-style navigation
