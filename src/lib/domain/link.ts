@@ -12,7 +12,7 @@ export class LinkDomain {
     userId: string,
     data: Pick<LinkData, "fromId" | "toId"> & { type: string }, revision: number,
     actor: Actor, entry: { operation: "link.create" | "link.update" | "link.delete"; payload: unknown },
-    write: (tx: Prisma.TransactionClient) => Promise<T>, purpose?: "restore",
+    write: (tx: Prisma.TransactionClient) => Promise<T>, purpose?: "restore", transaction?: Prisma.TransactionClient,
   ): Promise<DomainResult<T>> {
     return OperationLedger.run(actor, userId, purpose === "restore" && actor.startsWith("user:")
       ? { ...entry, operation: "link.restore" } : entry, async (tx) => {
@@ -40,7 +40,7 @@ export class LinkDomain {
         return { ok: false, conflict: true, currentRevision: current?.revision ?? null };
       }
       return { ok: true, value: await write(tx) };
-    });
+    }, transaction);
   }
 
   static async delete(userId: string, data: Pick<LinkData, "fromId" | "toId" | "type">, revision: number, actor: Actor = "agent:internal") {
@@ -53,7 +53,7 @@ export class LinkDomain {
       });
   }
 
-  static async create(userId: string, data: LinkData, revision: number, actor: Actor = "agent:internal", purpose?: "restore") {
+  static async create(userId: string, data: LinkData, revision: number, actor: Actor = "agent:internal", purpose?: "restore", transaction?: Prisma.TransactionClient) {
     const type = data.type === undefined ? "related_to" : data.type;
     const { fromId, toId, note } = data;
     return LinkDomain.mutate(userId, { fromId, toId, type }, revision, actor,
@@ -64,6 +64,6 @@ export class LinkDomain {
           ...(data.id !== undefined ? { id: data.id } : {}),
           ...(data.createdAt !== undefined ? { createdAt: data.createdAt } : {}),
         },
-      }), purpose);
+      }), purpose, transaction);
   }
 }

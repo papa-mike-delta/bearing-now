@@ -62,7 +62,7 @@ export class ItemDomain {
     });
   }
 
-  static async create(userId: string, data: ItemData, tagNames: string[] = [], actor: Actor = "agent:internal", purpose?: "restore") {
+  static async create(userId: string, data: ItemData, tagNames: string[] = [], actor: Actor = "agent:internal", purpose?: "restore", transaction?: Prisma.TransactionClient) {
     return OperationLedger.run(actor, userId, { operation: purpose === "restore" && actor.startsWith("user:") ? "item.restore" : "item.create", payload: { data, tagNames } }, async (tx) => {
       if (!data.title) return { ok: false, error: "title is required" };
       if (!data.type) return { ok: false, error: "type is required" };
@@ -82,7 +82,7 @@ export class ItemDomain {
         include,
       });
       return { ok: true, value } as const;
-    });
+    }, transaction);
   }
 
   static archive(userId: string, id: string, revision: number, actor: Actor = "agent:internal") {

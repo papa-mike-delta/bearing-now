@@ -88,8 +88,11 @@ export class OperationLedger {
     userId: string,
     entry: { operation: string; payload: unknown },
     write: (tx: Prisma.TransactionClient) => Promise<DomainResult<T>>,
+    transaction?: Prisma.TransactionClient,
   ): Promise<DomainResult<T>> {
-    return db.$transaction(async (tx) => {
+    // Composition (e.g. restore) must share both writes and receipts. Always
+    // take the same reentrant transaction lock, including for supplied clients.
+    const run = async (tx: Prisma.TransactionClient) => {
       // One transaction lock keeps cap counts and open-item checks sound across
       // workers, including concurrent maintenance and presence changes.
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(731909)::text`;
@@ -104,7 +107,8 @@ export class OperationLedger {
         createdAt: new Date(),
       } });
       return { ...result, receiptId: receipt.id };
-    });
+    };
+    return transaction ? run(transaction) : db.$transaction(run);
   }
 
   static async coachReceipt(userId: string, id: string) {
