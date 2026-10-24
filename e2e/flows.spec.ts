@@ -248,3 +248,13 @@ test("settings reset clears data and preserves the login", async ({ page }) => {
   expect((await (await page.request.get("/api/items")).json()).items).toEqual([]);
   expect((await (await page.request.get("/api/auth/session")).json()).authenticated).toBe(true);
 });
+
+test("signed-in visits to the landing and login pages stay in the app", async ({ page }) => {
+  for (const path of ["/", "/login"]) {
+    const response = await page.goto(path);
+    await expect(page).toHaveURL(/\/app$/);
+    // Server-side redirect: the landing/login document is never served, so
+    // browser back navigation from /app cannot land on it.
+    expect(response!.request().redirectedFrom()?.url()).toMatch(new RegExp(`${path === "/" ? "/$" : "/login$"}`));
+  }
+});

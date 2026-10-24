@@ -28,4 +28,17 @@ export class InboxPage extends AppPage {
     await expect(dialog).toBeHidden();
     await expect(this.page.getByText(replacement, { exact: true })).toBeVisible();
   }
+
+  // Arrange a capture through the API, for shapes Quick Capture can't produce
+  // (e.g. a typed item filed under a project with no metadata saved).
+  async seed(data: Record<string, unknown>) {
+    const response = await this.page.request.post("/api/items", { data: { status: "inbox", ...data } });
+    expect(response.ok()).toBeTruthy();
+    return response.json();
+  }
+
+  async openOnPhone() {
+    await this.page.getByRole("button", { name: "Open menu" }).tap();
+    await this.page.getByRole("dialog", { name: "Navigation" }).getByRole("button", { name: /^Inbox(?: \d+)?$/ }).tap();
+  }
 }
