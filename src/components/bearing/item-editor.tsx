@@ -55,7 +55,7 @@ export function ItemEditor() {
         dueDate: "",
         scheduledAt: "",
         metadata: {},
-        tagNames: [],
+        tagNames: itemEditorSeed?.tags?.map(({ tag }) => tag.name) || [],
         ...(itemEditorSeed || {}),
       });
       setTagInput("");

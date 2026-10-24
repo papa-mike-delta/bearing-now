@@ -1,3 +1,4 @@
+import { format } from "date-fns";
 import { db } from "@/lib/db";
 import { ok, bad, parseBody } from "@/lib/api";
 import type { NextRequest } from "next/server";
@@ -15,9 +16,9 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const body = await parseBody(req);
-  const dateStr = body.date || new Date().toISOString().slice(0, 10);
+  const dateStr = body.date || format(new Date(), "yyyy-MM-dd");
+  // A habit log stores the supplied calendar date at UTC midnight.
   const date = new Date(dateStr);
-  date.setHours(0, 0, 0, 0);
 
   const existing = await db.habitLog.findUnique({ where: { itemId_date: { itemId: id, date } } });
   if (existing) {

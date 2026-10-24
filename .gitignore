@@ -48,3 +48,8 @@ qa-*.png
 before-*.png
 after-*.png
 screenshot-*.png
+
+# Playwright
+/e2e/.auth/
+/test-results/
+/playwright-report/

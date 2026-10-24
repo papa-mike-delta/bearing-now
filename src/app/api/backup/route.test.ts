@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
+import { createSession } from "@/lib/auth";
 import { POST } from "./route";
 
 const db = vi.hoisted(() => ({
@@ -77,4 +78,24 @@ it("preserves data if the actor lacks enough remaining allowance for a small res
   }));
   expect(response.status).toBe(429);
   expect(db.item.deleteMany).not.toHaveBeenCalled();
+});
+
+it("restores tagged items and links for a verified user with exhausted create allowances", async () => {
+  db.operationLedger.count.mockResolvedValue(50);
+  const response = await POST(new Request("http://localhost/api/backup", {
+    method: "POST",
+    headers: { cookie: `lifeos-session=${createSession("alice", "alice@example.com", true)}` },
+    body: JSON.stringify({ version: 1,
+      items: [{ id: "item-1", title: "Tagged", type: "note", tags: [{ tag: { name: "work" } }] }],
+      links: [{ fromId: "item-1", toId: "item-2", type: "mentions" }],
+    }),
+  }));
+  expect(response.status).toBe(200);
+  expect(db.item.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({
+    id: "item-1", tags: { create: [{ tag: { connectOrCreate: { where: { name: "work" }, create: { name: "work" } } } }] },
+  }) }));
+  expect(db.link.upsert).toHaveBeenCalled();
+  expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ actor: "user:alice", operation: "link.restore", status: "success" }) });
+  expect(db.operationLedger.count).not.toHaveBeenCalled();
+  expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ actor: "user:alice", operation: "item.restore", status: "success" }) });
 });

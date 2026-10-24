@@ -11,11 +11,11 @@ export class DatabaseDomain {
       // Restore must not erase the dataset before discovering that its input
       // cannot fit in the actor's remaining create allowance.
       if (plannedCreates?.items) {
-        const capped = await WriteCaps.create(tx, actor, "item.create", plannedCreates.items);
+        const capped = await WriteCaps.create(tx, actor, "item.create", plannedCreates.items, "restore");
         if (capped) return capped;
       }
       if (plannedCreates?.links) {
-        const capped = await WriteCaps.create(tx, actor, "link.create", plannedCreates.links);
+        const capped = await WriteCaps.create(tx, actor, "link.create", plannedCreates.links, "restore");
         if (capped) return capped;
       }
       await tx.habitLog.deleteMany();

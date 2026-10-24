@@ -1,5 +1,6 @@
 "use client";
 
+import { format } from "date-fns";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useBearing } from "@/store/bearing";
 import { useItems, useUpdateItem, useToggleHabit } from "@/lib/hooks";
@@ -137,7 +138,7 @@ export function FocusView() {
 
             // Log habit if a habit was selected
             if (selectedItemType === "habit" && selectedItemId) {
-              const todayKey = new Date().toISOString().slice(0, 10);
+              const todayKey = format(new Date(), "yyyy-MM-dd");
               toggleHabit.mutate({ id: selectedItemId, date: todayKey });
               const habitName = habits.find((h) => h.id === selectedItemId)?.title;
               notify.success(

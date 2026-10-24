@@ -31,7 +31,7 @@ interface BearingState {
   quickCaptureOpen: boolean;
   itemDetailId: string | null;
   itemEditorOpen: boolean;
-  itemEditorSeed: Partial<{ id: string; type: string; projectId: string; domainId: string; title: string }> | null;
+  itemEditorSeed: Partial<{ id: string; type: string; projectId: string; domainId: string; title: string; tags: { tag: { name: string } }[] }> | null;
   commandOpen: boolean;
   calendarLayers: string[];
   calendarLayerMode: "type" | "domain";

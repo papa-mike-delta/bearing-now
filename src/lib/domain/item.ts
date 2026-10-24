@@ -43,11 +43,11 @@ export class ItemDomain {
     });
   }
 
-  static async create(data: ItemData, tagNames: string[] = [], actor: Actor = "agent:internal") {
-    return OperationLedger.run(actor, { operation: "item.create", payload: { data, tagNames } }, async (tx) => {
+  static async create(data: ItemData, tagNames: string[] = [], actor: Actor = "agent:internal", purpose?: "restore") {
+    return OperationLedger.run(actor, { operation: purpose === "restore" && actor.startsWith("user:") ? "item.restore" : "item.create", payload: { data, tagNames } }, async (tx) => {
       if (!data.title) return { ok: false, error: "title is required" };
       if (!data.type) return { ok: false, error: "type is required" };
-      const refusal = await WriteCaps.create(tx, actor, "item.create");
+      const refusal = await WriteCaps.create(tx, actor, "item.create", 1, purpose);
       if (refusal) return refusal;
       const value = await tx.item.create({
         data: {
