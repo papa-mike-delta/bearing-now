@@ -505,3 +505,61 @@
   --color-warning: var(--warning);
   --color-info: var(--info);
 }
+
+/* Readable product metadata and real, non-overlapping touch bounds.
+   Unlayered rules intentionally outrank compact Tailwind height/width utilities.
+   Desktop fine-pointer density is preserved. Portals share the same policy. */
+.bearing-app :where(h1, h2, h3, h4, p, label) {
+  overflow-wrap: anywhere;
+}
+.bearing-app :where(button, a, input, textarea, select, summary, [tabindex]):focus-visible,
+:where([data-slot="dialog-content"], [data-slot="sheet-content"]) :where(button, a, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px), (pointer: coarse) {
+  .touch-target,
+  .bearing-app :where(button, summary, select, input:not([type="hidden"]):not([type="range"]), [role="button"], [role="checkbox"], [role="radio"], [role="switch"], a[href]),
+  :where([data-slot="dialog-content"], [data-slot="sheet-content"], [data-slot="select-content"], [data-slot="dropdown-menu-content"], [data-slot="popover-content"], [data-slot="alert-dialog-content"]) :where(button, summary, select, input:not([type="hidden"]):not([type="range"]), [role="button"], [role="checkbox"], [role="radio"], [role="switch"], [role="option"], [role="menuitem"], a[href]) {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .bearing-app :where(input[type="range"]),
+  :where([data-slot="dialog-content"], [data-slot="sheet-content"]) input[type="range"] {
+    min-height: 44px;
+  }
+  .bearing-app a[href],
+  :where([data-slot="dialog-content"], [data-slot="sheet-content"]) a[href] {
+    display: inline-flex;
+    align-items: center;
+  }
+  .bearing-app .hover-action,
+  :where([data-slot="dialog-content"], [data-slot="sheet-content"]) .hover-action {
+    opacity: 1;
+  }
+  .bearing-app :where(input, textarea, select),
+  :where([data-slot="dialog-content"], [data-slot="sheet-content"]) :where(input, textarea, select) {
+    font-size: max(1rem, 16px); /* Avoid iOS focus zoom while retaining user font scaling. */
+  }
+}
+
+@media (max-width: 767px), (pointer: coarse) {
+  :where([data-slot="select-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"]) {
+    max-width: calc(100vw - 2rem);
+  }
+  [data-slot="select-item"] {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 767px), (pointer: coarse) {
+  /* MDXEditor resets controls with `all: unset`; restore actual touch bounds. */
+  .bearing-app .rich-text-editor-wrapper .mdxeditor-toolbar button,
+  [data-radix-popper-content-wrapper] [role="option"] {
+    box-sizing: border-box !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+}

@@ -60,21 +60,21 @@ export function SubscriptionsOverview() {
           </span>
           <div>
             <h3 className="text-sm font-semibold">Monthly cashflow</h3>
-            <p className="text-[10px] text-muted-foreground">Income minus expenses & subscriptions</p>
+            <p className="text-xs text-muted-foreground">Income minus expenses & subscriptions</p>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-lg bg-income/10 p-2.5 text-center">
-            <p className="text-[9px] font-semibold uppercase tracking-wide text-income">Income</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-income">Income</p>
             <p className="mt-0.5 text-base font-bold tabular-nums text-income">${monthlyIncome.toLocaleString()}</p>
           </div>
           <div className="rounded-lg bg-expense/10 p-2.5 text-center">
-            <p className="text-[9px] font-semibold uppercase tracking-wide text-expense">Expenses</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-expense">Expenses</p>
             <p className="mt-0.5 text-base font-bold tabular-nums text-expense">${(monthlyExpenses + monthlySubTotal).toLocaleString()}</p>
           </div>
           <div className="rounded-lg bg-muted p-2.5 text-center">
-            <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Net</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Net</p>
             <p className={`mt-0.5 text-base font-bold tabular-nums ${net >= 0 ? "text-income" : "text-expense"}`}>
               {net >= 0 ? "+" : "−"}${Math.abs(net).toLocaleString()}
             </p>
@@ -92,7 +92,7 @@ export function SubscriptionsOverview() {
               </span>
               <div>
                 <h3 className="text-sm font-semibold">Subscriptions</h3>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   ${monthlySubTotal.toFixed(2)}/mo · ${yearlySubTotal.toFixed(0)}/yr
                 </p>
               </div>
@@ -114,7 +114,7 @@ export function SubscriptionsOverview() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-medium">{s.title}</p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {s.metadata?.recurring} · next {smartDate(s.dueDate)}
                   </p>
                 </div>
@@ -164,7 +164,7 @@ export function SubscriptionsOverview() {
                       className="h-full rounded-full bg-gradient-to-r from-type-bookmark to-type-bookmark"
                     />
                   </div>
-                  <p className="mt-0.5 text-right text-[10px] font-medium text-type-bookmark">{pct}%</p>
+                  <p className="mt-0.5 text-right text-xs font-medium text-type-bookmark">{pct}%</p>
                 </motion.button>
               );
             })}

@@ -105,8 +105,8 @@ export function MoodCheckIn() {
 
       {/* Mood selector */}
       <div className="mb-3">
-        <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Mood</p>
-        <div className="flex justify-between gap-1">
+        <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Mood</p>
+        <div className="flex flex-wrap justify-between gap-1">
           {MOODS.map((m) => (
             <motion.button
               key={m.value}
@@ -119,7 +119,7 @@ export function MoodCheckIn() {
               )}
             >
               <Icon name={m.icon} className="h-5 w-5" />
-              <span className={cn("text-[9px]", mood === m.value ? "font-semibold text-type-journal" : "text-muted-foreground")}>
+              <span className={cn("text-xs", mood === m.value ? "font-semibold text-type-journal" : "text-muted-foreground")}>
                 {m.label}
               </span>
             </motion.button>
@@ -129,7 +129,7 @@ export function MoodCheckIn() {
 
       {/* Energy selector */}
       <div className="mb-4">
-        <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Energy</p>
+        <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Energy</p>
         <div className="flex gap-1">
           {ENERGY.map((e) => (
             <motion.button
@@ -138,7 +138,7 @@ export function MoodCheckIn() {
               whileTap={{ scale: 0.95 }}
               onClick={() => setEnergy(e.value)}
               className={cn(
-                "flex-1 rounded-md py-1.5 text-[10px] font-medium transition-all",
+                "flex-1 rounded-md py-1.5 text-xs font-medium transition-all",
                 energy === e.value ? "text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted",
               )}
               style={energy === e.value ? { background: colorWithAlpha(e.color, 16), color: "var(--foreground)" } : {}}

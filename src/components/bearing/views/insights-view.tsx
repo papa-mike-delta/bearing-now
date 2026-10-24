@@ -115,8 +115,8 @@ export function InsightsView() {
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={moodData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} />
-                <YAxis domain={[0, 5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={28} />
+                <XAxis dataKey="date" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} />
+                <YAxis domain={[0, 5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={28} />
                 <Tooltip
                   contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12, color: "var(--foreground)" }}
                   labelStyle={{ color: "var(--muted-foreground)" }}
@@ -127,7 +127,7 @@ export function InsightsView() {
               </LineChart>
             </ResponsiveContainer>
           )}
-          <div className="mt-2 flex justify-center gap-4 text-[11px] text-muted-foreground">
+          <div className="mt-2 flex justify-center gap-4 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1"><span className="h-2 w-3 rounded-full bg-type-idea" /> Mood</span>
             <span className="inline-flex items-center gap-1"><span className="h-2 w-3 rounded-full bg-priority-high" /> Energy</span>
           </div>
@@ -148,8 +148,8 @@ export function InsightsView() {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} interval={4} />
-              <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
+              <XAxis dataKey="date" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} interval={4} />
+              <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
               <Tooltip
                 contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12, color: "var(--foreground)" }}
                 labelStyle={{ color: "var(--muted-foreground)" }}
@@ -159,7 +159,7 @@ export function InsightsView() {
               <Area type="monotone" dataKey="completed" stroke="var(--success)" strokeWidth={2} fill="url(#gCompleted)" />
             </AreaChart>
           </ResponsiveContainer>
-          <div className="mt-2 flex justify-center gap-4 text-[11px] text-muted-foreground">
+          <div className="mt-2 flex justify-center gap-4 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1"><span className="h-2 w-3 rounded-full bg-info" /> Created</span>
             <span className="inline-flex items-center gap-1"><span className="h-2 w-3 rounded-full bg-success" /> Completed</span>
           </div>
@@ -193,7 +193,7 @@ export function InsightsView() {
                   <div className="w-10 text-right text-xs font-semibold tabular-nums text-muted-foreground">{h.consistency}%</div>
                 </div>
               ))}
-              <div className="flex justify-end gap-1 pt-1 text-[10px] text-muted-foreground">
+              <div className="flex justify-end gap-1 pt-1 text-xs text-muted-foreground">
                 <span>14 days ago</span><span>→</span><span>today</span>
               </div>
             </div>
@@ -204,15 +204,15 @@ export function InsightsView() {
         <SectionCard title="Monthly finances" icon="Wallet">
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="rounded-xl bg-income/10 p-3">
-              <div className="text-[10px] uppercase tracking-wide text-income">Income</div>
+              <div className="text-xs uppercase tracking-wide text-income">Income</div>
               <div className="mt-1 text-xl font-bold text-income">${data.finance.income.toLocaleString()}</div>
             </div>
             <div className="rounded-xl bg-expense/10 p-3">
-              <div className="text-[10px] uppercase tracking-wide text-expense">Expenses</div>
+              <div className="text-xs uppercase tracking-wide text-expense">Expenses</div>
               <div className="mt-1 text-xl font-bold text-expense">${data.finance.expenses.toLocaleString()}</div>
             </div>
             <div className="rounded-xl bg-muted p-3">
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Net</div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Net</div>
               <div className={`mt-1 text-xl font-bold ${data.finance.net >= 0 ? "text-income" : "text-expense"}`}>
                 {data.finance.net >= 0 ? "+" : "−"}${Math.abs(data.finance.net).toLocaleString()}
               </div>
@@ -228,7 +228,7 @@ export function InsightsView() {
           )}
           {data.finance.savingsGoals.length > 0 && (
             <div className="mt-3 space-y-2">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Savings goals</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Savings goals</div>
               {data.finance.savingsGoals.map((g: any, i: number) => (
                 <div key={i}>
                   <div className="mb-1 flex items-center justify-between text-xs">
@@ -260,16 +260,16 @@ export function InsightsView() {
                   <span className="h-3 w-3 rounded-full" style={{ background: projectColor(p) }} />
                   <span className="flex-1 truncate text-sm font-semibold">{p.name}</span>
                   {p.overdue > 0 && (
-                    <span className="rounded-full bg-expense/15 px-1.5 py-0.5 text-[10px] font-bold text-expense">{p.overdue} overdue</span>
+                    <span className="rounded-full bg-expense/15 px-1.5 py-0.5 text-xs font-bold text-expense">{p.overdue} overdue</span>
                   )}
                 </div>
-                <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
+                <div className="mb-1.5 flex items-center justify-between text-xs text-muted-foreground">
                   <span>{p.done}/{p.total} tasks</span>
                   <span className="font-semibold" style={{ color: projectColor(p) }}>{p.progress}%</span>
                 </div>
                 <Progress value={p.progress} className="h-1.5" />
                 {p.targetDate && (
-                  <p className="mt-2 text-[10px] text-muted-foreground">Target: {smartDate(p.targetDate)}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">Target: {smartDate(p.targetDate)}</p>
                 )}
               </motion.button>
             ))}
@@ -292,7 +292,7 @@ function StatTile({ label, value, icon, color }: { label: string; value: string 
       </span>
       <div>
         <div className="text-lg font-semibold leading-none">{value}</div>
-        <div className="mt-0.5 text-[11px] text-muted-foreground">{label}</div>
+        <div className="mt-0.5 text-xs text-muted-foreground">{label}</div>
       </div>
     </motion.div>
   );

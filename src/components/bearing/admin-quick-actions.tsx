@@ -83,7 +83,7 @@ export function AdminQuickActions() {
                   {g.title}
                 </span>
                 {g.dueDate && (
-                  <span className={cn("text-[10px]", dateColor(g.dueDate))}>{smartDate(g.dueDate)}</span>
+                  <span className={cn("text-xs", dateColor(g.dueDate))}>{smartDate(g.dueDate)}</span>
                 )}
               </motion.button>
             ))}
@@ -95,7 +95,7 @@ export function AdminQuickActions() {
         {/* Home maintenance */}
         {maintenance.length > 0 && (
           <div className="rounded-2xl border border-priority-high/20 bg-gradient-to-br from-priority-high/5 to-transparent p-3">
-            <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-priority-high">
+            <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-priority-high">
               <Icon name="Wrench" className="h-3 w-3" />
               Maintenance
             </h4>
@@ -115,7 +115,7 @@ export function AdminQuickActions() {
                   <span className={cn("flex-1 truncate text-xs font-medium", m.status === "done" && "text-muted-foreground line-through")}>
                     {m.title}
                   </span>
-                  {m.dueDate && <span className={cn("text-[10px]", dateColor(m.dueDate))}>{smartDate(m.dueDate)}</span>}
+                  {m.dueDate && <span className={cn("text-xs", dateColor(m.dueDate))}>{smartDate(m.dueDate)}</span>}
                 </button>
               ))}
             </div>
@@ -125,7 +125,7 @@ export function AdminQuickActions() {
         {/* Documents */}
         {documents.length > 0 && (
           <div className="rounded-2xl border border-border/50 bg-card/30 p-3">
-            <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               <Icon name="FileText" className="h-3 w-3" />
               Documents
             </h4>
@@ -141,7 +141,7 @@ export function AdminQuickActions() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-medium">{d.title}</p>
-                    {d.metadata?.category && <p className="text-[10px] text-muted-foreground">{d.metadata.category}</p>}
+                    {d.metadata?.category && <p className="text-xs text-muted-foreground">{d.metadata.category}</p>}
                   </div>
                 </button>
               ))}
@@ -153,7 +153,7 @@ export function AdminQuickActions() {
       {/* Other admin tasks */}
       {otherTasks.length > 0 && (
         <div className="rounded-2xl border border-border/50 bg-card/30 p-3">
-          <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             <Icon name="ClipboardList" className="h-3 w-3" />
             Other tasks
           </h4>

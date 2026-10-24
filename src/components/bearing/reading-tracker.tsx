@@ -55,7 +55,7 @@ export function ReadingTracker() {
           </span>
           <div>
             <h3 className="text-sm font-semibold">Reading list</h3>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {finished.length} finished · {reading.length} reading · {queued.length} queued
             </p>
           </div>
@@ -69,7 +69,7 @@ export function ReadingTracker() {
         {/* Currently reading */}
         {reading.length > 0 && (
           <div>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-type-bookmark">Currently reading</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-type-bookmark">Currently reading</p>
             {reading.map((b: any, i: number) => (
               <motion.button
                 key={b.id}
@@ -82,7 +82,7 @@ export function ReadingTracker() {
                 <Icon name="BookOpen" className="mt-0.5 h-4 w-4 flex-shrink-0 text-type-bookmark" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-semibold">{b.title}</p>
-                  {b.metadata?.author && <p className="text-[10px] text-muted-foreground">{b.metadata.author}</p>}
+                  {b.metadata?.author && <p className="text-xs text-muted-foreground">{b.metadata.author}</p>}
                 </div>
               </motion.button>
             ))}
@@ -92,7 +92,7 @@ export function ReadingTracker() {
         {/* Up next */}
         {queued.length > 0 && (
           <div>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Up next</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Up next</p>
             {queued.slice(0, 3).map((b: any, i: number) => (
               <motion.button
                 key={b.id}
@@ -105,7 +105,7 @@ export function ReadingTracker() {
                 <Icon name="Bookmark" className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-medium">{b.title}</p>
-                  {b.metadata?.author && <p className="text-[10px] text-muted-foreground">{b.metadata.author}</p>}
+                  {b.metadata?.author && <p className="text-xs text-muted-foreground">{b.metadata.author}</p>}
                 </div>
               </motion.button>
             ))}
@@ -115,7 +115,7 @@ export function ReadingTracker() {
         {/* Recently finished */}
         {finished.length > 0 && (
           <div>
-            <p className="mb-1 mt-1 text-[10px] font-semibold uppercase tracking-wide text-success">Finished</p>
+            <p className="mb-1 mt-1 text-xs font-semibold uppercase tracking-wide text-success">Finished</p>
             {finished.slice(0, 2).map((b: any, i: number) => (
               <motion.button
                 key={b.id}
@@ -130,7 +130,7 @@ export function ReadingTracker() {
                   <p className="truncate text-xs font-medium line-through opacity-60">{b.title}</p>
                 </div>
                 {b.metadata?.rating && (
-                  <span className="flex items-center gap-0.5 text-[10px] text-priority-high">
+                  <span className="flex items-center gap-0.5 text-xs text-priority-high">
                     <Icon name="Star" className="h-2.5 w-2.5 fill-priority-high text-priority-high" />
                     {b.metadata.rating}
                   </span>

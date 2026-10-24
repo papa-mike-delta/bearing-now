@@ -34,7 +34,7 @@ export function OnThisDay() {
       <div className="rounded-2xl border border-dashed border-border/60 bg-card/30 p-4 text-center">
         <Icon name="CalendarHeart" className="mx-auto mb-1.5 h-5 w-5 text-muted-foreground/50" />
         <p className="text-xs font-medium text-muted-foreground">No memories on this day yet</p>
-        <p className="mt-0.5 text-[11px] text-muted-foreground/70">Keep journaling — future you will thank you.</p>
+        <p className="mt-0.5 text-xs text-muted-foreground/70">Keep journaling — future you will thank you.</p>
       </div>
     );
   }
@@ -51,7 +51,7 @@ export function OnThisDay() {
         </span>
         <div>
           <h3 className="text-sm font-semibold">On this day</h3>
-          <p className="text-[10px] text-muted-foreground">{total} memor{total === 1 ? "y" : "ies"} from the past</p>
+          <p className="text-xs text-muted-foreground">{total} memor{total === 1 ? "y" : "ies"} from the past</p>
         </div>
       </div>
 
@@ -67,12 +67,12 @@ export function OnThisDay() {
               onClick={() => openItemDetail(j.id)}
               className="group block w-full rounded-lg border border-border/40 bg-background/60 p-2.5 text-left transition-all hover:border-border hover:bg-background"
             >
-              <div className="mb-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <div className="mb-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Icon name="BookHeart" className="h-3 w-3 text-type-journal" />
                 <span>{yearsAgo} year{yearsAgo !== 1 ? "s" : ""} ago · {fmtDate(j.scheduledAt || j.createdAt, "MMM d")}</span>
               </div>
               <p className="line-clamp-1 text-xs font-medium">{j.title}</p>
-              {j.content && <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">{j.content}</p>}
+              {j.content && <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{j.content}</p>}
             </motion.button>
           );
         })}
@@ -87,7 +87,7 @@ export function OnThisDay() {
               transition={{ delay: (journals.length + i) * 0.05 }}
               className="rounded-lg border border-border/40 bg-background/60 p-2.5"
             >
-              <div className="mb-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <div className="mb-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Icon name="NotebookPen" className="h-3 w-3 text-priority-high" />
                 <span>{yearsAgo} year{yearsAgo !== 1 ? "s" : ""} ago · {r.type} review</span>
                 {r.mood && <span className="ml-auto" style={{ color: ["", "var(--mood-1)", "var(--mood-2)", "var(--mood-3)", "var(--mood-4)", "var(--mood-5)"][r.mood] }}>
@@ -116,7 +116,7 @@ export function OnThisDay() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="line-clamp-1 text-xs font-medium">{c.title}</p>
-                <p className="text-[10px] text-muted-foreground">{yearsAgo} year{yearsAgo !== 1 ? "s" : ""} ago · completed</p>
+                <p className="text-xs text-muted-foreground">{yearsAgo} year{yearsAgo !== 1 ? "s" : ""} ago · completed</p>
               </div>
             </motion.button>
           );

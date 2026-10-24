@@ -88,7 +88,7 @@ function ShellContent({ coachEnabled }: { coachEnabled: boolean }) {
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="bearing-app flex h-dvh min-w-0 overflow-hidden bg-background">
       <StoredThemeOverride />
       <Sidebar />
 

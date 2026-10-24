@@ -85,16 +85,16 @@ export function CalendarView() {
           </div>
 
           {/* Weekday header */}
-          <div className="grid grid-cols-7 border-b border-border/60">
+          <div className="grid min-w-[448px] grid-cols-7 border-b border-border/60">
             {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-              <div key={d} className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <div key={d} className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {d}
               </div>
             ))}
           </div>
 
           {/* Days */}
-          <div className="grid grid-cols-7">
+          <div className="grid min-w-[448px] grid-cols-7">
             {isLoading ? (
               Array.from({ length: 35 }).map((_, i) => (
                 <div key={i} className="min-h-[88px] border-b border-r border-border/40 p-1.5">
@@ -132,7 +132,7 @@ export function CalendarView() {
                       {format(day, "d")}
                     </span>
                     {items.length > 3 && (
-                      <span className="text-[9px] text-muted-foreground">+{items.length - 3}</span>
+                      <span className="text-xs text-muted-foreground">+{items.length - 3}</span>
                     )}
                   </div>
                   <div className="space-y-0.5">
@@ -141,7 +141,7 @@ export function CalendarView() {
                       return (
                         <div
                           key={idx}
-                          className="flex items-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium"
+                          className="flex items-center gap-1 rounded px-1 py-0.5 text-xs font-medium"
                           style={{ background: colorWithAlpha(m.color, 10), color: m.color }}
                         >
                           <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: colorWithAlpha(m.color, 16), color: "var(--foreground)" }} />
@@ -198,7 +198,7 @@ export function CalendarView() {
                 </button>
               )}
             </div>
-            <p className="mt-3 text-[11px] text-muted-foreground">
+            <p className="mt-3 text-xs text-muted-foreground">
               {calendarLayers.length === 0 ? "Showing all layers" : `Filtering to ${calendarLayers.length} layer${calendarLayers.length > 1 ? "s" : ""}`}
             </p>
           </SectionCard>
@@ -231,7 +231,7 @@ export function CalendarView() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{it.title}</p>
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           {m.name}
                           {it._dateField === "due" ? " · due" : it._dateField === "scheduled" ? " · scheduled" : ""}
                           {it.metadata?.amount ? ` · $${it.metadata.amount}` : ""}

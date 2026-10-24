@@ -36,26 +36,26 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border/60 bg-background/80 px-4 backdrop-blur-md">
-      <div className="h-10 w-10 shrink-0 md:hidden" aria-hidden="true" />
+      <div className="h-11 w-11 shrink-0 md:hidden" aria-hidden="true" />
       {/* Search */}
       <Popover open={open && q.length > 0} onOpenChange={setOpen}>
         <PopoverAnchor asChild>
-          <div className="relative w-full max-w-md">
+          <div className="relative min-w-0 w-full max-w-md">
             <Icon name="Search" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={q}
               onChange={(e) => updateSearch(e.target.value)}
               onFocus={() => setOpen(q.length > 0)}
               placeholder="Search your brain…"
-              className="h-9 bg-muted/50 pl-9 pr-16"
+              className="h-9 bg-muted/50 pl-9 pr-3 sm:pr-16"
             />
-            <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground">
+            <kbd className="absolute hidden sm:block right-2.5 top-1/2 -translate-y-1/2 rounded border border-border bg-background px-1.5 py-0.5 text-xs text-muted-foreground">
               /
             </kbd>
           </div>
         </PopoverAnchor>
         <PopoverContent
-          className="w-[420px] p-0"
+          className="w-[min(420px,calc(100vw-2rem))] p-0"
           align="start"
           onOpenAutoFocus={(e) => e.preventDefault()}
           onCloseAutoFocus={(e) => e.preventDefault()}
@@ -67,7 +67,7 @@ export function Topbar() {
               <>
                 {results.projects.length > 0 && (
                   <div className="mb-2">
-                    <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Projects</div>
+                    <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Projects</div>
                     {results.projects.map((p: any) => (
                       <button
                         key={p.id}
@@ -82,7 +82,7 @@ export function Topbar() {
                 )}
                 {results.items.length > 0 && (
                   <div>
-                    <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Items</div>
+                    <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Items</div>
                     {results.items.map((i: any) => {
                       const m = ITEM_TYPE_MAP[i.type] || {};
                       return (
@@ -94,7 +94,7 @@ export function Topbar() {
                           <Icon name={(m as any).icon || "Circle"} className="h-3.5 w-3.5" style={{ color: (m as any).color }} />
                           <span className="flex-1 truncate">{i.title}</span>
                           {i.domainId && DOMAIN_MAP[i.domainId] && (
-                            <span className="text-[10px] text-muted-foreground">{DOMAIN_MAP[i.domainId].short}</span>
+                            <span className="text-xs text-muted-foreground">{DOMAIN_MAP[i.domainId].short}</span>
                           )}
                         </button>
                       );
@@ -107,7 +107,7 @@ export function Topbar() {
         </PopoverContent>
       </Popover>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
         <Button
           variant="ghost"
           size="icon"
@@ -124,8 +124,8 @@ export function Topbar() {
           className="h-9 gap-1.5 bg-primary text-primary-foreground shadow-sm hover:from-success hover:to-success"
         >
           <Icon name="Zap" className="h-4 w-4" />
-          <span className="hidden sm:inline">Quick Capture</span>
-          <kbd className="hidden rounded border border-white/30 px-1 text-[10px] sm:inline">⌘K</kbd>
+          <span className="sr-only sm:not-sr-only">Quick Capture</span>
+          <kbd className="hidden rounded border border-white/30 px-1 text-xs sm:inline">⌘K</kbd>
         </Button>
       </div>
     </header>

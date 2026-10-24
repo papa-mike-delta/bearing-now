@@ -337,7 +337,7 @@ export function SanctuaryView() {
                 onClick={() => openJournalEditor(j.id)}
                 className="group rounded-xl border border-border/60 p-4 text-left transition-all hover:border-type-journal/30 hover:shadow-sm"
               >
-                <div className="mb-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
                   <Icon name="Calendar" className="h-3 w-3" />
                   {fmtDate(j.scheduledAt || j.createdAt, "EEE, MMM d · p")}
                   {j.project && (

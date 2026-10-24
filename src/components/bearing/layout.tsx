@@ -58,7 +58,7 @@ export function SectionCard({
   return (
     <section className={cn("rounded-2xl border border-border/60 bg-card/50 p-4 backdrop-blur-sm", className)}>
       {title && (
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-wrap items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-semibold">
             {icon && <Icon name={icon} className="h-4 w-4 text-muted-foreground" />}
             {title}
@@ -121,7 +121,7 @@ export function StatPill({
       )}
       <div>
         <div className="text-lg font-semibold leading-none">{value}</div>
-        <div className="mt-0.5 text-[11px] text-muted-foreground">{label}</div>
+        <div className="mt-0.5 text-xs text-muted-foreground">{label}</div>
       </div>
     </div>
   );

@@ -68,14 +68,14 @@ export function AgendaView() {
             {days.reduce((s, d) => s + d.items.length, 0)} items this week
           </p>
         </div>
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex max-w-full gap-2 overflow-x-auto pb-1">
           {days.map((d, i) => (
-            <div key={i} className="text-center">
+            <div key={i} className="shrink-0 text-center">
               <div className={cn(
                 "flex h-9 w-9 flex-col items-center justify-center rounded-lg text-xs",
                 isToday(d.date) ? "bg-primary text-primary-foreground" : "bg-muted/50",
               )}>
-                <span className="text-[9px] uppercase">{format(d.date, "EEEEE")}</span>
+                <span className="text-xs uppercase">{format(d.date, "EEEEE")}</span>
                 <span className="text-sm font-bold leading-none">{format(d.date, "d")}</span>
               </div>
               {d.items.length > 0 && (
@@ -113,13 +113,13 @@ export function AgendaView() {
               {/* day header */}
               <div className="mb-2 flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{format(d.date, "EEE")}</p>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">{format(d.date, "EEE")}</p>
                   <p className={cn("text-lg font-bold leading-none", isToday(d.date) && "text-primary")}>
                     {format(d.date, "d")}
                   </p>
                 </div>
                 {d.items.length > 0 && (
-                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs font-bold text-muted-foreground">
                     {d.items.length}
                   </span>
                 )}
@@ -129,7 +129,7 @@ export function AgendaView() {
               <div className="flex-1 space-y-1.5">
                 <AnimatePresence>
                   {d.items.length === 0 ? (
-                    <p className="py-4 text-center text-[11px] text-muted-foreground/50">—</p>
+                    <p className="py-4 text-center text-xs text-muted-foreground/50">—</p>
                   ) : (
                     d.items.map((item: any) => {
                       const m = ITEM_TYPE_MAP[item.type] || { icon: "Circle", color: "var(--muted-foreground)", name: item.type };
@@ -151,21 +151,21 @@ export function AgendaView() {
                           style={{ borderColor: m.color }}
                         >
                           {time && (
-                            <span className="mt-0.5 flex-shrink-0 text-[9px] font-semibold tabular-nums text-muted-foreground">
+                            <span className="mt-0.5 flex-shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">
                               {time}
                             </span>
                           )}
                           <div className="min-w-0 flex-1">
-                            <p className={cn("text-[11px] font-medium leading-tight", isDone && "line-through")}>
+                            <p className={cn("text-xs font-medium leading-tight", isDone && "line-through")}>
                               {item.title}
                             </p>
                             {item.project && (
-                              <span className="text-[9px]" style={{ color: projectColor(item.project, item.type) }}>
+                              <span className="text-xs" style={{ color: projectColor(item.project, item.type) }}>
                                 {item.project.name}
                               </span>
                             )}
                             {item.metadata?.amount != null && (
-                              <span className="ml-1 text-[9px] font-semibold" style={{ color: item.metadata.kind === "income" ? "var(--income)" : "var(--expense)" }}>
+                              <span className="ml-1 text-xs font-semibold" style={{ color: item.metadata.kind === "income" ? "var(--income)" : "var(--expense)" }}>
                                 ${item.metadata.amount}
                               </span>
                             )}

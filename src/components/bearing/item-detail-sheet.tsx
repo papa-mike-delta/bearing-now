@@ -120,14 +120,14 @@ export function ItemDetailSheet() {
           <div className="flex h-full flex-col">
             {/* ── Hero Header with gradient ── */}
             <div
-              className="relative flex-shrink-0 overflow-hidden px-6 pb-5 pt-6"
+              className="relative flex-shrink-0 overflow-hidden pl-6 pr-16 pb-5 pt-6"
               style={{
                 background: colorGradient(typeMeta.color, 9, "70%"),
               }}
             >
               <SheetHeader className="space-y-0 p-0">
                 {/* Breadcrumb */}
-                <div className="mb-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <div className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
                   <span
                     className="inline-flex items-center gap-1 font-medium"
                     style={{ color: typeMeta.color }}
@@ -176,7 +176,7 @@ export function ItemDetailSheet() {
                 {/* Status + key meta pills */}
                 <div className="mt-3 flex flex-wrap items-center gap-1.5">
                   <span
-                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize"
+                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
                     style={{
                       background: colorWithAlpha((STATUS_META as any)[item.status]?.color || "var(--muted-foreground)", 13),
                       color: (STATUS_META as any)[item.status]?.color || "var(--muted-foreground)",
@@ -187,7 +187,7 @@ export function ItemDetailSheet() {
                   </span>
                   {item.priority > 0 && (
                     <span
-                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
                       style={{ background: colorWithAlpha(PRIORITY_META[item.priority]?.color, 13), color: PRIORITY_META[item.priority]?.color }}
                     >
                       <Icon name="Flag" className="h-2.5 w-2.5" />
@@ -195,13 +195,13 @@ export function ItemDetailSheet() {
                     </span>
                   )}
                   {item.dueDate && (
-                    <span className={cn("inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium", dateColor(item.dueDate))}>
+                    <span className={cn("inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium", dateColor(item.dueDate))}>
                       <Icon name="CalendarClock" className="h-2.5 w-2.5" />
                       {smartDate(item.dueDate)}
                     </span>
                   )}
                   {item.scheduledAt && !item.dueDate && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
                       <Icon name="Clock" className="h-2.5 w-2.5" />
                       {fmtDate(item.scheduledAt, "MMM d, p")}
                     </span>
@@ -229,7 +229,7 @@ export function ItemDetailSheet() {
                     {item.tags.map((t: any) => (
                       <span
                         key={t.tag.id}
-                        className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium"
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium"
                         style={{ background: colorWithAlpha(t.tag.color, 9), color: t.tag.color }}
                       >
                         <span className="h-1 w-1 rounded-full" style={{ background: t.tag.color }} />
@@ -255,21 +255,21 @@ export function ItemDetailSheet() {
                 ) : (
                 <div className="rounded-xl border border-border/50 bg-card/30 p-4">
                   <div className="mb-2 flex items-center justify-between">
-                    <h4 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <h4 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       <Icon name="FileText" className="h-3 w-3" />
                       {item.type === "note" ? "Content" : item.type === "idea" ? "Description" : "Notes"}
                     </h4>
                     {!editingContent ? (
                       <button
                         onClick={() => { setEditingKey(draftKey); }}
-                        className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
                       >
                         <Icon name="Pencil" className="h-3 w-3" /> Edit
                       </button>
                     ) : (
                       <div className="flex gap-1">
-                        <button onClick={() => setEditingKey(null)} className="rounded px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted">Cancel</button>
-                        <button onClick={saveContent} className="rounded bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground hover:bg-primary/90">Save</button>
+                        <button onClick={() => setEditingKey(null)} className="rounded px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted">Cancel</button>
+                        <button onClick={saveContent} className="rounded bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Save</button>
                       </div>
                     )}
                   </div>
@@ -299,12 +299,12 @@ export function ItemDetailSheet() {
 
                 {/* Connections */}
                 <div className="rounded-xl border border-border/50 bg-card/30 p-4">
-                  <h4 className="mb-3 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <h4 className="mb-3 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <Icon name="Network" className="h-3 w-3" />
                       Connections
                     </span>
-                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] tabular-nums">
+                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs tabular-nums">
                       {(item.linksFrom?.length || 0) + (item.linksTo?.length || 0)}
                     </span>
                   </h4>
@@ -383,14 +383,14 @@ export function ItemDetailSheet() {
                       <div className="flex flex-col items-center py-4 text-center">
                         <Icon name="Link2" className="mb-1 h-6 w-6 text-muted-foreground/30" />
                         <p className="text-xs text-muted-foreground">No connections yet</p>
-                        <p className="text-[10px] text-muted-foreground/60">Search above to link this item to others</p>
+                        <p className="text-xs text-muted-foreground/60">Search above to link this item to others</p>
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* Timestamps */}
-                <div className="flex items-center justify-center gap-3 pb-2 text-[10px] text-muted-foreground/50">
+                <div className="flex items-center justify-center gap-3 pb-2 text-xs text-muted-foreground/50">
                   <span>Created {fmtDate(item.createdAt, "MMM d, yyyy")}</span>
                   <span>·</span>
                   <span>Updated {fmtDate(item.updatedAt, "MMM d")}</span>
@@ -400,7 +400,7 @@ export function ItemDetailSheet() {
 
             {/* ── Sticky action bar ── */}
             <div className="flex-shrink-0 border-t border-border/60 bg-background/80 px-6 py-3 backdrop-blur-md">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {(item.type === "task" || item.type === "milestone" || item.type === "bookmark") && (
                   <Button
                     size="sm"
@@ -466,7 +466,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
       >
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {isGoal ? "Savings goal" : isIncome ? "Income" : "Expense"}
             </p>
             <p
@@ -477,7 +477,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
             </p>
           </div>
           {m.recurring && m.recurring !== "one-time" && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-background/60 px-2 py-1 text-[10px] font-medium text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded-full bg-background/60 px-2 py-1 text-xs font-medium text-muted-foreground">
               <Icon name="Repeat" className="h-3 w-3" />
               {m.recurring}
             </span>
@@ -485,7 +485,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
         </div>
         {isGoal && m.current != null && (
           <div className="mt-3">
-            <div className="mb-1 flex justify-between text-[11px] text-muted-foreground">
+            <div className="mb-1 flex justify-between text-xs text-muted-foreground">
               <span>${Number(m.current).toLocaleString()} saved</span>
               <span>{Math.round((m.current / m.amount) * 100)}%</span>
             </div>
@@ -523,10 +523,10 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
           </span>
           <div className="flex-1">
             {m.author && <p className="text-sm font-medium">{m.author}</p>}
-            <p className="text-[11px] capitalize text-muted-foreground">{m.medium || "bookmark"}</p>
+            <p className="text-xs capitalize text-muted-foreground">{m.medium || "bookmark"}</p>
           </div>
           <span
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase"
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold uppercase"
             style={{ background: colorWithAlpha(statusColor, 13), color: statusColor }}
           >
             {m.status === "finished" && <Icon name="Check" className="h-2.5 w-2.5" />}
@@ -537,7 +537,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
         {/* Book reading progress */}
         {isBook && m.totalPages > 0 && (
           <div className="mt-3">
-            <div className="mb-1 flex items-center justify-between text-[11px]">
+            <div className="mb-1 flex items-center justify-between text-xs">
               <span className="text-muted-foreground">
                 Page {m.currentPage || 0} of {m.totalPages}
               </span>
@@ -563,7 +563,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
         {/* Rating */}
         {m.rating > 0 && (
           <div className="mt-2 flex items-center gap-1">
-            <span className="text-[10px] text-muted-foreground">Rating:</span>
+            <span className="text-xs text-muted-foreground">Rating:</span>
             <div className="flex gap-0.5">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Icon
@@ -582,7 +582,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
             href={m.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-type-bookmark hover:underline"
+            className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-type-bookmark hover:underline"
           >
             <Icon name="ExternalLink" className="h-3 w-3" />
             {m.url.replace(/^https?:\/\//, "").slice(0, 40)}
@@ -607,14 +607,14 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
         <div className="flex-1">
           {m.relationship && <p className="text-sm font-medium capitalize">{m.relationship}</p>}
           {m.birthday && (
-            <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+            <p className="flex items-center gap-1 text-xs text-muted-foreground">
               <Icon name="Cake" className="h-3 w-3" />
               {fmtDate(m.birthday, "MMM d")}
             </p>
           )}
         </div>
         {m.lastContact && (
-          <span className="rounded-full bg-muted px-2 py-1 text-[10px] text-muted-foreground">
+          <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
             Last contact {smartDate(m.lastContact)}
           </span>
         )}
@@ -633,12 +633,12 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
       >
         <div className="text-center">
           <p className="text-2xl font-bold" style={{ color: typeMeta.color }}>{m.streak || 0}</p>
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">day streak</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">day streak</p>
         </div>
         <div className="h-10 w-px bg-border/40" />
         <div className="flex-1">
           <p className="text-sm font-medium capitalize">{m.cadence || "daily"}</p>
-          {m.target && <p className="text-[11px] text-muted-foreground">Goal: {m.target} {m.unit || ""}</p>}
+          {m.target && <p className="text-xs text-muted-foreground">Goal: {m.target} {m.unit || ""}</p>}
         </div>
       </motion.div>
     );
@@ -693,7 +693,7 @@ function JournalEditor({
       <div className="overflow-hidden rounded-xl border" style={{ borderColor: colorWithAlpha(accentColor, 25) }}>
         {/* Editor toolbar */}
         <div className="flex items-center justify-between border-b border-border/50 bg-muted/30 px-3 py-1.5">
-          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Icon name="PenLine" className="h-3 w-3" style={{ color: accentColor }} />
             <span className="font-medium">Writing</span>
             <span>·</span>
@@ -702,8 +702,8 @@ function JournalEditor({
             <span>{readTime} min read</span>
           </div>
           <div className="flex gap-1">
-            <button onClick={onCancel} className="rounded px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted">Cancel</button>
-            <button onClick={onSave} className="rounded px-2 py-0.5 text-[11px] font-medium text-white" style={{ background: colorWithAlpha(accentColor, 16), color: "var(--foreground)" }}>Save</button>
+            <button onClick={onCancel} className="rounded px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted">Cancel</button>
+            <button onClick={onSave} className="rounded px-2 py-0.5 text-xs font-medium text-white" style={{ background: colorWithAlpha(accentColor, 16), color: "var(--foreground)" }}>Save</button>
           </div>
         </div>
         <Textarea
@@ -721,7 +721,7 @@ function JournalEditor({
   return (
     <div className="overflow-hidden rounded-xl border border-border/50 bg-card/30">
       <div className="flex items-center justify-between border-b border-border/30 px-4 py-2">
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Icon name="BookHeart" className="h-3 w-3" style={{ color: accentColor }} />
           <span className="font-medium">Journal entry</span>
           {content && (
@@ -733,16 +733,16 @@ function JournalEditor({
             </>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={onEdit}
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <Icon name="Pencil" className="h-3 w-3" /> {content ? "Edit" : "Write"}
           </button>
           <button
             onClick={() => useBearing.getState().openJournalEditor(itemId)}
-            className="inline-flex items-center gap-1 text-[11px] font-medium transition-colors hover:text-foreground"
+            className="inline-flex items-center gap-1 text-xs font-medium transition-colors hover:text-foreground"
             style={{ color: accentColor }}
           >
             <Icon name="Maximize2" className="h-3 w-3" /> Full editor
@@ -813,25 +813,25 @@ function ReadingProgressUpdater({ item, currentPage, totalPages, accentColor }: 
         }}
         className="h-7 w-16 rounded-md border border-border/60 bg-background px-2 text-xs tabular-nums outline-none focus:border-primary/40"
       />
-      <span className="text-[10px] text-muted-foreground">/ {totalPages} pages</span>
+      <span className="text-xs text-muted-foreground">/ {totalPages} pages</span>
       <div className="ml-auto flex gap-1">
         <button
           onClick={() => updatePage(Math.max(0, currentPage - 10))}
-          className="rounded-md border border-border/60 px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted"
+          className="rounded-md border border-border/60 px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted"
           title="Go back 10 pages"
         >
           −10
         </button>
         <button
           onClick={() => updatePage(Math.min(totalPages, currentPage + 10))}
-          className="rounded-md border border-border/60 px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted"
+          className="rounded-md border border-border/60 px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted"
           title="Forward 10 pages"
         >
           +10
         </button>
         <button
           onClick={() => updatePage(totalPages)}
-          className="rounded-md px-2 py-0.5 text-[10px] font-medium text-white"
+          className="rounded-md px-2 py-0.5 text-xs font-medium text-white"
           style={{ background: colorWithAlpha(accentColor, 16), color: "var(--foreground)" }}
           title="Mark as finished"
         >
@@ -860,7 +860,7 @@ function MetadataGrid({ metadata, type }: { metadata: any; type: string }) {
     <div className="grid grid-cols-2 gap-2">
       {entries.map(([k, v]: any) => (
         <div key={k} className="rounded-lg border border-border/40 bg-card/20 p-2.5">
-          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{k.replace(/_/g, " ")}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{k.replace(/_/g, " ")}</p>
           <p className="mt-0.5 truncate text-sm font-medium">{String(v)}</p>
         </div>
       ))}
@@ -882,20 +882,20 @@ function ConnectionRow({
       exit={{ opacity: 0, x: 6 }}
       className="group flex items-center gap-2 rounded-lg border border-border/40 bg-background/40 p-2 transition-all hover:border-border hover:bg-background"
     >
-      <button onClick={onClick} className="flex flex-1 items-center gap-2 text-left">
+      <button onClick={onClick} className="flex min-w-0 flex-1 items-center gap-2 text-left">
         <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md" style={{ background: colorWithAlpha(color, 9), color }}>
           <Icon name={icon} className="h-3.5 w-3.5" />
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-medium">{title}</p>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {direction === "in" ? "← linked from" : "→ links to"} · {type}
           </p>
         </div>
       </button>
       <button
         onClick={onRemove}
-        className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-all hover:bg-expense/10 hover:text-expense group-hover:opacity-100"
+        className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-muted-foreground hover-action opacity-0 transition-all hover:bg-expense/10 hover:text-expense group-hover:opacity-100 group-focus-within:opacity-100"
         title="Remove connection"
       >
         <Icon name="X" className="h-3.5 w-3.5" />
@@ -925,11 +925,11 @@ function HabitSection({ itemId, logs, meta, accentColor }: { itemId: string; log
     <div className="rounded-xl border border-border/50 bg-card/30 p-4">
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <h4 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <h4 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             <Icon name="CalendarCheck" className="h-3 w-3" />
             Last 5 weeks
           </h4>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">{doneCount}/35 days · streak {meta?.streak || 0}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{doneCount}/35 days · streak {meta?.streak || 0}</p>
         </div>
         <Button
           size="sm"

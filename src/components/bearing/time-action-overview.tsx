@@ -74,7 +74,7 @@ export function TimeActionOverview() {
             </span>
             <div>
               <h3 className="text-sm font-semibold">Today</h3>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {doneToday.length} done · {dueToday.length} due · {overdue.length} overdue
               </p>
             </div>
@@ -83,13 +83,13 @@ export function TimeActionOverview() {
             {doneToday.length > 0 && (
               <div className="flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5">
                 <Icon name="Check" className="h-3 w-3 text-success" />
-                <span className="text-[11px] font-bold text-success">{doneToday.length}</span>
+                <span className="text-xs font-bold text-success">{doneToday.length}</span>
               </div>
             )}
             {overdue.length > 0 && (
               <div className="flex items-center gap-1 rounded-full bg-expense/15 px-2 py-0.5">
                 <Icon name="AlertTriangle" className="h-3 w-3 text-expense" />
-                <span className="text-[11px] font-bold text-expense">{overdue.length}</span>
+                <span className="text-xs font-bold text-expense">{overdue.length}</span>
               </div>
             )}
           </div>
@@ -98,7 +98,7 @@ export function TimeActionOverview() {
         {/* Overdue */}
         {overdue.length > 0 && (
           <div className="mb-2">
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-expense">Overdue</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-expense">Overdue</p>
             <div className="space-y-1">
               {overdue.slice(0, 3).map((t, i) => (
                 <TaskRow key={t.id} task={t} delay={i * 0.04} onClick={() => openItemDetail(t.id)} />
@@ -110,7 +110,7 @@ export function TimeActionOverview() {
         {/* Due today */}
         {dueToday.length > 0 && (
           <div className="mb-2">
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-priority-high">Due today</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-priority-high">Due today</p>
             <div className="space-y-1">
               {dueToday.slice(0, 4).map((t, i) => (
                 <TaskRow key={t.id} task={t} delay={(overdue.length + i) * 0.04} onClick={() => openItemDetail(t.id)} />
@@ -122,7 +122,7 @@ export function TimeActionOverview() {
         {/* Upcoming */}
         {upcoming.length > 0 && (
           <div>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Coming up</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Coming up</p>
             <div className="space-y-1">
               {upcoming.map((t, i) => (
                 <TaskRow key={t.id} task={t} delay={(overdue.length + dueToday.length + i) * 0.04} onClick={() => openItemDetail(t.id)} />
@@ -135,7 +135,7 @@ export function TimeActionOverview() {
       {/* Habits row */}
       {habits.length > 0 && (
         <div className="rounded-2xl border border-success/20 bg-gradient-to-br from-success/5 to-transparent p-3">
-          <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-success">
+          <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-success">
             <Icon name="Repeat" className="h-3 w-3" />
             Habits this week
           </h4>
@@ -165,7 +165,7 @@ export function TimeActionOverview() {
                     ))}
                   </div>
                   {streak > 0 && (
-                    <span className="flex items-center gap-0.5 rounded-full bg-success/15 px-1.5 py-0.5 text-[10px] font-bold text-success">
+                    <span className="flex items-center gap-0.5 rounded-full bg-success/15 px-1.5 py-0.5 text-xs font-bold text-success">
                       <Icon name="Flame" className="h-2.5 w-2.5" />
                       {streak}
                     </span>
@@ -204,7 +204,7 @@ function TaskRow({ task, delay, onClick }: { task: any; delay: number; onClick: 
         <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: ["var(--muted-foreground)", "var(--type-bookmark)", "var(--priority-medium)", "var(--priority-high)", "var(--expense)"][task.priority] }} />
       )}
       {task.dueDate && (
-        <span className={cn("flex-shrink-0 text-[10px]", dateColor(task.dueDate))}>{smartDate(task.dueDate)}</span>
+        <span className={cn("flex-shrink-0 text-xs", dateColor(task.dueDate))}>{smartDate(task.dueDate)}</span>
       )}
     </motion.button>
   );

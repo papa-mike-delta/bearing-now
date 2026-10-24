@@ -294,7 +294,7 @@ export function DashboardView() {
                     </div>
                     <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{p.description || "No description"}</p>
                     <div className="mt-3">
-                      <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                      <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
                         <span>{p.taskDone}/{p.taskTotal || p.itemCount} done</span>
                         <span>{p.progress}%</span>
                       </div>
@@ -341,14 +341,14 @@ export function DashboardView() {
                   const max = Math.max(1, ...(stats?.byDomain?.map((b: any) => b.count) || [1]));
                   return (
                     <div key={d.key} className="flex items-center gap-2">
-                      <span className="w-16 truncate text-[10px] text-muted-foreground">{d.short}</span>
+                      <span className="w-16 truncate text-xs text-muted-foreground">{d.short}</span>
                       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                         <div
                           className="h-full rounded-full transition-all"
                           style={{ width: `${(count / max) * 100}%`, background: d.color }}
                         />
                       </div>
-                      <span className="w-5 text-right text-[10px] tabular-nums text-muted-foreground">{count}</span>
+                      <span className="w-5 text-right text-xs tabular-nums text-muted-foreground">{count}</span>
                     </div>
                   );
                 })}
@@ -392,11 +392,11 @@ export function DashboardView() {
             <SectionCard title="This week" icon="Wallet">
               <div className="grid grid-cols-2 gap-2 text-center">
                 <div className="rounded-lg bg-success/10 p-2.5">
-                  <p className="text-[9px] uppercase tracking-wide text-success">Income</p>
+                  <p className="text-xs uppercase tracking-wide text-success">Income</p>
                   <p className="mt-0.5 text-base font-bold text-success">${stats.week.income.toLocaleString()}</p>
                 </div>
                 <div className="rounded-lg bg-expense/10 p-2.5">
-                  <p className="text-[9px] uppercase tracking-wide text-expense">Expenses</p>
+                  <p className="text-xs uppercase tracking-wide text-expense">Expenses</p>
                   <p className="mt-0.5 text-base font-bold text-expense">${stats.week.expense.toLocaleString()}</p>
                 </div>
               </div>

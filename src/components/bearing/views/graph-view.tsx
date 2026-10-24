@@ -351,14 +351,14 @@ export function GraphView() {
                           <circle r={n.r + 5} fill="none" stroke="var(--priority-high)" strokeWidth={2} strokeDasharray="3 2" opacity={0.8} />
                         )}
                         {isSearchMatch && (
-                          <text textAnchor="middle" dy={-n.r - 12} className="pointer-events-none fill-priority-high text-[10px] font-semibold">
+                          <text textAnchor="middle" dy={-n.r - 12} className="pointer-events-none fill-priority-high text-xs font-semibold">
                             {truncate(n.title, 22)}
                           </text>
                         )}
                         {isProject ? (
                           <>
                             <rect x={-n.r} y={-n.r} width={n.r * 2} height={n.r * 2} rx={4} fill={n.color} stroke="var(--background)" strokeWidth={2} />
-                            <text textAnchor="middle" dy={n.r + 14} className="pointer-events-none fill-foreground text-[10px] font-semibold">
+                            <text textAnchor="middle" dy={n.r + 14} className="pointer-events-none fill-foreground text-xs font-semibold">
                               {truncate(n.title, 16)}
                             </text>
                           </>
@@ -366,7 +366,7 @@ export function GraphView() {
                           <>
                             <circle r={n.r} fill={n.color} stroke="var(--background)" strokeWidth={1.5} />
                             {(hovered === n.id || focused) && (
-                              <text textAnchor="middle" dy={-n.r - 8} className="pointer-events-none fill-foreground text-[10px] font-medium">
+                              <text textAnchor="middle" dy={-n.r - 8} className="pointer-events-none fill-foreground text-xs font-medium">
                                 {truncate(n.title, 22)}
                               </text>
                             )}
@@ -385,7 +385,7 @@ export function GraphView() {
             )}
 
             {!isLoading && allNodes.length > 0 && (
-              <div className="pointer-events-none absolute bottom-3 left-3 flex gap-2 text-[11px] text-muted-foreground">
+              <div className="pointer-events-none absolute bottom-3 left-3 flex gap-2 text-xs text-muted-foreground">
                 <span className="rounded-md bg-background/80 px-2 py-1 backdrop-blur">{visibleNodes.filter((n) => n.kind === "item").length} items</span>
                 <span className="rounded-md bg-background/80 px-2 py-1 backdrop-blur">{visibleNodes.filter((n) => n.kind === "project").length} projects</span>
                 <span className="rounded-md bg-background/80 px-2 py-1 backdrop-blur">{visibleEdges.length} connections</span>
@@ -416,7 +416,7 @@ export function GraphView() {
                 >
                   <Icon name="Maximize" className="h-4 w-4" />
                 </button>
-                <span className="mt-0.5 rounded-md bg-background/80 px-1 py-0.5 text-center text-[9px] font-medium text-muted-foreground backdrop-blur">
+                <span className="mt-0.5 rounded-md bg-background/80 px-1 py-0.5 text-center text-xs font-medium text-muted-foreground backdrop-blur">
                   {Math.round(zoom * 100)}%
                 </span>
               </div>
@@ -445,7 +445,7 @@ export function GraphView() {
               )}
             </div>
             {searchMatchIds && (
-              <p className="mt-2 text-[10px] text-muted-foreground">
+              <p className="mt-2 text-xs text-muted-foreground">
                 {searchMatchIds.size} match{searchMatchIds.size !== 1 ? "es" : ""} · non-matches dimmed
               </p>
             )}
@@ -505,10 +505,10 @@ export function GraphView() {
                   </button>
                 )}
               </div>
-              <p className="mt-3 text-[11px] text-muted-foreground">
+              <p className="mt-3 text-xs text-muted-foreground">
                 Click a node to open it. Hover to highlight its connections.
               </p>
-              <div className="mt-2 space-y-1 text-[10px] text-muted-foreground/70">
+              <div className="mt-2 space-y-1 text-xs text-muted-foreground/70">
                 <div className="flex items-center gap-1.5">
                   <kbd className="rounded border border-border bg-muted px-1">+</kbd>/<kbd className="rounded border border-border bg-muted px-1">−</kbd> zoom
                   <span className="mx-1">·</span>
