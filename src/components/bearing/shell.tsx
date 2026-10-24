@@ -147,7 +147,7 @@ function Footer({ onQuickCapture, onCommand }: { onQuickCapture: () => void; onC
     <footer className="mt-auto border-t border-border/60 bg-background/60 px-4 py-4 backdrop-blur-sm">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
         <div className="flex items-center gap-1.5">
-          <Icon name="Brain" className="h-3.5 w-3.5 text-emerald-500" />
+          <Icon name="Brain" className="h-3.5 w-3.5 text-success" />
           <span className="font-medium">bearing.now</span>
           <span className="text-muted-foreground/60">·</span>
           <span>Your digital brain, interconnected.</span>
@@ -164,7 +164,7 @@ function Footer({ onQuickCapture, onCommand }: { onQuickCapture: () => void; onC
             <span className="mx-1">·</span>
             <kbd className="rounded border border-border bg-muted px-1">?</kbd> help
           </span>
-          <button onClick={onQuickCapture} className="inline-flex items-center gap-1 text-emerald-600 hover:underline dark:text-emerald-400">
+          <button onClick={onQuickCapture} className="inline-flex items-center gap-1 text-success hover:underline dark:text-success">
             <Icon name="Zap" className="h-3 w-3" /> Quick Capture
           </button>
         </div>

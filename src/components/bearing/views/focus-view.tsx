@@ -1,5 +1,7 @@
 "use client";
 
+import { colorWithAlpha } from "@/lib/product-colors";
+
 import { format } from "date-fns";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useBearing } from "@/store/bearing";
@@ -15,10 +17,10 @@ import { motion } from "framer-motion";
 
 type Mode = "focus" | "short" | "long" | "custom";
 const PRESETS: Record<Mode, { label: string; mins: number; color: string; icon: string }> = {
-  focus: { label: "Deep Focus", mins: 25, color: "#f59e0b", icon: "Brain" },
-  short: { label: "Short Break", mins: 5, color: "#10b981", icon: "Coffee" },
-  long: { label: "Long Break", mins: 15, color: "#06b6d4", icon: "Leaf" },
-  custom: { label: "Custom", mins: 20, color: "#a78bfa", icon: "Timer" },
+  focus: { label: "Deep Focus", mins: 25, color: "var(--priority-high)", icon: "Brain" },
+  short: { label: "Short Break", mins: 5, color: "var(--success)", icon: "Coffee" },
+  long: { label: "Long Break", mins: 15, color: "var(--info)", icon: "Leaf" },
+  custom: { label: "Custom", mins: 20, color: "var(--type-journal)", icon: "Timer" },
 };
 
 // Play a pleasant chime using Web Audio API
@@ -200,7 +202,7 @@ export function FocusView() {
           title="Focus & Deep Work"
           subtitle="Protect your attention. Run a pomodoro, connect it to a habit, and watch your practice grow."
           icon="Brain"
-          color="#f59e0b"
+          color="var(--priority-high)"
         />
 
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -229,11 +231,11 @@ export function FocusView() {
             <div className="rounded-2xl border border-border/60 bg-card/40 p-5">
               <div className="mb-3 h-5 w-16 skeleton rounded bg-muted/40" />
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-amber-500/10 p-4 text-center">
+                <div className="rounded-xl bg-priority-high/10 p-4 text-center">
                   <div className="mx-auto h-8 w-8 skeleton rounded bg-muted/40" />
                   <div className="mx-auto mt-2 h-3 w-14 skeleton rounded bg-muted/30" />
                 </div>
-                <div className="rounded-xl bg-emerald-500/10 p-4 text-center">
+                <div className="rounded-xl bg-success/10 p-4 text-center">
                   <div className="mx-auto h-8 w-8 skeleton rounded bg-muted/40" />
                   <div className="mx-auto mt-2 h-3 w-14 skeleton rounded bg-muted/30" />
                 </div>
@@ -259,7 +261,7 @@ export function FocusView() {
         title="Focus & Deep Work"
         subtitle="Protect your attention. Run a pomodoro, connect it to a habit, and watch your practice grow."
         icon="Brain"
-        color="#f59e0b"
+        color="var(--priority-high)"
         actions={
           <Button variant="outline" size="sm" onClick={toggleSound} className="gap-1.5">
             <Icon name={soundEnabled ? "Volume2" : "VolumeX"} className="h-3.5 w-3.5" />
@@ -307,7 +309,7 @@ export function FocusView() {
                   onClick={() => applyCustomMins(m)}
                   className={cn(
                     "rounded-md border px-2 py-1 text-xs transition-all",
-                    customMins === m ? "border-violet-500 bg-violet-500/10 text-violet-600" : "border-border/60 text-muted-foreground hover:bg-muted",
+                    customMins === m ? "border-type-journal bg-type-journal/10 text-type-journal" : "border-border/60 text-muted-foreground hover:bg-muted",
                   )}
                 >
                   {m}
@@ -332,7 +334,7 @@ export function FocusView() {
                 strokeDashoffset={C - dash}
                 animate={{ strokeDashoffset: C - dash }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
-                style={{ filter: `drop-shadow(0 0 8px ${preset.color}66)` }}
+                style={{ filter: `drop-shadow(0 0 8px ${colorWithAlpha(preset.color, 40)})` }}
               />
             </svg>
             <div className="z-10 flex flex-col items-center">
@@ -358,7 +360,7 @@ export function FocusView() {
               onClick={() => setRunning((r) => !r)}
               disabled={remaining === 0}
               className="h-12 gap-2 px-8 text-base"
-              style={{ background: running ? "var(--destructive)" : preset.color, color: "white" }}
+              style={{ background: colorWithAlpha(running ? "var(--destructive)" : preset.color, 16), color: "var(--foreground)" }}
             >
               <Icon name={running ? "Pause" : "Play"} className="h-5 w-5" />
               {running ? "Pause" : remaining === 0 ? "Done" : "Start"}
@@ -389,12 +391,12 @@ export function FocusView() {
           {/* Today's stats */}
           <SectionCard title="Today" icon="Flame">
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-amber-500/10 p-4 text-center">
-                <div className="text-3xl font-bold text-amber-500">{completedSessions}</div>
+              <div className="rounded-xl bg-priority-high/10 p-4 text-center">
+                <div className="text-3xl font-bold text-priority-high">{completedSessions}</div>
                 <div className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">sessions</div>
               </div>
-              <div className="rounded-xl bg-emerald-500/10 p-4 text-center">
-                <div className="text-3xl font-bold text-emerald-500">{todayMinutes}</div>
+              <div className="rounded-xl bg-success/10 p-4 text-center">
+                <div className="text-3xl font-bold text-success">{todayMinutes}</div>
                 <div className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">focus minutes</div>
               </div>
             </div>
@@ -406,7 +408,7 @@ export function FocusView() {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: i * 0.05 }}
-                    className="text-lg text-amber-500"
+                    className="text-lg text-priority-high"
                   >
                     <Icon name="CircleDot" className="h-4 w-4" />
                   </motion.span>
@@ -420,7 +422,7 @@ export function FocusView() {
           <SectionCard title="Focus on" icon="Target">
             {tasks.length > 0 && (
               <div className="mb-3">
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-500">Tasks</p>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-priority-high">Tasks</p>
                 <Select value={selectedItemType === "task" ? selectedItemId : "none"} onValueChange={(v) => selectItem(v, "task")}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Pick a task…" /></SelectTrigger>
                   <SelectContent className="max-h-60">
@@ -437,7 +439,7 @@ export function FocusView() {
 
             {habits.length > 0 && (
               <div className="mb-3">
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-500">Habits</p>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-success">Habits</p>
                 <Select value={selectedItemType === "habit" ? selectedItemId : "none"} onValueChange={(v) => selectItem(v, "habit")}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Pick a habit…" /></SelectTrigger>
                   <SelectContent className="max-h-60">

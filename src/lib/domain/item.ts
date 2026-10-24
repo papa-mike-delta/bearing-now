@@ -10,7 +10,7 @@ type ItemChanges = Partial<Omit<ItemData, "id" | "createdAt" | "updatedAt">>;
 const include = {
   tags: { include: { tag: true } },
   domain: true,
-  project: { select: { id: true, name: true, color: true } },
+  project: { select: { id: true, name: true, color: true, domain: { select: { key: true } } } },
 } as const;
 
 // Only scalar editable fields may cross the write boundary. Nested writes could

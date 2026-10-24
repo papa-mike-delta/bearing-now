@@ -1,5 +1,7 @@
 "use client";
 
+import { projectColor } from "@/lib/product-colors";
+
 import { useState, useEffect, useRef } from "react";
 import { useBearing } from "@/store/bearing";
 import { useItems, useToggleHabit } from "@/lib/hooks";
@@ -74,10 +76,10 @@ export function SanctuaryView() {
           title="Sanctuary"
           subtitle="A quiet space for your mind. Breathe, reflect, reconnect with what matters."
           icon="Leaf"
-          color="#a78bfa"
+          color="var(--type-journal)"
           actions={
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => openJournalEditor(null)} className="gap-1.5 border-violet-500/30 text-violet-600 hover:bg-violet-500/10">
+              <Button variant="outline" size="sm" onClick={() => openJournalEditor(null)} className="gap-1.5 border-type-journal/30 text-type-journal hover:bg-type-journal/10">
                 <Icon name="PenLine" className="h-3.5 w-3.5" /> Write journal
               </Button>
               <Button variant="outline" size="sm" onClick={() => setView("mind_soul")} className="gap-1.5">
@@ -88,7 +90,7 @@ export function SanctuaryView() {
         />
 
         {/* Daily affirmation skeleton */}
-        <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-fuchsia-500/5 to-transparent p-8 text-center">
+        <div className="relative overflow-hidden rounded-3xl border border-type-journal/20 bg-gradient-to-br from-type-journal/10 via-type-idea/5 to-transparent p-8 text-center">
           <div className="mx-auto max-w-2xl space-y-3">
             <div className="mx-auto h-4 w-32 skeleton rounded bg-muted/40" />
             <div className="mx-auto h-8 w-96 skeleton rounded bg-muted/40" />
@@ -115,7 +117,7 @@ export function SanctuaryView() {
           <SectionCard title="Your visions" icon="Eye">
             <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="rounded-xl border border-border/40 bg-gradient-to-br from-violet-500/5 to-transparent p-4">
+                <div key={i} className="rounded-xl border border-border/40 bg-gradient-to-br from-type-journal/5 to-transparent p-4">
                   <div className="flex items-start gap-3">
                     <div className="h-8 w-8 skeleton rounded-lg bg-muted/40" />
                     <div className="flex-1 space-y-2">
@@ -154,10 +156,10 @@ export function SanctuaryView() {
         title="Sanctuary"
         subtitle="A quiet space for your mind. Breathe, reflect, reconnect with what matters."
         icon="Leaf"
-        color="#a78bfa"
+        color="var(--type-journal)"
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => openJournalEditor(null)} className="gap-1.5 border-violet-500/30 text-violet-600 hover:bg-violet-500/10">
+            <Button variant="outline" size="sm" onClick={() => openJournalEditor(null)} className="gap-1.5 border-type-journal/30 text-type-journal hover:bg-type-journal/10">
               <Icon name="PenLine" className="h-3.5 w-3.5" /> Write journal
             </Button>
             <Button variant="outline" size="sm" onClick={() => setView("mind_soul")} className="gap-1.5">
@@ -172,12 +174,12 @@ export function SanctuaryView() {
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-fuchsia-500/5 to-transparent p-8 text-center"
+          className="relative overflow-hidden rounded-3xl border border-type-journal/20 bg-gradient-to-br from-type-journal/10 via-type-idea/5 to-transparent p-8 text-center"
         >
-          <div className="pointer-events-none absolute -left-16 -top-16 h-48 w-48 rounded-full bg-violet-500/10 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-16 -right-16 h-48 w-48 rounded-full bg-fuchsia-500/10 blur-3xl" />
+          <div className="pointer-events-none absolute -left-16 -top-16 h-48 w-48 rounded-full bg-type-journal/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 -right-16 h-48 w-48 rounded-full bg-type-idea/10 blur-3xl" />
           <div className="relative">
-            <p className="text-xs font-semibold uppercase tracking-widest text-violet-500">Today's affirmation</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-type-journal">Today's affirmation</p>
             <motion.blockquote
               key={dailyAffirmation.id}
               initial={{ opacity: 0 }}
@@ -205,7 +207,7 @@ export function SanctuaryView() {
         {/* Breathing Exercise */}
         <SectionCard className="overflow-hidden">
           <div className="relative flex flex-col items-center justify-center py-8">
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-info/5 to-transparent" />
             <h3 className="relative mb-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               {breathing ? `${cycleCount} cycle${cycleCount !== 1 ? "s" : ""} complete` : "Box Breathing"}
             </h3>
@@ -215,9 +217,9 @@ export function SanctuaryView() {
 
             <div className="relative flex h-64 w-64 items-center justify-center">
               {/* ambient rings */}
-              <div className="absolute h-64 w-64 rounded-full border border-violet-500/10" />
-              <div className="absolute h-48 w-48 rounded-full border border-violet-500/15" />
-              <div className="absolute h-32 w-32 rounded-full border border-violet-500/20" />
+              <div className="absolute h-64 w-64 rounded-full border border-type-journal/10" />
+              <div className="absolute h-48 w-48 rounded-full border border-type-journal/15" />
+              <div className="absolute h-32 w-32 rounded-full border border-type-journal/20" />
 
               {/* breathing circle */}
               <motion.div
@@ -229,8 +231,8 @@ export function SanctuaryView() {
                   duration: currentBreath.secs,
                   ease: "easeInOut",
                 }}
-                className="flex h-40 w-40 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-500 shadow-lg"
-                style={{ boxShadow: "0 0 60px rgba(167, 139, 250, 0.3)" }}
+                className="flex h-40 w-40 items-center justify-center rounded-full bg-gradient-to-br from-type-journal to-type-idea shadow-lg"
+                style={{ boxShadow: "0 0 60px color-mix(in oklab, var(--type-journal) 30%, transparent)" }}
               >
                 <AnimatePresence mode="wait">
                   {breathing && (
@@ -252,7 +254,7 @@ export function SanctuaryView() {
 
             <div className="relative mt-8">
               {!breathing ? (
-                <Button onClick={() => setBreathing(true)} className="gap-2 bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white">
+                <Button onClick={() => setBreathing(true)} className="gap-2 bg-primary text-primary-foreground">
                   <Icon name="Play" className="h-4 w-4" /> Begin breathing
                 </Button>
               ) : (
@@ -287,10 +289,10 @@ export function SanctuaryView() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
                   onClick={() => openItemDetail(v.id)}
-                  className="group block w-full rounded-xl border border-border/60 bg-gradient-to-br from-violet-500/5 to-transparent p-4 text-left transition-all hover:border-violet-500/30 hover:shadow-sm"
+                  className="group block w-full rounded-xl border border-border/60 bg-gradient-to-br from-type-journal/5 to-transparent p-4 text-left transition-all hover:border-type-journal/30 hover:shadow-sm"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-500">
+                    <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-type-journal/10 text-type-journal">
                       <Icon name="Eye" className="h-4 w-4" />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -310,14 +312,14 @@ export function SanctuaryView() {
 
       {/* Recent journal entries */}
       <SectionCard title="Recent reflections" icon="BookHeart" action={
-        <Button variant="ghost" size="sm" onClick={() => openJournalEditor(null)} className="gap-1 text-violet-600 hover:bg-violet-500/10">
+        <Button variant="ghost" size="sm" onClick={() => openJournalEditor(null)} className="gap-1 text-type-journal hover:bg-type-journal/10">
           <Icon name="PenLine" className="h-3.5 w-3.5" /> Write
         </Button>
       }>
         {journals.length === 0 ? (
           <div className="flex flex-col items-center py-10 text-center">
             <button onClick={() => openJournalEditor(null)} className="group flex flex-col items-center">
-              <span className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-500/10 text-violet-500 transition-all group-hover:scale-105 group-hover:bg-violet-500/20">
+              <span className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-type-journal/10 text-type-journal transition-all group-hover:scale-105 group-hover:bg-type-journal/20">
                 <Icon name="PenLine" className="h-6 w-6" />
               </span>
               <p className="text-sm font-medium">Start your first journal entry</p>
@@ -333,13 +335,13 @@ export function SanctuaryView() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 onClick={() => openJournalEditor(j.id)}
-                className="group rounded-xl border border-border/60 p-4 text-left transition-all hover:border-violet-500/30 hover:shadow-sm"
+                className="group rounded-xl border border-border/60 p-4 text-left transition-all hover:border-type-journal/30 hover:shadow-sm"
               >
                 <div className="mb-1 flex items-center gap-2 text-[11px] text-muted-foreground">
                   <Icon name="Calendar" className="h-3 w-3" />
                   {fmtDate(j.scheduledAt || j.createdAt, "EEE, MMM d · p")}
                   {j.project && (
-                    <span className="inline-flex items-center gap-1" style={{ color: j.project.color }}>
+                    <span className="inline-flex items-center gap-1" style={{ color: projectColor(j.project, j.type) }}>
                       · {j.project.name}
                     </span>
                   )}

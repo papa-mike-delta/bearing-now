@@ -8,10 +8,10 @@ import { smartDate, dateColor } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
 const ENERGY_META = [
-  { value: 0, name: "Any", color: "#71717a", icon: "Circle" },
-  { value: 1, name: "Low", color: "#3b82f6", icon: "BatteryLow" },
-  { value: 2, name: "Medium", color: "#eab308", icon: "BatteryMedium" },
-  { value: 3, name: "High", color: "#f43f5e", icon: "BatteryFull" },
+  { value: 0, name: "Any", color: "var(--energy-none)", icon: "Circle" },
+  { value: 1, name: "Low", color: "var(--energy-low)", icon: "BatteryLow" },
+  { value: 2, name: "Medium", color: "var(--energy-medium)", icon: "BatteryMedium" },
+  { value: 3, name: "High", color: "var(--energy-high)", icon: "BatteryFull" },
 ];
 
 export function TimeActionOverview() {
@@ -43,7 +43,7 @@ export function TimeActionOverview() {
         className="rounded-2xl border border-dashed border-border/60 bg-card/30 p-4"
       >
         <div className="mb-2 flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-priority-high/15 text-priority-high">
             <Icon name="Hourglass" className="h-3.5 w-3.5" />
           </span>
           <h3 className="text-sm font-semibold">Today's actions</h3>
@@ -51,7 +51,7 @@ export function TimeActionOverview() {
         <p className="text-xs text-muted-foreground">Plan your day with tasks and habits matched to your energy.</p>
         <button
           onClick={() => openItemEditor({ type: "task" })}
-          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-amber-600 hover:underline"
+          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-priority-high hover:underline"
         >
           <Icon name="Plus" className="h-3 w-3" /> Add a task
         </button>
@@ -66,10 +66,10 @@ export function TimeActionOverview() {
       className="space-y-3"
     >
       {/* Today summary */}
-      <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-4">
+      <div className="rounded-2xl border border-priority-high/20 bg-gradient-to-br from-priority-high/5 to-transparent p-4">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-priority-high/15 text-priority-high">
               <Icon name="Hourglass" className="h-3.5 w-3.5" />
             </span>
             <div>
@@ -81,15 +81,15 @@ export function TimeActionOverview() {
           </div>
           <div className="flex items-center gap-2">
             {doneToday.length > 0 && (
-              <div className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5">
-                <Icon name="Check" className="h-3 w-3 text-emerald-600" />
-                <span className="text-[11px] font-bold text-emerald-600">{doneToday.length}</span>
+              <div className="flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5">
+                <Icon name="Check" className="h-3 w-3 text-success" />
+                <span className="text-[11px] font-bold text-success">{doneToday.length}</span>
               </div>
             )}
             {overdue.length > 0 && (
-              <div className="flex items-center gap-1 rounded-full bg-rose-500/15 px-2 py-0.5">
-                <Icon name="AlertTriangle" className="h-3 w-3 text-rose-500" />
-                <span className="text-[11px] font-bold text-rose-500">{overdue.length}</span>
+              <div className="flex items-center gap-1 rounded-full bg-expense/15 px-2 py-0.5">
+                <Icon name="AlertTriangle" className="h-3 w-3 text-expense" />
+                <span className="text-[11px] font-bold text-expense">{overdue.length}</span>
               </div>
             )}
           </div>
@@ -98,7 +98,7 @@ export function TimeActionOverview() {
         {/* Overdue */}
         {overdue.length > 0 && (
           <div className="mb-2">
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-rose-500">Overdue</p>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-expense">Overdue</p>
             <div className="space-y-1">
               {overdue.slice(0, 3).map((t, i) => (
                 <TaskRow key={t.id} task={t} delay={i * 0.04} onClick={() => openItemDetail(t.id)} />
@@ -110,7 +110,7 @@ export function TimeActionOverview() {
         {/* Due today */}
         {dueToday.length > 0 && (
           <div className="mb-2">
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-amber-600">Due today</p>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-priority-high">Due today</p>
             <div className="space-y-1">
               {dueToday.slice(0, 4).map((t, i) => (
                 <TaskRow key={t.id} task={t} delay={(overdue.length + i) * 0.04} onClick={() => openItemDetail(t.id)} />
@@ -134,8 +134,8 @@ export function TimeActionOverview() {
 
       {/* Habits row */}
       {habits.length > 0 && (
-        <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent p-3">
-          <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-emerald-600">
+        <div className="rounded-2xl border border-success/20 bg-gradient-to-br from-success/5 to-transparent p-3">
+          <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-success">
             <Icon name="Repeat" className="h-3 w-3" />
             Habits this week
           </h4>
@@ -160,12 +160,12 @@ export function TimeActionOverview() {
                       <div
                         key={idx}
                         className="h-2 w-2 rounded-full"
-                        style={{ background: idx < doneThisWeek ? "#10b981" : "var(--muted)" }}
+                        style={{ background: idx < doneThisWeek ? "var(--success)" : "var(--muted)" }}
                       />
                     ))}
                   </div>
                   {streak > 0 && (
-                    <span className="flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600">
+                    <span className="flex items-center gap-0.5 rounded-full bg-success/15 px-1.5 py-0.5 text-[10px] font-bold text-success">
                       <Icon name="Flame" className="h-2.5 w-2.5" />
                       {streak}
                     </span>
@@ -193,7 +193,7 @@ function TaskRow({ task, delay, onClick }: { task: any; delay: number; onClick: 
     >
       <span className={cn(
         "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border-2 transition-all",
-        isDone ? "border-emerald-500 bg-emerald-500 text-white" : "border-muted-foreground/30",
+        isDone ? "border-success bg-success/15 text-success" : "border-muted-foreground/30",
       )}>
         {isDone && <Icon name="Check" className="h-3 w-3" strokeWidth={3} />}
       </span>
@@ -201,7 +201,7 @@ function TaskRow({ task, delay, onClick }: { task: any; delay: number; onClick: 
         {task.title}
       </span>
       {task.priority > 0 && (
-        <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: ["#71717a", "#3b82f6", "#eab308", "#f59e0b", "#f43f5e"][task.priority] }} />
+        <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: ["var(--muted-foreground)", "var(--type-bookmark)", "var(--priority-medium)", "var(--priority-high)", "var(--expense)"][task.priority] }} />
       )}
       {task.dueDate && (
         <span className={cn("flex-shrink-0 text-[10px]", dateColor(task.dueDate))}>{smartDate(task.dueDate)}</span>

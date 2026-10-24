@@ -1,5 +1,7 @@
 "use client";
 
+import { colorWithAlpha } from "@/lib/product-colors";
+
 import { useState } from "react";
 import { useBearing } from "@/store/bearing";
 import { useReviews, useCreateReview, useUpdateReview, useDeleteReview, useItems, useInbox } from "@/lib/hooks";
@@ -34,9 +36,9 @@ export function ReviewsView() {
         title="Reviews & Reflections"
         subtitle="Close the loop. Guided reflections keep your system — and your mind — trustworthy."
         icon="NotebookPen"
-        color="#a78bfa"
+        color="var(--type-journal)"
         actions={
-          <Button onClick={() => setDrafting(true)} className="gap-1.5 bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white">
+          <Button onClick={() => setDrafting(true)} className="gap-1.5 bg-primary text-primary-foreground">
             <Icon name="NotebookPen" className="h-4 w-4" /> New reflection
           </Button>
         }
@@ -130,14 +132,14 @@ function ReviewForm({ type, onDone }: { type: "daily" | "weekly"; onDone: () => 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
       {type === "weekly" && (inboxCount > 0 || openTasks > 0) && (
-        <SectionCard title="Weekly maintenance checklist" icon="ListChecks" className="mb-4 bg-amber-500/5">
+        <SectionCard title="Weekly maintenance checklist" icon="ListChecks" className="mb-4 bg-priority-high/5">
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="flex items-center gap-2 rounded-lg border border-border/60 p-2.5">
-              <Icon name="Inbox" className="h-4 w-4 text-amber-500" />
+              <Icon name="Inbox" className="h-4 w-4 text-priority-high" />
               <span className="flex-1 text-sm">{inboxCount} item{inboxCount !== 1 ? "s" : ""} in inbox</span>
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-border/60 p-2.5">
-              <Icon name="CheckSquare" className="h-4 w-4 text-emerald-500" />
+              <Icon name="CheckSquare" className="h-4 w-4 text-success" />
               <span className="flex-1 text-sm">{openTasks} open task{openTasks !== 1 ? "s" : ""}</span>
             </div>
           </div>
@@ -168,28 +170,28 @@ function ReviewForm({ type, onDone }: { type: "daily" | "weekly"; onDone: () => 
             </div>
           </div>
 
-          <ReviewField label={prompts.wins} icon="Trophy" color="#f59e0b" value={form.wins} onChange={(v) => set("wins", v)} placeholder="Even small wins count…" />
-          <ReviewField label={prompts.challenges} icon="AlertCircle" color="#f43f5e" value={form.challenges} onChange={(v) => set("challenges", v)} placeholder="What got in the way?" />
-          <ReviewField label={prompts.learnings} icon="Lightbulb" color="#3b82f6" value={form.learnings} onChange={(v) => set("learnings", v)} placeholder="A lesson, an insight…" />
-          <ReviewField label={prompts.gratitude} icon="Heart" color="#ec4899" value={form.gratitude} onChange={(v) => set("gratitude", v)} placeholder="Who or what are you thankful for?" />
+          <ReviewField label={prompts.wins} icon="Trophy" color="var(--priority-high)" value={form.wins} onChange={(v) => set("wins", v)} placeholder="Even small wins count…" />
+          <ReviewField label={prompts.challenges} icon="AlertCircle" color="var(--expense)" value={form.challenges} onChange={(v) => set("challenges", v)} placeholder="What got in the way?" />
+          <ReviewField label={prompts.learnings} icon="Lightbulb" color="var(--type-bookmark)" value={form.learnings} onChange={(v) => set("learnings", v)} placeholder="A lesson, an insight…" />
+          <ReviewField label={prompts.gratitude} icon="Heart" color="var(--type-idea)" value={form.gratitude} onChange={(v) => set("gratitude", v)} placeholder="Who or what are you thankful for?" />
 
           {/* Priorities */}
           <div>
             <Label className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Icon name="Target" className="h-3.5 w-3.5 text-emerald-500" />
+              <Icon name="Target" className="h-3.5 w-3.5 text-success" />
               {prompts.priorities}
             </Label>
             <div className="space-y-2">
               {form.priorities.map((p, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-xs font-bold text-emerald-600">{i + 1}</span>
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-success/10 text-xs font-bold text-success">{i + 1}</span>
                   <Input value={p} onChange={(e) => setPriority(i, e.target.value)} placeholder={`Priority ${i + 1}`} />
                 </div>
               ))}
             </div>
           </div>
 
-          <ReviewField label="Anything else?" icon="PenLine" color="#71717a" value={form.notes} onChange={(v) => set("notes", v)} placeholder="Free-form notes…" />
+          <ReviewField label="Anything else?" icon="PenLine" color="var(--muted-foreground)" value={form.notes} onChange={(v) => set("notes", v)} placeholder="Free-form notes…" />
 
           <div className="flex justify-end gap-2 border-t border-border/60 pt-4">
             <Button variant="ghost" onClick={onDone}>Cancel</Button>
@@ -219,14 +221,14 @@ function ReviewCard({ review, onOpenItem }: { review: any; onOpenItem: (id: stri
   const del = useDeleteReview();
   const [expanded, setExpanded] = useState(false);
   const date = new Date(review.date);
-  const moodColors = ["", "#f43f5e", "#f59e0b", "#eab308", "#10b981", "#06b6d4"];
+  const moodColors = ["", "var(--mood-1)", "var(--mood-2)", "var(--mood-3)", "var(--mood-4)", "var(--mood-5)"];
   const moodIcons = ["", "Frown", "Meh", "Smile", "SmilePlus", "Laugh"];
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
       <SectionCard className="overflow-hidden">
         <button onClick={() => setExpanded((e) => !e)} className="flex w-full items-center gap-3 text-left">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: `${moodColors[review.mood] || "#a78bfa"}1a`, color: moodColors[review.mood] || "#a78bfa" }}>
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: colorWithAlpha(moodColors[review.mood] || "var(--type-journal)", 10), color: moodColors[review.mood] || "var(--type-journal)" }}>
             <Icon name={moodIcons[review.mood] || "Smile"} className="h-5 w-5" />
           </span>
           <div className="flex-1">
@@ -248,27 +250,27 @@ function ReviewCard({ review, onOpenItem }: { review: any; onOpenItem: (id: stri
               className="overflow-hidden"
             >
               <div className="mt-4 space-y-3 border-t border-border/60 pt-4">
-                {review.wins && <ReviewBlock label="Wins" icon="Trophy" color="#f59e0b" text={review.wins} />}
-                {review.challenges && <ReviewBlock label="Challenges" icon="AlertCircle" color="#f43f5e" text={review.challenges} />}
-                {review.learnings && <ReviewBlock label="Learnings" icon="Lightbulb" color="#3b82f6" text={review.learnings} />}
-                {review.gratitude && <ReviewBlock label="Gratitude" icon="Heart" color="#ec4899" text={review.gratitude} />}
+                {review.wins && <ReviewBlock label="Wins" icon="Trophy" color="var(--priority-high)" text={review.wins} />}
+                {review.challenges && <ReviewBlock label="Challenges" icon="AlertCircle" color="var(--expense)" text={review.challenges} />}
+                {review.learnings && <ReviewBlock label="Learnings" icon="Lightbulb" color="var(--type-bookmark)" text={review.learnings} />}
+                {review.gratitude && <ReviewBlock label="Gratitude" icon="Heart" color="var(--type-idea)" text={review.gratitude} />}
                 {review.priorities?.length > 0 && (
                   <div>
                     <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      <Icon name="Target" className="h-3 w-3 text-emerald-500" /> Priorities
+                      <Icon name="Target" className="h-3 w-3 text-success" /> Priorities
                     </p>
                     <ol className="ml-4 list-decimal space-y-1 text-sm">
                       {review.priorities.map((p: string, i: number) => <li key={i}>{p}</li>)}
                     </ol>
                   </div>
                 )}
-                {review.notes && <ReviewBlock label="Notes" icon="PenLine" color="#71717a" text={review.notes} />}
+                {review.notes && <ReviewBlock label="Notes" icon="PenLine" color="var(--muted-foreground)" text={review.notes} />}
                 <div className="flex items-center justify-between pt-2">
                   <div className="flex gap-3 text-xs text-muted-foreground">
                     {review.mood && <span>Mood {["", "Low", "Meh", "Okay", "Good", "Great"][review.mood]}</span>}
                     {review.energy && <span>Energy {["", "Drained", "Low", "Steady", "Strong", "Charged"][review.energy]}</span>}
                   </div>
-                  <Button variant="ghost" size="sm" className="text-rose-500 hover:text-rose-600" onClick={() => { del.mutate(review.id); notify.success("Deleted"); }}>
+                  <Button variant="ghost" size="sm" className="text-expense hover:text-expense" onClick={() => { del.mutate(review.id); notify.success("Deleted"); }}>
                     <Icon name="Trash2" className="h-3.5 w-3.5" />
                   </Button>
                 </div>

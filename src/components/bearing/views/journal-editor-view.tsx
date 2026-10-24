@@ -1,5 +1,7 @@
 "use client";
 
+import { colorWithAlpha } from "@/lib/product-colors";
+
 import { reportWriteError } from "@/hooks/use-browser-writes";
 
 import { itemDraftKey } from "@/lib/item-drafts";
@@ -34,7 +36,7 @@ import { fmtDate } from "@/lib/dates";
 import ReactMarkdown from "react-markdown";
 import { RichTextEditor } from "../rich-text-editor";
 
-const ACCENT = "#a78bfa";
+const ACCENT = "var(--type-journal)";
 const DEFAULT_DAILY_GOAL = 500;
 const GOAL_STORAGE_KEY = "lifeos-daily-writing-goal";
 
@@ -213,7 +215,7 @@ export function JournalEditorView() {
           {journalEditId && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-1.5 text-rose-500 hover:bg-rose-500/10 hover:text-rose-600">
+                <Button variant="ghost" size="sm" className="gap-1.5 text-expense hover:bg-expense/10 hover:text-expense">
                   <Icon name="Trash2" className="h-3.5 w-3.5" />
                 </Button>
               </AlertDialogTrigger>
@@ -226,7 +228,7 @@ export function JournalEditorView() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete} className="bg-rose-500 hover:bg-rose-600">
+                  <AlertDialogAction onClick={handleDelete} className="bg-expense hover:bg-expense">
                     Archive
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -247,7 +249,7 @@ export function JournalEditorView() {
             onClick={save}
             disabled={!draft || !!draft.pending || create.isPending || update.isPending}
             className="gap-1.5 text-white"
-            style={{ background: ACCENT }}
+            style={{ background: colorWithAlpha(ACCENT, 16), color: "var(--foreground)" }}
           >
             <Icon name="Save" className="h-3.5 w-3.5" />
             {data.id ? "Save" : "Publish"}
@@ -264,7 +266,7 @@ export function JournalEditorView() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         className="overflow-hidden rounded-2xl border bg-card shadow-sm"
-        style={{ borderColor: `${ACCENT}30` }}
+        style={{ borderColor: colorWithAlpha(ACCENT, 19) }}
       >
         {/* Date + mood bar */}
         <div className="flex items-center justify-between border-b border-border/40 bg-muted/20 px-5 py-2.5">
@@ -275,18 +277,18 @@ export function JournalEditorView() {
           <div className="flex items-center gap-1">
             <span className="mr-1 text-[10px] text-muted-foreground">Mood:</span>
             {[
-              { v: 1, e: "Frown", c: "#f43f5e" },
-              { v: 2, e: "Meh", c: "#f59e0b" },
-              { v: 3, e: "Smile", c: "#eab308" },
-              { v: 4, e: "SmilePlus", c: "#10b981" },
-              { v: 5, e: "Laugh", c: "#06b6d4" },
+              { v: 1, e: "Frown", c: "var(--mood-1)" },
+              { v: 2, e: "Meh", c: "var(--mood-2)" },
+              { v: 3, e: "Smile", c: "var(--mood-3)" },
+              { v: 4, e: "SmilePlus", c: "var(--mood-4)" },
+              { v: 5, e: "Laugh", c: "var(--mood-5)" },
             ].map((m) => (
               <button
                 key={m.v}
                 onClick={() => setMood(m.v)}
                 className={cn(
                   "flex h-6 w-6 items-center justify-center rounded-md text-sm transition-all",
-                  mood === m.v ? "bg-violet-500/20 ring-1 ring-violet-500/40" : "hover:bg-muted",
+                  mood === m.v ? "bg-type-journal/20 ring-1 ring-type-journal/40" : "hover:bg-muted",
                 )}
               >
                 <Icon name={m.e} className="h-4 w-4" />
@@ -359,7 +361,7 @@ export function JournalEditorView() {
                       autoFocus
                     />
                     <span className="text-[10px] text-muted-foreground">words</span>
-                    <button onClick={handleGoalSave} className="text-[10px] text-violet-500 hover:underline">Set</button>
+                    <button onClick={handleGoalSave} className="text-[10px] text-type-journal hover:underline">Set</button>
                     <button onClick={() => setShowGoalInput(false)} className="text-[10px] text-muted-foreground hover:underline">Cancel</button>
                   </div>
                 ) : (
@@ -378,7 +380,7 @@ export function JournalEditorView() {
               <div className="flex items-center gap-2">
                 <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
                   <motion.div
-                    className={cn("h-full rounded-full", goalReached ? "bg-emerald-500" : "bg-violet-500")}
+                    className={cn("h-full rounded-full", goalReached ? "bg-success" : "bg-type-journal")}
                     initial={{ width: 0 }}
                     animate={{ width: `${goalProgress}%` }}
                     transition={{ duration: 0.3, ease: "easeOut" }}
@@ -386,12 +388,12 @@ export function JournalEditorView() {
                 </div>
                 <span className={cn(
                   "text-[10px] font-medium",
-                  goalReached ? "text-emerald-500" : "text-muted-foreground",
+                  goalReached ? "text-success" : "text-muted-foreground",
                 )}>
                   {stats.words}/{dailyGoal}
                 </span>
                 {goalReached && (
-                  <Icon name="CheckCircle2" className="h-3 w-3 text-emerald-500" />
+                  <Icon name="CheckCircle2" className="h-3 w-3 text-success" />
                 )}
               </div>
             </div>

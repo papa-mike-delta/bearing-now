@@ -6,8 +6,8 @@ const detail = {
   tags: { include: { tag: true } },
   domain: true,
   project: true,
-  linksFrom: { include: { to: { include: { domain: true, project: { select: { id: true, name: true, color: true } } } } } },
-  linksTo: { include: { from: { include: { domain: true, project: { select: { id: true, name: true, color: true } } } } } },
+  linksFrom: { include: { to: { include: { domain: true, project: { select: { id: true, name: true, color: true, domain: { select: { key: true } } } } } } } },
+  linksTo: { include: { from: { include: { domain: true, project: { select: { id: true, name: true, color: true, domain: { select: { key: true } } } } } } } },
   habitLogs: { orderBy: { date: "desc" as const }, take: 60 },
 };
 
@@ -24,7 +24,7 @@ export function searchItems(q: string, userId: string, client: Prisma.Transactio
   return client.item.findMany({
       where: { userId, OR: [{ title: { contains: q } }, { content: { contains: q } }] },
       take: 20,
-      include: { domain: true, project: { select: { id: true, name: true, color: true } } },
+      include: { domain: true, project: { select: { id: true, name: true, color: true, domain: { select: { key: true } } } } },
       orderBy: { updatedAt: "desc" },
     });
 }
@@ -34,8 +34,8 @@ export async function getLinks(id: string, userId: string, client: Prisma.Transa
   if (!item) return null;
   const owned = { from: { userId }, to: { userId } };
   const [linksFrom, linksTo] = await Promise.all([
-    client.link.findMany({ where: { fromId: id, ...owned }, include: { to: { include: { domain: true, project: { select: { id: true, name: true, color: true } } } } } }),
-    client.link.findMany({ where: { toId: id, ...owned }, include: { from: { include: { domain: true, project: { select: { id: true, name: true, color: true } } } } } }),
+    client.link.findMany({ where: { fromId: id, ...owned }, include: { to: { include: { domain: true, project: { select: { id: true, name: true, color: true, domain: { select: { key: true } } } } } } } }),
+    client.link.findMany({ where: { toId: id, ...owned }, include: { from: { include: { domain: true, project: { select: { id: true, name: true, color: true, domain: { select: { key: true } } } } } } } }),
   ]);
   return {
     outgoing: linksFrom.map((l) => ({ ...l, to: l.to })),

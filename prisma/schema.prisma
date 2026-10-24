@@ -113,7 +113,7 @@ model Project {
   id          String   @id @default(cuid())
   name        String
   description String?
-  color       String   @default("#71717a")
+  color       String?
   icon        String?
   domainId    String?
   domain      Domain?  @relation(fields: [domainId], references: [id], onDelete: SetNull)

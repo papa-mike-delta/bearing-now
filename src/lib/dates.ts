@@ -37,9 +37,9 @@ export function dateColor(d: string | Date | null | undefined): string {
   const target = new Date(date);
   target.setHours(0, 0, 0, 0);
   const diff = differenceInCalendarDays(target, today);
-  if (diff < 0) return "text-rose-500";
-  if (diff === 0) return "text-amber-500";
-  if (diff <= 2) return "text-orange-500";
+  if (diff < 0) return "text-expense";
+  if (diff === 0) return "text-priority-high";
+  if (diff <= 2) return "text-priority-high";
   return "text-muted-foreground";
 }
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { domainColor, projectColor } from "@/lib/product-colors";
+
 import { useEffect, useState } from "react";
 import { useBearing, type ViewKey } from "@/store/bearing";
 import { useSearch, useProjects, useItems } from "@/lib/hooks";
@@ -109,32 +111,32 @@ export function CommandPalette() {
         <CommandGroup heading="Actions">
           {(!ql || matches("quick", "capture", "inbox")) && (
           <CommandItem value="quick capture inbox" onSelect={run(() => setQuickCaptureOpen(true))} className="gap-2">
-            <Icon name="Zap" className="h-4 w-4 text-amber-500" />
+            <Icon name="Zap" className="h-4 w-4 text-priority-high" />
             <span>Quick Capture to inbox</span>
             <CommandShortcut>⌘K</CommandShortcut>
           </CommandItem>
           )}
           {(!ql || matches("create", "new", "task")) && (
           <CommandItem value="create new task" onSelect={run(() => openItemEditor({ type: "task" }))} className="gap-2">
-            <Icon name="Plus" className="h-4 w-4 text-emerald-500" />
+            <Icon name="Plus" className="h-4 w-4 text-success" />
             <span>Create new task</span>
           </CommandItem>
           )}
           {(!ql || matches("create", "new", "note")) && (
           <CommandItem value="create new note" onSelect={run(() => openItemEditor({ type: "note" }))} className="gap-2">
-            <Icon name="StickyNote" className="h-4 w-4 text-yellow-500" />
+            <Icon name="StickyNote" className="h-4 w-4 text-priority-medium" />
             <span>Create new note</span>
           </CommandItem>
           )}
           {(!ql || matches("capture", "idea")) && (
           <CommandItem value="capture an idea" onSelect={run(() => openItemEditor({ type: "idea" }))} className="gap-2">
-            <Icon name="Lightbulb" className="h-4 w-4 text-pink-500" />
+            <Icon name="Lightbulb" className="h-4 w-4 text-type-idea" />
             <span>Capture an idea</span>
           </CommandItem>
           )}
           {(!ql || matches("write", "journal", "entry")) && (
           <CommandItem value="write journal entry full editor" onSelect={run(() => useBearing.getState().openJournalEditor(null))} className="gap-2">
-            <Icon name="PenLine" className="h-4 w-4 text-violet-500" />
+            <Icon name="PenLine" className="h-4 w-4 text-type-journal" />
             <span>Write journal entry</span>
             <CommandShortcut>Full editor</CommandShortcut>
           </CommandItem>
@@ -156,7 +158,7 @@ export function CommandPalette() {
           {filteredDomains.map((d) => (
             <CommandItem key={d.key} value={`domain ${d.name}`} onSelect={run(() => setView(d.key as ViewKey))} className="gap-2">
               <span className="flex h-4 w-4 items-center justify-center">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ background: d.color }} />
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: domainColor(d) }} />
               </span>
               <span>Domain: {d.name}</span>
             </CommandItem>
@@ -172,7 +174,7 @@ export function CommandPalette() {
             <CommandGroup heading="Projects">
               {filteredProjects.slice(0, 8).map((p: any) => (
                 <CommandItem key={p.id} value={`project ${p.name}`} onSelect={run(() => openProject(p.id))} className="gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: p.color }} />
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: projectColor(p) }} />
                   <span className="flex-1">{p.name}</span>
                   <span className="text-xs text-muted-foreground">{p.progress}%</span>
                 </CommandItem>
@@ -188,7 +190,7 @@ export function CommandPalette() {
             <CommandGroup heading="Upcoming tasks">
               {filteredUpcoming.map((t) => (
                 <CommandItem key={t.id} value={`task ${t.title}`} onSelect={run(() => openItemDetail(t.id))} className="gap-2">
-                  <Icon name="CheckSquare" className="h-4 w-4 text-amber-500" />
+                  <Icon name="CheckSquare" className="h-4 w-4 text-priority-high" />
                   <span className="flex-1 truncate">{t.title}</span>
                   <CommandShortcut>{smartDate(t.dueDate)}</CommandShortcut>
                 </CommandItem>
@@ -204,7 +206,7 @@ export function CommandPalette() {
               <CommandGroup heading={`Projects matching "${q}"`}>
                 {searchProjects.map((p: any) => (
                   <CommandItem key={p.id} value={`search project ${p.name}`} onSelect={run(() => openProject(p.id))} className="gap-2">
-                    <Icon name="FolderKanban" className="h-4 w-4" style={{ color: p.color }} />
+                    <Icon name="FolderKanban" className="h-4 w-4" style={{ color: projectColor(p) }} />
                     <span>{p.name}</span>
                   </CommandItem>
                 ))}
@@ -213,7 +215,7 @@ export function CommandPalette() {
             {searchItems.length > 0 && (
               <CommandGroup heading={`Items matching "${q}"`}>
                 {searchItems.map((i: any) => {
-                  const m = ITEM_TYPE_MAP[i.type] || { icon: "Circle", color: "#71717a" };
+                  const m = ITEM_TYPE_MAP[i.type] || { icon: "Circle", color: "var(--muted-foreground)" };
                   return (
                     <CommandItem key={i.id} value={`search item ${i.title}`} onSelect={run(() => openItemDetail(i.id))} className="gap-2">
                       <Icon name={(m as any).icon} className="h-4 w-4" style={{ color: (m as any).color }} />

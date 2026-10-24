@@ -1,7 +1,8 @@
+import { isProjectColor } from "@/lib/product-colors";
 import { ItemDomain } from "@/lib/domain/item";
 import { Owned } from "@/lib/domain/owned";
 import { db } from "@/lib/db";
-import { writeActor, sessionUser, ok, domainResponse, notFound, parseBody, parseMeta } from "@/lib/api";
+import { writeActor, sessionUser, bad, ok, domainResponse, notFound, parseBody, parseMeta } from "@/lib/api";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   if (!await Owned.project(session.userId, id)) return notFound();
   const body = await parseBody(req);
   const { userId: _userId, ...data } = body;
+  if (data.color !== undefined && data.color !== null && !isProjectColor(data.color)) return bad("color must be a hex color or null");
   if (data.domainId && !await Owned.domain(session.userId, data.domainId)) return notFound();
   const project = await db.project.update({ where: { id }, data, include: { domain: true } });
   return ok(parseMeta(project as any));

@@ -1,5 +1,7 @@
 "use client";
 
+import { colorGradient, colorWithAlpha } from "@/lib/product-colors";
+
 import { useBearing } from "@/store/bearing";
 import { useItems, useDomains } from "@/lib/hooks";
 import { Icon } from "../icon";
@@ -76,9 +78,9 @@ export function DomainView({ domainKey }: { domainKey: string }) {
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         className="relative overflow-hidden rounded-3xl border border-border/60 p-6"
-        style={{ background: `linear-gradient(135deg, ${domainMeta.color}15, transparent 70%)` }}
+        style={{ background: colorGradient(domainMeta.color, 8, "70%") }}
       >
-        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full opacity-20 blur-3xl" style={{ background: domainMeta.color }} />
+        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full opacity-20 blur-3xl" style={{ background: colorWithAlpha(domainMeta.color, 16), color: "var(--foreground)" }} />
         <div className="relative grid gap-4 sm:grid-cols-4">
           {isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
@@ -104,17 +106,17 @@ export function DomainView({ domainKey }: { domainKey: string }) {
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           onClick={() => useBearing.getState().setView("sanctuary")}
-          className="group relative flex w-full items-center gap-4 overflow-hidden rounded-2xl border border-violet-500/20 bg-gradient-to-r from-violet-500/10 via-fuchsia-500/5 to-transparent p-5 text-left transition-all hover:border-violet-500/40 hover:shadow-md"
+          className="group relative flex w-full items-center gap-4 overflow-hidden rounded-2xl border border-type-journal/20 bg-gradient-to-r from-type-journal/10 via-type-idea/5 to-transparent p-5 text-left transition-all hover:border-type-journal/40 hover:shadow-md"
         >
-          <div className="pointer-events-none absolute -left-8 -top-8 h-32 w-32 rounded-full bg-violet-500/10 blur-2xl" />
-          <span className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-400 to-fuchsia-500 text-white shadow-sm">
+          <div className="pointer-events-none absolute -left-8 -top-8 h-32 w-32 rounded-full bg-type-journal/10 blur-2xl" />
+          <span className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
             <Icon name="Leaf" className="h-6 w-6" />
           </span>
           <div className="relative flex-1">
             <h3 className="text-sm font-semibold">Enter the Sanctuary</h3>
             <p className="text-xs text-muted-foreground">A guided breathing exercise, your daily affirmation, and your life visions in one calm space.</p>
           </div>
-          <Icon name="ArrowRight" className="relative h-4 w-4 text-violet-500 transition-transform group-hover:translate-x-1" />
+          <Icon name="ArrowRight" className="relative h-4 w-4 text-type-journal transition-transform group-hover:translate-x-1" />
         </motion.button>
       )}
 
@@ -142,13 +144,13 @@ export function DomainView({ domainKey }: { domainKey: string }) {
             All ({items.length})
           </button>
           {types.map((t) => {
-            const m = ITEM_TYPE_MAP[t] || { name: t, color: "#71717a", icon: "Circle" };
+            const m = ITEM_TYPE_MAP[t] || { name: t, color: "var(--muted-foreground)", icon: "Circle" };
             return (
               <button
                 key={t}
                 onClick={() => setTypeFilter(t)}
                 className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all", typeFilter === t ? "text-white" : "bg-muted text-muted-foreground hover:bg-muted/70")}
-                style={typeFilter === t ? { background: m.color } : {}}
+                style={typeFilter === t ? { background: colorWithAlpha(m.color, 16), color: "var(--foreground)" } : {}}
               >
                 <Icon name={m.icon} className="h-3 w-3" />
                 {m.name} ({byType[t].length})

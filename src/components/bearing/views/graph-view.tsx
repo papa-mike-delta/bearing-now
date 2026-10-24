@@ -1,5 +1,7 @@
 "use client";
 
+import { colorWithAlpha } from "@/lib/product-colors";
+
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useGraph } from "@/lib/hooks";
 import { useBearing } from "@/store/bearing";
@@ -239,7 +241,7 @@ export function GraphView() {
         title="Digital Brain"
         subtitle="See how everything connects. Every line is a link or a project thread weaving your life together."
         icon="Network"
-        color="#a78bfa"
+        color="var(--type-journal)"
         actions={
           <Button variant="outline" size="sm" onClick={() => setFilterKinds(new Set())}>
             <Icon name="RotateCcw" className="mr-1.5 h-3.5 w-3.5" /> Reset
@@ -297,8 +299,8 @@ export function GraphView() {
               >
                 <defs>
                   <radialGradient id="bgGlow">
-                    <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.06} />
-                    <stop offset="100%" stopColor="#a78bfa" stopOpacity={0} />
+                    <stop offset="0%" stopColor="var(--type-journal)" stopOpacity={0.06} />
+                    <stop offset="100%" stopColor="var(--type-journal)" stopOpacity={0} />
                   </radialGradient>
                 </defs>
                 <rect width={dims.w} height={dims.h} fill="url(#bgGlow)" />
@@ -316,7 +318,7 @@ export function GraphView() {
                       <line
                         key={e.id}
                         x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-                        stroke={e.kind === "project" ? b.color : "#a78bfa"}
+                        stroke={e.kind === "project" ? b.color : "var(--type-journal)"}
                         strokeOpacity={dimmed ? 0.05 : e.kind === "project" ? 0.18 : 0.35}
                         strokeWidth={e.kind === "project" ? 1 : 1.5}
                         strokeDasharray={e.kind === "project" ? "3 4" : undefined}
@@ -346,23 +348,23 @@ export function GraphView() {
                           <circle r={n.r + 8} fill={n.color} opacity={0.15} />
                         )}
                         {isSearchMatch && (
-                          <circle r={n.r + 5} fill="none" stroke="#f59e0b" strokeWidth={2} strokeDasharray="3 2" opacity={0.8} />
+                          <circle r={n.r + 5} fill="none" stroke="var(--priority-high)" strokeWidth={2} strokeDasharray="3 2" opacity={0.8} />
                         )}
                         {isSearchMatch && (
-                          <text textAnchor="middle" dy={-n.r - 12} className="pointer-events-none fill-amber-500 text-[10px] font-semibold">
+                          <text textAnchor="middle" dy={-n.r - 12} className="pointer-events-none fill-priority-high text-[10px] font-semibold">
                             {truncate(n.title, 22)}
                           </text>
                         )}
                         {isProject ? (
                           <>
-                            <rect x={-n.r} y={-n.r} width={n.r * 2} height={n.r * 2} rx={4} fill={n.color} stroke="white" strokeWidth={2} />
+                            <rect x={-n.r} y={-n.r} width={n.r * 2} height={n.r * 2} rx={4} fill={n.color} stroke="var(--background)" strokeWidth={2} />
                             <text textAnchor="middle" dy={n.r + 14} className="pointer-events-none fill-foreground text-[10px] font-semibold">
                               {truncate(n.title, 16)}
                             </text>
                           </>
                         ) : (
                           <>
-                            <circle r={n.r} fill={n.color} stroke="white" strokeWidth={1.5} />
+                            <circle r={n.r} fill={n.color} stroke="var(--background)" strokeWidth={1.5} />
                             {(hovered === n.id || focused) && (
                               <text textAnchor="middle" dy={-n.r - 8} className="pointer-events-none fill-foreground text-[10px] font-medium">
                                 {truncate(n.title, 22)}
@@ -371,7 +373,7 @@ export function GraphView() {
                           </>
                         )}
                         {n.status === "done" && (
-                          <circle r={n.r + 3} fill="none" stroke="#10b981" strokeWidth={1.5} strokeDasharray="2 2" />
+                          <circle r={n.r + 3} fill="none" stroke="var(--success)" strokeWidth={1.5} strokeDasharray="2 2" />
                         )}
                       </g>
                     );
@@ -431,7 +433,7 @@ export function GraphView() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search nodes…"
-                className="w-full rounded-lg border border-border/60 bg-background py-1.5 pl-8 pr-7 text-xs outline-none focus:border-violet-500/40"
+                className="w-full rounded-lg border border-border/60 bg-background py-1.5 pl-8 pr-7 text-xs outline-none focus:border-type-journal/40"
               />
               {searchQuery && (
                 <button
@@ -452,11 +454,11 @@ export function GraphView() {
           <SectionCard title="Legend" icon="Info">
             <div className="space-y-2 text-xs">
               <div className="flex items-center gap-2">
-                <span className="h-4 w-4 rounded" style={{ background: "#a78bfa" }} />
+                <span className="h-4 w-4 rounded" style={{ background: "var(--type-journal)" }} />
                 <span>Project / Thread (square)</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="h-4 w-4 rounded-full" style={{ background: "#f59e0b" }} />
+                <span className="h-4 w-4 rounded-full" style={{ background: "var(--priority-high)" }} />
                 <span>Item (circle, colored by type)</span>
               </div>
               <div className="flex items-center gap-2">
@@ -464,7 +466,7 @@ export function GraphView() {
                 <span>Project membership (dashed)</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="h-4 w-4 rounded border-2 border-emerald-500 border-dashed" />
+                <span className="h-4 w-4 rounded border-2 border-success border-dashed" />
                 <span>Completed (green ring)</span>
               </div>
             </div>
@@ -490,7 +492,7 @@ export function GraphView() {
                         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-all",
                         on ? "border-transparent text-white" : "border-border/60 text-muted-foreground hover:bg-muted",
                       )}
-                      style={on ? { background: t.color } : {}}
+                      style={on ? { background: colorWithAlpha(t.color, 16), color: "var(--foreground)" } : {}}
                     >
                       <Icon name={t.icon} className="h-3 w-3" />
                       {t.name}

@@ -28,7 +28,7 @@ export function HealthOverview() {
         className="rounded-2xl border border-dashed border-border/60 bg-card/30 p-4"
       >
         <div className="mb-2 flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/15 text-rose-500">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-expense/15 text-expense">
             <Icon name="HeartPulse" className="h-3.5 w-3.5" />
           </span>
           <h3 className="text-sm font-semibold">Health snapshot</h3>
@@ -36,7 +36,7 @@ export function HealthOverview() {
         <p className="text-xs text-muted-foreground">Track symptoms, medications, and upcoming appointments in one place.</p>
         <button
           onClick={() => openItemEditor({ type: "symptom" })}
-          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-rose-500 hover:underline"
+          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-expense hover:underline"
         >
           <Icon name="Plus" className="h-3 w-3" /> Log a symptom
         </button>
@@ -48,10 +48,10 @@ export function HealthOverview() {
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-rose-500/20 bg-gradient-to-br from-rose-500/5 to-transparent p-4"
+      className="rounded-2xl border border-expense/20 bg-gradient-to-br from-expense/5 to-transparent p-4"
     >
       <div className="mb-3 flex items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/15 text-rose-500">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-expense/15 text-expense">
           <Icon name="HeartPulse" className="h-3.5 w-3.5" />
         </span>
         <div>
@@ -75,9 +75,9 @@ export function HealthOverview() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
                   onClick={() => openItemDetail(a.id)}
-                  className="group flex w-full items-center gap-2 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-2 text-left transition-all hover:bg-cyan-500/10"
+                  className="group flex w-full items-center gap-2 rounded-lg border border-info/20 bg-info/5 p-2 text-left transition-all hover:bg-info/10"
                 >
-                  <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-cyan-500/15 text-cyan-600">
+                  <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-info/15 text-info">
                     <Icon name="Stethoscope" className="h-3.5 w-3.5" />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -99,9 +99,9 @@ export function HealthOverview() {
                 <button
                   key={m.id}
                   onClick={() => openItemDetail(m.id)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/40 bg-background/60 px-2 py-1 text-xs transition-all hover:border-rose-500/30 hover:bg-background"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/40 bg-background/60 px-2 py-1 text-xs transition-all hover:border-expense/30 hover:bg-background"
                 >
-                  <Icon name="Pill" className="h-3 w-3 text-rose-500" />
+                  <Icon name="Pill" className="h-3 w-3 text-expense" />
                   <span className="font-medium">{m.title}</span>
                   {m.metadata?.dose && <span className="text-[10px] text-muted-foreground">{m.metadata.dose}</span>}
                 </button>
@@ -127,10 +127,10 @@ export function HealthOverview() {
                     onClick={() => openItemDetail(h.id)}
                     className="group flex w-full items-center gap-2 rounded-lg p-1.5 text-left transition-all hover:bg-muted/40"
                   >
-                    <Icon name="Repeat" className="h-3 w-3 text-emerald-500" />
+                    <Icon name="Repeat" className="h-3 w-3 text-success" />
                     <span className="flex-1 truncate text-xs font-medium">{h.title}</span>
                     {streak > 0 && (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600">
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-success/15 px-1.5 py-0.5 text-[10px] font-bold text-success">
                         <Icon name="Flame" className="h-2.5 w-2.5" />
                         {streak}
                       </span>
@@ -149,7 +149,7 @@ export function HealthOverview() {
             <div className="space-y-1">
               {symptoms.slice(0, 3).map((s: any, i: number) => {
                 const sev = s.metadata?.severity || 1;
-                const sevColor = sev >= 4 ? "#f43f5e" : sev >= 3 ? "#f59e0b" : "#eab308";
+                const sevColor = sev >= 4 ? "var(--expense)" : sev >= 3 ? "var(--priority-high)" : "var(--priority-medium)";
                 return (
                   <motion.button
                     key={s.id}

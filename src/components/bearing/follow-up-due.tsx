@@ -43,7 +43,7 @@ export function FollowUpDue() {
         className="rounded-2xl border border-dashed border-border/60 bg-card/30 p-4"
       >
         <div className="flex items-center gap-2 mb-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-600">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-info/15 text-info">
             <Icon name="Users" className="h-3.5 w-3.5" />
           </span>
           <h3 className="text-sm font-semibold">Stay connected</h3>
@@ -51,7 +51,7 @@ export function FollowUpDue() {
         <p className="text-xs text-muted-foreground">Add contacts to get gentle reminders when it's time to reach out.</p>
         <button
           onClick={() => openItemEditor({ type: "contact" })}
-          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-cyan-600 hover:underline"
+          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-info hover:underline"
         >
           <Icon name="Plus" className="h-3 w-3" /> Add a contact
         </button>
@@ -63,11 +63,11 @@ export function FollowUpDue() {
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-transparent p-4"
+      className="rounded-2xl border border-info/20 bg-gradient-to-br from-info/5 to-transparent p-4"
     >
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-600">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-info/15 text-info">
             <Icon name="Users" className="h-3.5 w-3.5" />
           </span>
           <div>
@@ -91,12 +91,12 @@ export function FollowUpDue() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.05 }}
               onClick={() => openItemDetail(c.id)}
-              className="group flex w-full items-center gap-2.5 rounded-lg border border-border/40 bg-background/60 p-2.5 text-left transition-all hover:border-cyan-500/30 hover:bg-background"
+              className="group flex w-full items-center gap-2.5 rounded-lg border border-border/40 bg-background/60 p-2.5 text-left transition-all hover:border-info/30 hover:bg-background"
             >
               <div
                 className={cn(
                   "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold",
-                  urgency === "high" ? "bg-rose-500/15 text-rose-500" : "bg-amber-500/15 text-amber-600",
+                  urgency === "high" ? "bg-expense/15 text-expense" : "bg-priority-high/15 text-priority-high",
                 )}
               >
                 {c.title.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
@@ -110,7 +110,7 @@ export function FollowUpDue() {
               <span
                 className={cn(
                   "flex-shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase",
-                  urgency === "high" ? "bg-rose-500/15 text-rose-500" : "bg-amber-500/15 text-amber-600",
+                  urgency === "high" ? "bg-expense/15 text-expense" : "bg-priority-high/15 text-priority-high",
                 )}
               >
                 {c.daysSince > c.cadence * 2 ? "Overdue" : "Due"}

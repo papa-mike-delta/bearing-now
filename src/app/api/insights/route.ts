@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       where: { createdAt: { gte: thirtyDaysAgo } },
       select: { id: true, type: true, status: true, createdAt: true, completedAt: true },
     }),
-    Owned.projects(userId, { where: { status: "active" } }),
+    Owned.projects(userId, { where: { status: "active" }, include: { domain: { select: { key: true } } } }),
   ]);
 
   const moodTrend = reviews.map((r) => ({
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
     const total = pItems.length;
     const overdue = pItems.filter((i) => i.dueDate && new Date(i.dueDate) < now && i.status !== "done").length;
     return {
-      id: p.id, name: p.name, color: p.color, icon: p.icon,
+      id: p.id, name: p.name, color: p.color, domain: p.domain, icon: p.icon,
       progress: total > 0 ? Math.round((done / total) * 100) : p.progress,
       done, total, overdue, targetDate: p.targetDate,
     };

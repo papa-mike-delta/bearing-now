@@ -232,7 +232,7 @@
 }
 
 .rich-text-editor-wrapper .mdxeditor [contenteditable] blockquote {
-  border-left: 3px solid #a78bfa;
+  border-left: 3px solid var(--type-journal);
   padding-left: 1em;
   margin: 0.5em 0;
   color: var(--muted-foreground);
@@ -240,7 +240,7 @@
 }
 
 .rich-text-editor-wrapper .mdxeditor [contenteditable] a {
-  color: #3b82f6;
+  color: var(--type-bookmark);
   text-decoration: underline;
 }
 
@@ -306,7 +306,7 @@
 .rich-text-editor-wrapper .mdxeditor-toolbar button[data-active="true"],
 .rich-text-editor-wrapper .mdxeditor-toolbar [role="radio"][data-checked="true"] {
   background: var(--background) !important;
-  color: #a78bfa !important;
+  color: var(--type-journal) !important;
 }
 
 /* Block type dropdown trigger */
@@ -364,7 +364,7 @@
 .mdxeditor-toolbar-dropdown-content button[data-active="true"],
 [data-radix-select-content] [data-state="checked"] {
   background: var(--muted) !important;
-  color: #a78bfa !important;
+  color: var(--type-journal) !important;
 }
 
 /* Link dialog */
@@ -380,4 +380,128 @@
   border: 1px solid var(--border) !important;
   color: var(--foreground) !important;
   border-radius: 4px !important;
+}
+
+/* Product semantics inherit the active imported/deployment palette. Explicit tokens win. */
+:root, .dark {
+  --product-accent-1: color-mix(in oklch, color-mix(in oklch, var(--chart-1) 60%, var(--primary)) 60%, var(--foreground));
+  --product-accent-2: color-mix(in oklch, color-mix(in oklch, var(--chart-2) 60%, var(--primary)) 60%, var(--foreground));
+  --product-accent-3: color-mix(in oklch, color-mix(in oklch, var(--chart-3) 60%, var(--primary)) 60%, var(--foreground));
+  --product-accent-4: color-mix(in oklch, color-mix(in oklch, var(--chart-4) 60%, var(--primary)) 60%, var(--foreground));
+  --product-accent-5: color-mix(in oklch, color-mix(in oklch, var(--chart-5) 60%, var(--primary)) 60%, var(--foreground));
+  --type-task: var(--product-accent-1);
+  --type-note: var(--product-accent-4);
+  --type-journal: var(--product-accent-5);
+  --type-habit: var(--product-accent-2);
+  --type-event: var(--product-accent-3);
+  --type-finance: var(--product-accent-2);
+  --type-contact: var(--product-accent-3);
+  --type-idea: var(--product-accent-5);
+  --type-goal: var(--product-accent-1);
+  --type-document: var(--product-accent-3);
+  --type-bookmark: var(--product-accent-3);
+  --type-milestone: var(--product-accent-1);
+  --type-routine: var(--product-accent-4);
+  --type-symptom: var(--product-accent-1);
+  --type-medication: var(--product-accent-1);
+  --type-affirmation: var(--product-accent-5);
+  --type-vision: var(--product-accent-5);
+  --domain-mind-soul: var(--product-accent-5);
+  --domain-time-action: var(--product-accent-1);
+  --domain-health: var(--product-accent-1);
+  --domain-wealth: var(--product-accent-2);
+  --domain-network: var(--product-accent-3);
+  --domain-growth: var(--product-accent-3);
+  --domain-creativity: var(--product-accent-5);
+  --domain-admin: var(--product-accent-4);
+  --status-inbox: var(--muted-foreground);
+  --status-active: var(--product-accent-2);
+  --status-done: var(--product-accent-3);
+  --status-archived: var(--muted-foreground);
+  --status-snoozed: var(--product-accent-4);
+  --priority-none: var(--muted-foreground);
+  --priority-low: var(--product-accent-3);
+  --priority-medium: var(--product-accent-4);
+  --priority-high: var(--product-accent-1);
+  --priority-urgent: var(--product-accent-5);
+  --energy-none: var(--muted-foreground);
+  --energy-low: var(--product-accent-3);
+  --energy-medium: var(--product-accent-4);
+  --energy-high: var(--product-accent-1);
+  --mood-1: var(--product-accent-5);
+  --checkin-energy-1: var(--product-accent-5);
+  --mood-2: var(--product-accent-1);
+  --checkin-energy-2: var(--product-accent-3);
+  --mood-3: var(--product-accent-4);
+  --checkin-energy-3: var(--product-accent-4);
+  --mood-4: var(--product-accent-2);
+  --checkin-energy-4: var(--product-accent-2);
+  --mood-5: var(--product-accent-3);
+  --checkin-energy-5: var(--product-accent-1);
+  --mood-series: var(--product-accent-5);
+  --energy-series: var(--product-accent-1);
+  --income: var(--product-accent-2);
+  --expense: var(--product-accent-5);
+  --success: var(--status-active);
+  --warning: var(--priority-high);
+  --info: var(--product-accent-3);
+}
+
+@theme inline {
+  --color-type-task: var(--type-task);
+  --color-type-note: var(--type-note);
+  --color-type-journal: var(--type-journal);
+  --color-type-habit: var(--type-habit);
+  --color-type-event: var(--type-event);
+  --color-type-finance: var(--type-finance);
+  --color-type-contact: var(--type-contact);
+  --color-type-idea: var(--type-idea);
+  --color-type-goal: var(--type-goal);
+  --color-type-document: var(--type-document);
+  --color-type-bookmark: var(--type-bookmark);
+  --color-type-milestone: var(--type-milestone);
+  --color-type-routine: var(--type-routine);
+  --color-type-symptom: var(--type-symptom);
+  --color-type-medication: var(--type-medication);
+  --color-type-affirmation: var(--type-affirmation);
+  --color-type-vision: var(--type-vision);
+  --color-domain-mind-soul: var(--domain-mind-soul);
+  --color-domain-time-action: var(--domain-time-action);
+  --color-domain-health: var(--domain-health);
+  --color-domain-wealth: var(--domain-wealth);
+  --color-domain-network: var(--domain-network);
+  --color-domain-growth: var(--domain-growth);
+  --color-domain-creativity: var(--domain-creativity);
+  --color-domain-admin: var(--domain-admin);
+  --color-status-inbox: var(--status-inbox);
+  --color-status-active: var(--status-active);
+  --color-status-done: var(--status-done);
+  --color-status-archived: var(--status-archived);
+  --color-status-snoozed: var(--status-snoozed);
+  --color-priority-none: var(--priority-none);
+  --color-priority-low: var(--priority-low);
+  --color-priority-medium: var(--priority-medium);
+  --color-priority-high: var(--priority-high);
+  --color-priority-urgent: var(--priority-urgent);
+  --color-energy-none: var(--energy-none);
+  --color-energy-low: var(--energy-low);
+  --color-energy-medium: var(--energy-medium);
+  --color-energy-high: var(--energy-high);
+  --color-mood-1: var(--mood-1);
+  --color-checkin-energy-1: var(--checkin-energy-1);
+  --color-mood-2: var(--mood-2);
+  --color-checkin-energy-2: var(--checkin-energy-2);
+  --color-mood-3: var(--mood-3);
+  --color-checkin-energy-3: var(--checkin-energy-3);
+  --color-mood-4: var(--mood-4);
+  --color-checkin-energy-4: var(--checkin-energy-4);
+  --color-mood-5: var(--mood-5);
+  --color-checkin-energy-5: var(--checkin-energy-5);
+  --color-mood-series: var(--mood-series);
+  --color-energy-series: var(--energy-series);
+  --color-income: var(--income);
+  --color-expense: var(--expense);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
 }

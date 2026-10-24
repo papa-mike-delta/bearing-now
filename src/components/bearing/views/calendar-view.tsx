@@ -1,5 +1,7 @@
 "use client";
 
+import { colorWithAlpha } from "@/lib/product-colors";
+
 import { useState, useMemo } from "react";
 import { useBearing } from "@/store/bearing";
 import { useCalendar } from "@/lib/hooks";
@@ -55,7 +57,7 @@ export function CalendarView() {
         title="Master Calendar"
         subtitle="Everything with a date — tasks, bills, appointments, birthdays — in one view."
         icon="CalendarDays"
-        color="#06b6d4"
+        color="var(--info)"
         actions={
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCursor(subMonths(cursor, 1))}>
@@ -135,14 +137,14 @@ export function CalendarView() {
                   </div>
                   <div className="space-y-0.5">
                     {items.slice(0, 3).map((it, idx) => {
-                      const m = ITEM_TYPE_MAP[it.type] || { color: "#71717a", icon: "Circle" };
+                      const m = ITEM_TYPE_MAP[it.type] || { color: "var(--muted-foreground)", icon: "Circle" };
                       return (
                         <div
                           key={idx}
                           className="flex items-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium"
-                          style={{ background: `${m.color}1a`, color: m.color }}
+                          style={{ background: colorWithAlpha(m.color, 10), color: m.color }}
                         >
-                          <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: m.color }} />
+                          <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: colorWithAlpha(m.color, 16), color: "var(--foreground)" }} />
                           <span className="truncate">{it.title}</span>
                         </div>
                       );
@@ -183,7 +185,7 @@ export function CalendarView() {
                       "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-all",
                       on ? "border-transparent text-white" : "border-border/60 text-muted-foreground hover:bg-muted",
                     )}
-                    style={on ? { background: l.color } : {}}
+                    style={on ? { background: colorWithAlpha(l.color, 16), color: "var(--foreground)" } : {}}
                   >
                     <span className="h-2 w-2 rounded-full" style={{ background: on ? "white" : l.color }} />
                     {l.name}
@@ -211,7 +213,7 @@ export function CalendarView() {
             ) : (
               <div className="max-h-96 space-y-2 overflow-y-auto">
                 {selectedDayItems.map((it) => {
-                  const m = ITEM_TYPE_MAP[it.type] || { color: "#71717a", icon: "Circle", name: it.type };
+                  const m = ITEM_TYPE_MAP[it.type] || { color: "var(--muted-foreground)", icon: "Circle", name: it.type };
                   return (
                     <motion.button
                       key={it.id}
@@ -223,7 +225,7 @@ export function CalendarView() {
                     >
                       <span
                         className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg"
-                        style={{ background: `${m.color}1a`, color: m.color }}
+                        style={{ background: colorWithAlpha(m.color, 10), color: m.color }}
                       >
                         <Icon name={m.icon} className="h-3.5 w-3.5" />
                       </span>

@@ -1,5 +1,7 @@
 "use client";
 
+import { colorWithAlpha, projectColor } from "@/lib/product-colors";
+
 import { useInsights, downloadCSV, useRunScheduler } from "@/lib/hooks";
 import { notify } from "@/lib/toast";
 import { useBearing } from "@/store/bearing";
@@ -22,7 +24,7 @@ export function InsightsView() {
   if (isLoading) {
     return (
       <div className="space-y-6" aria-busy="true" aria-label="Loading insights">
-        <PageHeader title="Insights" subtitle="Patterns and trends across your life — mood, habits, activity, and finances." icon="TrendingUp" color="#10b981" />
+        <PageHeader title="Insights" subtitle="Patterns and trends across your life — mood, habits, activity, and finances." icon="TrendingUp" color="var(--success)" />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-card/40 px-3 py-2.5">
@@ -69,7 +71,7 @@ export function InsightsView() {
         title="Insights"
         subtitle="Patterns and trends across your life — mood, habits, activity, and finances."
         icon="TrendingUp"
-        color="#10b981"
+        color="var(--success)"
         actions={
           <div className="flex gap-1.5">
             <Button
@@ -98,10 +100,10 @@ export function InsightsView() {
 
       {/* Top stat row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatTile label="Reviews (30d)" value={data.reviewCount} icon="NotebookPen" color="#a78bfa" />
-        <StatTile label="Avg consistency" value={`${Math.round(data.habitMatrix.reduce((s: number, h: any) => s + h.consistency, 0) / (data.habitMatrix.length || 1))}%`} icon="Repeat" color="#10b981" />
-        <StatTile label="Monthly net" value={`$${data.finance.net.toLocaleString()}`} icon="Wallet" color={data.finance.net >= 0 ? "#10b981" : "#f43f5e"} />
-        <StatTile label="Active projects" value={data.projectHealth.length} icon="FolderKanban" color="#06b6d4" />
+        <StatTile label="Reviews (30d)" value={data.reviewCount} icon="NotebookPen" color="var(--type-journal)" />
+        <StatTile label="Avg consistency" value={`${Math.round(data.habitMatrix.reduce((s: number, h: any) => s + h.consistency, 0) / (data.habitMatrix.length || 1))}%`} icon="Repeat" color="var(--success)" />
+        <StatTile label="Monthly net" value={`$${data.finance.net.toLocaleString()}`} icon="Wallet" color={data.finance.net >= 0 ? "var(--income)" : "var(--expense)"} />
+        <StatTile label="Active projects" value={data.projectHealth.length} icon="FolderKanban" color="var(--info)" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -120,14 +122,14 @@ export function InsightsView() {
                   labelStyle={{ color: "var(--muted-foreground)" }}
                   itemStyle={{ color: "var(--foreground)" }}
                 />
-                <Line type="monotone" dataKey="mood" stroke="#ec4899" strokeWidth={2.5} dot={{ r: 3, fill: "#ec4899" }} activeDot={{ r: 5 }} />
-                <Line type="monotone" dataKey="energy" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 3, fill: "#f59e0b" }} activeDot={{ r: 5 }} strokeDasharray="4 3" />
+                <Line type="monotone" dataKey="mood" stroke="var(--mood-series)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--mood-series)" }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="energy" stroke="var(--energy-series)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--energy-series)" }} activeDot={{ r: 5 }} strokeDasharray="4 3" />
               </LineChart>
             </ResponsiveContainer>
           )}
           <div className="mt-2 flex justify-center gap-4 text-[11px] text-muted-foreground">
-            <span className="inline-flex items-center gap-1"><span className="h-2 w-3 rounded-full bg-pink-500" /> Mood</span>
-            <span className="inline-flex items-center gap-1"><span className="h-2 w-3 rounded-full bg-amber-500" /> Energy</span>
+            <span className="inline-flex items-center gap-1"><span className="h-2 w-3 rounded-full bg-type-idea" /> Mood</span>
+            <span className="inline-flex items-center gap-1"><span className="h-2 w-3 rounded-full bg-priority-high" /> Energy</span>
           </div>
         </SectionCard>
 
@@ -137,12 +139,12 @@ export function InsightsView() {
             <AreaChart data={activityData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="gCreated" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                  <stop offset="5%" stopColor="var(--info)" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="var(--info)" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="gCompleted" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  <stop offset="5%" stopColor="var(--success)" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="var(--success)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} />
@@ -153,13 +155,13 @@ export function InsightsView() {
                 labelStyle={{ color: "var(--muted-foreground)" }}
                 itemStyle={{ color: "var(--foreground)" }}
               />
-              <Area type="monotone" dataKey="created" stroke="#06b6d4" strokeWidth={2} fill="url(#gCreated)" />
-              <Area type="monotone" dataKey="completed" stroke="#10b981" strokeWidth={2} fill="url(#gCompleted)" />
+              <Area type="monotone" dataKey="created" stroke="var(--info)" strokeWidth={2} fill="url(#gCreated)" />
+              <Area type="monotone" dataKey="completed" stroke="var(--success)" strokeWidth={2} fill="url(#gCompleted)" />
             </AreaChart>
           </ResponsiveContainer>
           <div className="mt-2 flex justify-center gap-4 text-[11px] text-muted-foreground">
-            <span className="inline-flex items-center gap-1"><span className="h-2 w-3 rounded-full bg-cyan-500" /> Created</span>
-            <span className="inline-flex items-center gap-1"><span className="h-2 w-3 rounded-full bg-emerald-500" /> Completed</span>
+            <span className="inline-flex items-center gap-1"><span className="h-2 w-3 rounded-full bg-info" /> Created</span>
+            <span className="inline-flex items-center gap-1"><span className="h-2 w-3 rounded-full bg-success" /> Completed</span>
           </div>
         </SectionCard>
 
@@ -182,7 +184,7 @@ export function InsightsView() {
                         className="h-6 flex-1 rounded-sm"
                         title={`${fmtDate(d.date, "MMM d")}: ${d.done ? "done" : "—"}`}
                         style={{
-                          background: d.done ? "#10b981" : "var(--muted)",
+                          background: d.done ? "var(--success)" : "var(--muted)",
                           opacity: d.done ? 1 : 0.4,
                         }}
                       />
@@ -201,24 +203,24 @@ export function InsightsView() {
         {/* Finance breakdown */}
         <SectionCard title="Monthly finances" icon="Wallet">
           <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="rounded-xl bg-emerald-500/10 p-3">
-              <div className="text-[10px] uppercase tracking-wide text-emerald-600">Income</div>
-              <div className="mt-1 text-xl font-bold text-emerald-600">${data.finance.income.toLocaleString()}</div>
+            <div className="rounded-xl bg-income/10 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-income">Income</div>
+              <div className="mt-1 text-xl font-bold text-income">${data.finance.income.toLocaleString()}</div>
             </div>
-            <div className="rounded-xl bg-rose-500/10 p-3">
-              <div className="text-[10px] uppercase tracking-wide text-rose-500">Expenses</div>
-              <div className="mt-1 text-xl font-bold text-rose-500">${data.finance.expenses.toLocaleString()}</div>
+            <div className="rounded-xl bg-expense/10 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-expense">Expenses</div>
+              <div className="mt-1 text-xl font-bold text-expense">${data.finance.expenses.toLocaleString()}</div>
             </div>
             <div className="rounded-xl bg-muted p-3">
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Net</div>
-              <div className={`mt-1 text-xl font-bold ${data.finance.net >= 0 ? "text-emerald-600" : "text-rose-500"}`}>
+              <div className={`mt-1 text-xl font-bold ${data.finance.net >= 0 ? "text-income" : "text-expense"}`}>
                 {data.finance.net >= 0 ? "+" : "−"}${Math.abs(data.finance.net).toLocaleString()}
               </div>
             </div>
           </div>
           {data.finance.subscriptions > 0 && (
-            <div className="mt-3 flex items-center justify-between rounded-lg bg-amber-500/10 px-3 py-2 text-sm">
-              <span className="inline-flex items-center gap-1.5 text-amber-600">
+            <div className="mt-3 flex items-center justify-between rounded-lg bg-priority-high/10 px-3 py-2 text-sm">
+              <span className="inline-flex items-center gap-1.5 text-priority-high">
                 <Icon name="Repeat" className="h-3.5 w-3.5" /> Monthly subscriptions
               </span>
               <span className="font-semibold">${data.finance.subscriptions.toLocaleString()}/mo</span>
@@ -255,15 +257,15 @@ export function InsightsView() {
                 className="rounded-xl border border-border/60 p-4 text-left transition-all hover:border-border hover:shadow-sm"
               >
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full" style={{ background: p.color }} />
+                  <span className="h-3 w-3 rounded-full" style={{ background: projectColor(p) }} />
                   <span className="flex-1 truncate text-sm font-semibold">{p.name}</span>
                   {p.overdue > 0 && (
-                    <span className="rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-500">{p.overdue} overdue</span>
+                    <span className="rounded-full bg-expense/15 px-1.5 py-0.5 text-[10px] font-bold text-expense">{p.overdue} overdue</span>
                   )}
                 </div>
                 <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
                   <span>{p.done}/{p.total} tasks</span>
-                  <span className="font-semibold" style={{ color: p.color }}>{p.progress}%</span>
+                  <span className="font-semibold" style={{ color: projectColor(p) }}>{p.progress}%</span>
                 </div>
                 <Progress value={p.progress} className="h-1.5" />
                 {p.targetDate && (
@@ -285,7 +287,7 @@ function StatTile({ label, value, icon, color }: { label: string; value: string 
       animate={{ opacity: 1, y: 0 }}
       className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-card/40 px-3 py-2.5"
     >
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: `${color}1a`, color }}>
+      <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: colorWithAlpha(color, 10), color }}>
         <Icon name={icon} className="h-4 w-4" />
       </span>
       <div>

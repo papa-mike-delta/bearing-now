@@ -1,5 +1,7 @@
 "use client";
 
+import { projectColor } from "@/lib/product-colors";
+
 import { useState, useSyncExternalStore } from "react";
 import { useBearing } from "@/store/bearing";
 import { useSearch } from "@/lib/hooks";
@@ -72,7 +74,7 @@ export function Topbar() {
                         onClick={() => { useBearing.getState().openProject(p.id); setOpen(false); setQ(""); }}
                         className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
                       >
-                        <span className="h-2 w-2 rounded-full" style={{ background: p.color }} />
+                        <span className="h-2 w-2 rounded-full" style={{ background: projectColor(p) }} />
                         <span className="flex-1">{p.name}</span>
                       </button>
                     ))}
@@ -119,7 +121,7 @@ export function Topbar() {
 
         <Button
           onClick={() => setQuickCaptureOpen(true)}
-          className="h-9 gap-1.5 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm hover:from-emerald-600 hover:to-teal-700"
+          className="h-9 gap-1.5 bg-primary text-primary-foreground shadow-sm hover:from-success hover:to-success"
         >
           <Icon name="Zap" className="h-4 w-4" />
           <span className="hidden sm:inline">Quick Capture</span>

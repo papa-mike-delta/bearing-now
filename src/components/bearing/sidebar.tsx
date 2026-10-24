@@ -1,5 +1,7 @@
 "use client";
 
+import { colorWithAlpha } from "@/lib/product-colors";
+
 import { useDraftSession } from "./item-draft-session";
 
 import { useBearing } from "@/store/bearing";
@@ -47,8 +49,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     <>
       {/* Brand */}
       <div className="flex h-14 flex-shrink-0 items-center gap-2.5 border-b border-border/40 px-4">
-        <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-sm">
-          <Icon name="Brain" className="h-5 w-5 text-white" />
+        <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary shadow-sm">
+          <Icon name="Brain" className="h-5 w-5 text-primary-foreground" />
         </div>
         <div>
           <div className="text-sm font-semibold leading-none tracking-tight">bearing.now</div>
@@ -72,12 +74,12 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                 )}
               >
                 {active && (
-                  <motion.span layoutId="nav-active" className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-emerald-500" />
+                  <motion.span layoutId="nav-active" className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-success" />
                 )}
                 <Icon name={n.icon} className="h-4 w-4" />
                 <span className="flex-1 text-left">{n.name}</span>
                 {badge && (
-                  <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">{badge}</span>
+                  <span className="rounded-full bg-priority-high/15 px-1.5 py-0.5 text-[10px] font-bold text-priority-high">{badge}</span>
                 )}
               </button>
             );
@@ -98,7 +100,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                   active ? "bg-sidebar-accent text-foreground" : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground",
                 )}
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-md" style={{ background: `${d.color}1a`, color: d.color }}>
+                <span className="flex h-5 w-5 items-center justify-center rounded-md" style={{ background: colorWithAlpha(d.color, 10), color: d.color }}>
                   <Icon name={d.icon} className="h-3 w-3" />
                 </span>
                 <span className="flex-1 text-left text-[13px] font-medium">{d.short}</span>
@@ -123,7 +125,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </button>
         <button
           onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); draftOwner.clear(); window.location.href = "/login"; }}
-          className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-500"
+          className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-expense/10 hover:text-expense"
         >
           <Icon name="LogOut" className="h-3.5 w-3.5" />
           Sign out

@@ -1,3 +1,5 @@
+import { domainColor, itemColor } from "./product-colors";
+
 // bearing.now — shared constants
 
 export type DomainKey =
@@ -16,7 +18,7 @@ export interface DomainMeta {
   short: string;
   description: string;
   icon: string; // lucide icon name
-  color: string; // hex
+  color: string; // CSS color value
   order: number;
 }
 
@@ -27,7 +29,7 @@ export const DOMAINS: DomainMeta[] = [
     short: "Mind",
     description: "Core values, visions, fears, affirmations, therapy notes, meditation.",
     icon: "Compass",
-    color: "#a78bfa",
+    color: domainColor({ key: "mind_soul" }),
     order: 0,
   },
   {
@@ -36,7 +38,7 @@ export const DOMAINS: DomainMeta[] = [
     short: "Action",
     description: "Tasks, habits, routines, deep work blocks, bucket lists.",
     icon: "Hourglass",
-    color: "#f59e0b",
+    color: domainColor({ key: "time_action" }),
     order: 1,
   },
   {
@@ -45,7 +47,7 @@ export const DOMAINS: DomainMeta[] = [
     short: "Health",
     description: "Sleep, fitness, nutrition, symptoms, medications, appointments.",
     icon: "HeartPulse",
-    color: "#f43f5e",
+    color: domainColor({ key: "health" }),
     order: 2,
   },
   {
@@ -54,7 +56,7 @@ export const DOMAINS: DomainMeta[] = [
     short: "Wealth",
     description: "Income, expenses, subscriptions, bills, savings goals, career.",
     icon: "TrendingUp",
-    color: "#10b981",
+    color: domainColor({ key: "wealth" }),
     order: 3,
   },
   {
@@ -63,7 +65,7 @@ export const DOMAINS: DomainMeta[] = [
     short: "Network",
     description: "Contacts, important dates, interaction logs, follow-ups, gifts, pets.",
     icon: "Users",
-    color: "#06b6d4",
+    color: domainColor({ key: "network" }),
     order: 4,
   },
   {
@@ -72,7 +74,7 @@ export const DOMAINS: DomainMeta[] = [
     short: "Growth",
     description: "Reading list, courses, skill building, saved articles, takeaways.",
     icon: "BookOpen",
-    color: "#3b82f6",
+    color: domainColor({ key: "growth" }),
     order: 5,
   },
   {
@@ -81,7 +83,7 @@ export const DOMAINS: DomainMeta[] = [
     short: "Joy",
     description: "Idea vault, side projects, media log, hobbies, travel, events.",
     icon: "Palette",
-    color: "#ec4899",
+    color: domainColor({ key: "creativity" }),
     order: 6,
   },
   {
@@ -90,7 +92,7 @@ export const DOMAINS: DomainMeta[] = [
     short: "Admin",
     description: "Document vault, home maintenance, inventory, grocery lists, recipes.",
     icon: "Home",
-    color: "#71717a",
+    color: domainColor({ key: "admin" }),
     order: 7,
   },
 ];
@@ -128,23 +130,23 @@ export interface ItemTypeMeta {
 }
 
 export const ITEM_TYPES: ItemTypeMeta[] = [
-  { type: "task", name: "Task", icon: "CheckSquare", color: "#f59e0b", hasDate: true, completable: true },
-  { type: "note", name: "Note", icon: "StickyNote", color: "#eab308" },
-  { type: "journal", name: "Journal", icon: "BookHeart", color: "#a78bfa", hasDate: true },
-  { type: "habit", name: "Habit", icon: "Repeat", color: "#10b981" },
-  { type: "event", name: "Event", icon: "Calendar", color: "#06b6d4", hasDate: true },
-  { type: "finance", name: "Finance", icon: "Wallet", color: "#10b981", hasDate: true },
-  { type: "contact", name: "Contact", icon: "User", color: "#06b6d4" },
-  { type: "idea", name: "Idea", icon: "Lightbulb", color: "#ec4899" },
-  { type: "goal", name: "Goal", icon: "Target", color: "#f43f5e", hasDate: true },
-  { type: "document", name: "Document", icon: "FileText", color: "#71717a" },
-  { type: "bookmark", name: "Bookmark", icon: "Bookmark", color: "#3b82f6" },
-  { type: "milestone", name: "Milestone", icon: "Flag", color: "#f59e0b", hasDate: true, completable: true },
-  { type: "routine", name: "Routine", icon: "ListChecks", color: "#eab308" },
-  { type: "symptom", name: "Symptom", icon: "Thermometer", color: "#f43f5e", hasDate: true },
-  { type: "medication", name: "Medication", icon: "Pill", color: "#f43f5e", hasDate: true },
-  { type: "affirmation", name: "Affirmation", icon: "Heart", color: "#a78bfa" },
-  { type: "vision", name: "Vision", icon: "Eye", color: "#a78bfa" },
+  { type: "task", name: "Task", icon: "CheckSquare", color: itemColor("task"), hasDate: true, completable: true },
+  { type: "note", name: "Note", icon: "StickyNote", color: itemColor("note") },
+  { type: "journal", name: "Journal", icon: "BookHeart", color: itemColor("journal"), hasDate: true },
+  { type: "habit", name: "Habit", icon: "Repeat", color: itemColor("habit") },
+  { type: "event", name: "Event", icon: "Calendar", color: itemColor("event"), hasDate: true },
+  { type: "finance", name: "Finance", icon: "Wallet", color: itemColor("finance"), hasDate: true },
+  { type: "contact", name: "Contact", icon: "User", color: itemColor("contact") },
+  { type: "idea", name: "Idea", icon: "Lightbulb", color: itemColor("idea") },
+  { type: "goal", name: "Goal", icon: "Target", color: itemColor("goal"), hasDate: true },
+  { type: "document", name: "Document", icon: "FileText", color: itemColor("document") },
+  { type: "bookmark", name: "Bookmark", icon: "Bookmark", color: itemColor("bookmark") },
+  { type: "milestone", name: "Milestone", icon: "Flag", color: itemColor("milestone"), hasDate: true, completable: true },
+  { type: "routine", name: "Routine", icon: "ListChecks", color: itemColor("routine") },
+  { type: "symptom", name: "Symptom", icon: "Thermometer", color: itemColor("symptom"), hasDate: true },
+  { type: "medication", name: "Medication", icon: "Pill", color: itemColor("medication"), hasDate: true },
+  { type: "affirmation", name: "Affirmation", icon: "Heart", color: itemColor("affirmation") },
+  { type: "vision", name: "Vision", icon: "Eye", color: itemColor("vision") },
 ];
 
 export const ITEM_TYPE_MAP: Record<string, ItemTypeMeta> = Object.fromEntries(
@@ -154,26 +156,26 @@ export const ITEM_TYPE_MAP: Record<string, ItemTypeMeta> = Object.fromEntries(
 export type ItemStatus = "inbox" | "active" | "done" | "archived" | "snoozed";
 
 export const STATUS_META: Record<ItemStatus, { name: string; color: string }> = {
-  inbox: { name: "Inbox", color: "#71717a" },
-  active: { name: "Active", color: "#10b981" },
-  done: { name: "Done", color: "#3b82f6" },
-  archived: { name: "Archived", color: "#71717a" },
-  snoozed: { name: "Snoozed", color: "#f59e0b" },
+  inbox: { name: "Inbox", color: "var(--status-inbox)" },
+  active: { name: "Active", color: "var(--status-active)" },
+  done: { name: "Done", color: "var(--status-done)" },
+  archived: { name: "Archived", color: "var(--status-archived)" },
+  snoozed: { name: "Snoozed", color: "var(--status-snoozed)" },
 };
 
 export const PRIORITY_META = [
-  { value: 0, name: "None", color: "#71717a" },
-  { value: 1, name: "Low", color: "#3b82f6" },
-  { value: 2, name: "Medium", color: "#eab308" },
-  { value: 3, name: "High", color: "#f59e0b" },
-  { value: 4, name: "Urgent", color: "#f43f5e" },
+  { value: 0, name: "None", color: "var(--priority-none)" },
+  { value: 1, name: "Low", color: "var(--priority-low)" },
+  { value: 2, name: "Medium", color: "var(--priority-medium)" },
+  { value: 3, name: "High", color: "var(--priority-high)" },
+  { value: 4, name: "Urgent", color: "var(--priority-urgent)" },
 ];
 
 export const ENERGY_META = [
-  { value: 0, name: "—", color: "#71717a" },
-  { value: 1, name: "Low", color: "#3b82f6" },
-  { value: 2, name: "Medium", color: "#eab308" },
-  { value: 3, name: "High", color: "#f43f5e" },
+  { value: 0, name: "—", color: "var(--energy-none)" },
+  { value: 1, name: "Low", color: "var(--energy-low)" },
+  { value: 2, name: "Medium", color: "var(--energy-medium)" },
+  { value: 3, name: "High", color: "var(--energy-high)" },
 ];
 
 export const REVIEW_PROMPTS = {

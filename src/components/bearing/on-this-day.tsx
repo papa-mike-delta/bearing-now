@@ -43,10 +43,10 @@ export function OnThisDay() {
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-4"
+      className="rounded-2xl border border-priority-high/20 bg-gradient-to-br from-priority-high/5 to-transparent p-4"
     >
       <div className="mb-3 flex items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-priority-high/15 text-priority-high">
           <Icon name="CalendarHeart" className="h-3.5 w-3.5" />
         </span>
         <div>
@@ -68,7 +68,7 @@ export function OnThisDay() {
               className="group block w-full rounded-lg border border-border/40 bg-background/60 p-2.5 text-left transition-all hover:border-border hover:bg-background"
             >
               <div className="mb-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                <Icon name="BookHeart" className="h-3 w-3 text-violet-500" />
+                <Icon name="BookHeart" className="h-3 w-3 text-type-journal" />
                 <span>{yearsAgo} year{yearsAgo !== 1 ? "s" : ""} ago · {fmtDate(j.scheduledAt || j.createdAt, "MMM d")}</span>
               </div>
               <p className="line-clamp-1 text-xs font-medium">{j.title}</p>
@@ -88,9 +88,9 @@ export function OnThisDay() {
               className="rounded-lg border border-border/40 bg-background/60 p-2.5"
             >
               <div className="mb-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                <Icon name="NotebookPen" className="h-3 w-3 text-amber-500" />
+                <Icon name="NotebookPen" className="h-3 w-3 text-priority-high" />
                 <span>{yearsAgo} year{yearsAgo !== 1 ? "s" : ""} ago · {r.type} review</span>
-                {r.mood && <span className="ml-auto" style={{ color: ["", "#f43f5e", "#f59e0b", "#eab308", "#10b981", "#06b6d4"][r.mood] }}>
+                {r.mood && <span className="ml-auto" style={{ color: ["", "var(--mood-1)", "var(--mood-2)", "var(--mood-3)", "var(--mood-4)", "var(--mood-5)"][r.mood] }}>
                   <Icon name={["", "Frown", "Meh", "Smile", "SmilePlus", "Laugh"][r.mood] || "Smile"} className="h-3.5 w-3.5" />
                 </span>}
               </div>
@@ -101,7 +101,7 @@ export function OnThisDay() {
 
         {completed.map((c: any, i: number) => {
           const yearsAgo = new Date().getFullYear() - new Date(c.completedAt).getFullYear();
-          const m = ITEM_TYPE_MAP[c.type] || { icon: "Check", color: "#10b981" };
+          const m = ITEM_TYPE_MAP[c.type] || { icon: "Check", color: "var(--success)" };
           return (
             <motion.button
               key={c.id}
@@ -109,9 +109,9 @@ export function OnThisDay() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: (journals.length + reviews.length + i) * 0.05 }}
               onClick={() => openItemDetail(c.id)}
-              className="group flex w-full items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5 text-left transition-all hover:bg-emerald-500/10"
+              className="group flex w-full items-center gap-2 rounded-lg border border-success/20 bg-success/5 p-2.5 text-left transition-all hover:bg-success/10"
             >
-              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-500/15 text-emerald-600">
+              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-success/15 text-success">
                 <Icon name={m.icon} className="h-3 w-3" />
               </span>
               <div className="min-w-0 flex-1">

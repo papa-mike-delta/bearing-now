@@ -1,5 +1,7 @@
 "use client";
 
+import { colorWithAlpha } from "@/lib/product-colors";
+
 import { cn } from "@/lib/utils";
 import { Icon } from "./icon";
 import { Button } from "@/components/ui/button";
@@ -23,7 +25,7 @@ export function PageHeader({
         {icon && (
           <span
             className="flex h-11 w-11 items-center justify-center rounded-2xl shadow-sm"
-            style={{ background: color ? `${color}1a` : "var(--muted)", color: color || "var(--muted-foreground)" }}
+            style={{ background: color ? colorWithAlpha(color, 10) : "var(--muted)", color: color || "var(--muted-foreground)" }}
           >
             <Icon name={icon} className="h-5 w-5" />
           </span>
@@ -112,7 +114,7 @@ export function StatPill({
       {icon && (
         <span
           className="flex h-8 w-8 items-center justify-center rounded-lg"
-          style={{ background: color ? `${color}1a` : "var(--muted)", color: color || "var(--muted-foreground)" }}
+          style={{ background: color ? colorWithAlpha(color, 10) : "var(--muted)", color: color || "var(--muted-foreground)" }}
         >
           <Icon name={icon} className="h-4 w-4" />
         </span>

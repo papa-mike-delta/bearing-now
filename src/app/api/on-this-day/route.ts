@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
           { createdAt: { gte: oneYearAgo } },
         ],
       },
-      include: { domain: true, project: { select: { id: true, name: true, color: true } } },
+      include: { domain: true, project: { select: { id: true, name: true, color: true, domain: { select: { key: true } } } } },
       orderBy: { scheduledAt: "desc" },
       take: 200,
     }),
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
       status: "done",
       type: { in: ["milestone", "bookmark", "goal"] },
     },
-    include: { domain: true, project: { select: { id: true, name: true, color: true } } },
+    include: { domain: true, project: { select: { id: true, name: true, color: true, domain: { select: { key: true } } } } },
     take: 100,
   });
 

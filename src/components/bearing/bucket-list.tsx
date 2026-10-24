@@ -28,11 +28,11 @@ export function BucketList() {
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent p-4"
+      className="rounded-2xl border border-type-journal/20 bg-gradient-to-br from-type-journal/5 to-transparent p-4"
     >
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/15 text-purple-500">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-type-journal/15 text-type-journal">
             <Icon name="ListChecks" className="h-3.5 w-3.5" />
           </span>
           <div>
@@ -42,7 +42,7 @@ export function BucketList() {
             </p>
           </div>
         </div>
-        <span className="text-sm font-bold text-purple-500">{completionPct}%</span>
+        <span className="text-sm font-bold text-type-journal">{completionPct}%</span>
       </div>
 
       {/* Progress bar */}
@@ -51,7 +51,7 @@ export function BucketList() {
           initial={{ width: 0 }}
           animate={{ width: `${completionPct}%` }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="h-full rounded-full bg-gradient-to-r from-purple-400 to-pink-500"
+          className="h-full rounded-full bg-gradient-to-r from-type-journal to-type-idea"
         />
       </div>
 
@@ -65,17 +65,17 @@ export function BucketList() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 6 }}
               transition={{ delay: i * 0.04 }}
-              className="group flex w-full items-center gap-2 rounded-lg border border-border/40 bg-background/40 p-2 transition-all hover:border-purple-500/30 hover:bg-background"
+              className="group flex w-full items-center gap-2 rounded-lg border border-border/40 bg-background/40 p-2 transition-all hover:border-type-journal/30 hover:bg-background"
             >
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   update.mutate({ id: item.id, revision: item.revision, status: "done" }, { onSuccess: () => notify.success("Achieved!") });
                 }}
-                className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border-2 border-purple-400/50 transition-all hover:border-purple-500 hover:bg-purple-500/10"
+                className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border-2 border-type-journal/50 transition-all hover:border-type-journal hover:bg-type-journal/10"
                 title="Mark as done"
               >
-                <Icon name="Check" className="h-3 w-3 text-transparent transition-colors group-hover:text-purple-500" />
+                <Icon name="Check" className="h-3 w-3 text-transparent transition-colors group-hover:text-type-journal" />
               </button>
               <button
                 onClick={() => openItemDetail(item.id)}
@@ -100,7 +100,7 @@ export function BucketList() {
         {/* Completed items */}
         {completed.length > 0 && (
           <div className="mt-2 border-t border-border/30 pt-2">
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-500">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-success">
               Achieved ({completed.length})
             </p>
             <div className="space-y-0.5">
@@ -113,7 +113,7 @@ export function BucketList() {
                   onClick={() => openItemDetail(item.id)}
                   className="flex w-full items-center gap-2 rounded-lg p-1.5 text-left transition-all hover:bg-muted/40"
                 >
-                  <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                  <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
                     <Icon name="Check" className="h-2.5 w-2.5" strokeWidth={3} />
                   </span>
                   <span className="flex-1 truncate text-xs font-medium text-muted-foreground line-through">
@@ -128,7 +128,7 @@ export function BucketList() {
 
       <button
         onClick={() => openItemEditor({ type: "goal" })}
-        className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border/40 py-1.5 text-[11px] font-medium text-muted-foreground transition-all hover:border-purple-500/40 hover:text-purple-500"
+        className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border/40 py-1.5 text-[11px] font-medium text-muted-foreground transition-all hover:border-type-journal/40 hover:text-type-journal"
       >
         <Icon name="Plus" className="h-3 w-3" />
         Add to bucket list

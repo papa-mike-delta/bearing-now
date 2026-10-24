@@ -72,7 +72,7 @@ export function ShortcutsHelp() {
       <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Icon name="Keyboard" className="h-5 w-5 text-violet-500" />
+            <Icon name="Keyboard" className="h-5 w-5 text-type-journal" />
             Keyboard Shortcuts
           </DialogTitle>
           <DialogDescription>Navigate your bearing.now at the speed of thought.</DialogDescription>

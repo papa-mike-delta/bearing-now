@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
 
   const items = await Owned.items(session.userId, {
     where,
-    include: { domain: true, project: { select: { id: true, name: true, color: true } } },
+    include: { domain: true, project: { select: { id: true, name: true, color: true, domain: { select: { key: true } } } } },
     orderBy: [{ dueDate: "asc" }, { scheduledAt: "asc" }],
   });
 
