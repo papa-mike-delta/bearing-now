@@ -48,8 +48,8 @@ it("lists Coach writes and conflict receipts newest first", async () => {
       OR: [
         { status: "refused" },
         { operation: { in: [
-          "item.create", "item.update", "item.archive", "item.open", "item.close",
-          "link.create", "link.update", "link.delete", "database.clear",
+          "item.create", "item.update", "item.archive",
+          "link.create", "link.update", "link.delete",
         ] } },
       ],
     },

@@ -12,27 +12,21 @@ export type CoachActivity = {
   createdAt: string;
 };
 
-// Mutations the Coach can record. Successful reads stay out of the feed.
-const coachWrites = [
-  "item.create", "item.update", "item.archive", "item.open", "item.close",
-  "link.create", "link.update", "link.delete", "database.clear",
-];
-
-const coachActions: Record<string, { success: string; refused: string }> = {
+// Successful reads stay out of the feed; a missing success verb marks those operations.
+const coachActions: Record<string, { success?: string; refused: string }> = {
   "item.create": { success: "Created", refused: "Refused create" },
   "item.update": { success: "Updated", refused: "Refused update" },
   "item.archive": { success: "Archived", refused: "Refused archive" },
-  "item.open": { success: "Opened", refused: "Refused open" },
-  "item.close": { success: "Closed", refused: "Refused close" },
   "link.create": { success: "Linked", refused: "Refused link" },
   "link.update": { success: "Linked", refused: "Refused link" },
   "link.delete": { success: "Unlinked", refused: "Refused unlink" },
-  "database.clear": { success: "Cleared", refused: "Refused clear" },
-  "coach.getItem": { success: "Read", refused: "Refused read" },
-  "coach.getLinks": { success: "Read links", refused: "Refused read links" },
-  "coach.searchItems": { success: "Searched", refused: "Refused search" },
-  "coach.listOpenItems": { success: "Listed open", refused: "Refused list" },
+  "coach.getItem": { refused: "Refused read" },
+  "coach.getLinks": { refused: "Refused read links" },
+  "coach.searchItems": { refused: "Refused search" },
+  "coach.listOpenItems": { refused: "Refused list" },
 };
+
+const coachWrites = Object.entries(coachActions).flatMap(([operation, verbs]) => verbs.success ? [operation] : []);
 
 function record(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : null;
