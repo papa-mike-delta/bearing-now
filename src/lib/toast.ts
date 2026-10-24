@@ -14,13 +14,10 @@
 
 import { createElement } from "react";
 import { toast } from "sonner";
+import { CoachReceiptLink } from "@/lib/coach/receipt-link";
 
 const DEFAULT_DURATION = 4000;
 const COACH_RECEIPT_MS = 3000;
-
-export function coachReceiptHref(receiptId: string) {
-  return `/api/coach?receipt=${encodeURIComponent(receiptId)}`;
-}
 
 export const notify = {
   /** Green success toast */
@@ -67,12 +64,7 @@ export const notify = {
 
   /** One-line Coach receipt toast: "<action> <Item title>" linking to the receipt. */
   receipt: (message: string, receiptId: string, ok: boolean) => {
-    const content = createElement("a", {
-      className: "block max-w-72 truncate underline",
-      href: coachReceiptHref(receiptId),
-      target: "_blank",
-      rel: "noreferrer",
-    }, message);
+    const content = createElement(CoachReceiptLink, { receiptId, className: "max-w-72", children: message });
     const options = { duration: COACH_RECEIPT_MS };
     return ok ? toast.success(content, options) : toast.error(content, options);
   },

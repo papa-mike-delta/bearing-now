@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { SectionCard } from "./layout";
-import { coachReceiptHref, notify } from "@/lib/toast";
+import { CoachReceiptLink } from "@/lib/coach/receipt-link";
+import { notify } from "@/lib/toast";
 import type { DomainResult } from "@/lib/domain/result";
 
 type CoachActivityRow = { id: string; line: string };
@@ -21,7 +22,7 @@ export function CoachActivityList({ activity }: { activity: CoachActivityRow[] }
         <ul className="mt-2 space-y-1 text-sm">
           {activity.map((entry) => (
             <li key={entry.id}>
-              <a className="block max-w-full truncate underline" href={coachReceiptHref(entry.id)} target="_blank" rel="noreferrer">{entry.line}</a>
+              <CoachReceiptLink receiptId={entry.id} className="max-w-full">{entry.line}</CoachReceiptLink>
             </li>
           ))}
         </ul>

@@ -26,34 +26,60 @@ const coachActions: Record<string, { success?: string; refused: string }> = {
   "coach.listOpenItems": { refused: "Refused list" },
 };
 
-const coachWrites = Object.entries(coachActions).flatMap(([operation, verbs]) => verbs.success ? [operation] : []);
+const coachWrites = Object.keys(coachActions).filter((operation) => coachActions[operation].success);
 
-function record(value: unknown): Record<string, unknown> | null {
+function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }
 
-function text(value: unknown): string | undefined {
+function nonEmptyString(value: unknown): string | undefined {
   return typeof value === "string" && value ? value : undefined;
 }
 
-function itemTitle(payload: unknown, receipt: unknown): string {
-  const body = record(payload);
-  const result = record(receipt);
-  const data = record(body?.data);
-  const value = record(result?.value);
-  const first = Array.isArray(result?.value) ? record(result.value[0]) : null;
-  return text(value?.title) ?? text(data?.title) ?? text(first?.title)
-    ?? text(body?.id) ?? text(data?.fromId) ?? text(body?.q) ?? "Item";
+function parseJson(value: string): unknown {
+  try { return JSON.parse(value); } catch { return null; }
 }
 
-function activityLine(entry: { operation: string; status: string; payload: string; receipt: string }): string {
-  const verbs = coachActions[entry.operation];
-  const verb = entry.status === "success" ? verbs?.success ?? entry.operation : verbs?.refused ?? `Refused ${entry.operation}`;
-  let payload: unknown;
-  let receipt: unknown;
-  try { payload = JSON.parse(entry.payload); } catch { payload = null; }
-  try { receipt = JSON.parse(entry.receipt); } catch { receipt = null; }
-  return `${verb} ${itemTitle(payload, receipt)}`;
+function itemRefs(operation: string, payload: unknown, receipt: unknown): { itemId?: string; fromId?: string; toId?: string } {
+  const body = asRecord(payload);
+  const data = asRecord(body?.data);
+  const result = asRecord(receipt);
+  const value = asRecord(result?.value);
+  if (operation.startsWith("link.")) {
+    return {
+      fromId: nonEmptyString(data?.fromId) ?? nonEmptyString(body?.fromId) ?? nonEmptyString(value?.fromId),
+      toId: nonEmptyString(data?.toId) ?? nonEmptyString(body?.toId) ?? nonEmptyString(value?.toId),
+    };
+  }
+  return {
+    itemId: nonEmptyString(body?.id) ?? nonEmptyString(data?.id) ?? nonEmptyString(value?.id) ?? nonEmptyString(result?.itemId),
+  };
+}
+
+function storedTitle(payload: unknown, receipt: unknown): string | undefined {
+  const body = asRecord(payload);
+  const data = asRecord(body?.data);
+  const result = asRecord(receipt);
+  const value = asRecord(result?.value);
+  const first = Array.isArray(result?.value) ? asRecord(result.value[0]) : null;
+  return nonEmptyString(value?.title) ?? nonEmptyString(data?.title) ?? nonEmptyString(first?.title);
+}
+
+function liveTitle(id: string | undefined, titles: Map<string, string>): string | undefined {
+  return id ? nonEmptyString(titles.get(id)) : undefined;
+}
+
+function activityLine(operation: string, status: string, payload: unknown, receipt: unknown, titles: Map<string, string>): string {
+  const verbs = coachActions[operation];
+  const action = status === "success" ? verbs?.success ?? operation : verbs?.refused ?? `Refused ${operation}`;
+  const refs = itemRefs(operation, payload, receipt);
+  const stored = storedTitle(payload, receipt);
+  if (operation.startsWith("link.")) {
+    const from = liveTitle(refs.fromId, titles) ?? stored ?? "Item";
+    const to = liveTitle(refs.toId, titles);
+    return to ? `${action} ${from} → ${to}` : `${action} ${from}`;
+  }
+  return `${action} ${liveTitle(refs.itemId, titles) ?? stored ?? "Item"}`;
 }
 
 export class OperationLedger {
@@ -86,12 +112,24 @@ export class OperationLedger {
         OR: [{ status: "refused" }, { operation: { in: coachWrites } }],
       },
       orderBy: { createdAt: "desc" },
+      take: 50,
     });
-    return entries.map((entry) => ({
+    const parsed = entries.map((entry) => ({
+      entry,
+      payload: parseJson(entry.payload),
+      receipt: parseJson(entry.receipt),
+    }));
+    const ids = [...new Set(parsed.flatMap(({ entry, payload, receipt }) => {
+      const refs = itemRefs(entry.operation, payload, receipt);
+      return [refs.itemId, refs.fromId, refs.toId].filter((id): id is string => id !== undefined);
+    }))];
+    const items = await db.item.findMany({ where: { id: { in: ids } }, select: { id: true, title: true } });
+    const titles = new Map(items.map((item) => [item.id, item.title]));
+    return parsed.map(({ entry, payload, receipt }) => ({
       id: entry.id,
       operation: entry.operation,
       status: entry.status,
-      line: activityLine(entry),
+      line: activityLine(entry.operation, entry.status, payload, receipt, titles),
       createdAt: entry.createdAt.toISOString(),
     }));
   }

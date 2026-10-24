@@ -111,10 +111,11 @@ it.each([null, [], { tool: "constructor" }, { tool: "setOpen" }, { tool: "getIte
 });
 
 it("lists Coach writes and conflict receipts for the verified session", async () => {
+  db.item.findMany.mockResolvedValue([{ id: "item-1", title: "Read" }]);
   db.operationLedger.findMany.mockResolvedValue([
     {
       id: "receipt-2", actor: "agent:coach", operation: "item.update", status: "refused",
-      payload: JSON.stringify({ id: "item-1", revision: 4, data: { title: "Read" } }),
+      payload: JSON.stringify({ id: "item-1", revision: 4, data: { title: "Read more" } }),
       receipt: JSON.stringify({ ok: false, conflict: true, currentRevision: 5 }),
       createdAt: new Date("2026-03-02T00:00:00.000Z"),
     },
@@ -134,6 +135,11 @@ it("lists Coach writes and conflict receipts for the verified session", async ()
     ],
   });
   expect(db.operationLedger.findUnique).not.toHaveBeenCalled();
+  expect(db.item.findMany).toHaveBeenCalledTimes(1);
+  expect(db.item.findMany).toHaveBeenCalledWith({
+    where: { id: { in: ["item-1"] } },
+    select: { id: true, title: true },
+  });
 });
 
 it.each(["disabled", "unsigned"])("protects the activity feed (%s)", async (scenario) => {
