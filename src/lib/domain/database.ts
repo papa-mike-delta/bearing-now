@@ -1,10 +1,11 @@
 import { OperationLedger, type Actor } from "./operation-ledger";
 import { WriteCaps } from "./write-caps";
+import type { Prisma } from "@prisma/client";
 
 export class DatabaseDomain {
   // Reset/restore replaces the whole dataset; it is not an Item edit. Keep the
   // destructive maintenance operation separate from revision-checked mutations.
-  static async clear(userId: string, actor: Actor = "agent:internal", plannedCreates?: { items: number; links: number }) {
+  static async clear(userId: string, actor: Actor = "agent:internal", plannedCreates?: { items: number; links: number }, transaction?: Prisma.TransactionClient) {
     return OperationLedger.run(actor, userId, { operation: "database.clear", payload: plannedCreates ?? {} }, async (tx) => {
       const refusal = await WriteCaps.openItem(tx, actor, userId);
       if (refusal) return refusal;
@@ -29,6 +30,6 @@ export class DatabaseDomain {
       await tx.domain.deleteMany({ where: { userId } });
       await tx.setting.deleteMany({ where: { userId } });
       return { ok: true, value: { cleared: true } };
-    });
+    }, transaction);
   }
 }

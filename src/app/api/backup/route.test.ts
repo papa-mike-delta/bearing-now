@@ -106,3 +106,34 @@ it("restores tagged items and links for a verified user with exhausted create al
   expect(db.operationLedger.count).not.toHaveBeenCalled();
   expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ actor: "user:alice", operation: "item.restore", status: "success" }) });
 });
+
+it("returns a late domain refusal without a rolled-back receipt id", async () => {
+  const response = await POST(new Request("http://localhost/api/backup", {
+    method: "POST", headers: { cookie },
+    body: JSON.stringify({ version: 1, items: [
+      { id: "first", title: "First", type: "note" },
+      { id: "invalid", type: "note" },
+    ] }),
+  }));
+  expect(response.status).toBe(400);
+  expect(await response.json()).toEqual({ error: "title is required" });
+  // Real rollback is covered against PostgreSQL in integration/backup.test.ts.
+  await expect(db.$transaction.mock.results[0].value).rejects.toBeDefined();
+  expect(db.$transaction).toHaveBeenCalledTimes(1);
+});
+
+it("serializes a late database failure as the existing restore error response", async () => {
+  db.link.upsert.mockRejectedValue(new Error("database unavailable"));
+  const response = await POST(request([{ fromId: "item-1", toId: "item-2", type: "mentions" }]));
+  expect(response.status).toBe(500);
+  expect(await response.json()).toEqual({ error: "Restore failed: database unavailable" });
+  await expect(db.$transaction.mock.results[0].value).rejects.toThrow("database unavailable");
+});
+
+it.each([{ items: {} }, { items: "items" }, { items: [null] }])("rejects malformed Item collections $items before a transaction", async ({ items }) => {
+  const response = await POST(new Request("http://localhost/api/backup", {
+    method: "POST", headers: { cookie }, body: JSON.stringify({ version: 1, items }),
+  }));
+  expect(response.status).toBe(400);
+  expect(db.$transaction).not.toHaveBeenCalled();
+});
