@@ -1,5 +1,7 @@
 "use client";
 
+import { reportWriteError } from "@/hooks/use-browser-writes";
+
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useBearing } from "@/store/bearing";
 import { useQuickCapture, useCreateItem, useDomains, useProjects } from "@/lib/hooks";
@@ -103,7 +105,7 @@ export function QuickCapture() {
       setText("");
       notify.success(captureMode ? "Captured to inbox" : "Created");
     } catch (e: any) {
-      notify.error(e.message || "Failed");
+      reportWriteError(e, "Failed");
     }
   }
 

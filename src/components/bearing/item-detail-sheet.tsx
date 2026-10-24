@@ -1,5 +1,7 @@
 "use client";
 
+import { reportWriteError } from "@/hooks/use-browser-writes";
+
 import { format } from "date-fns";
 
 import { itemDraftKey } from "@/lib/item-drafts";
@@ -79,24 +81,30 @@ export function ItemDetailSheet() {
   }
 
   async function addLink(toId: string) {
-    await createLink.mutateAsync({ fromId: item.id, revision: item.revision, toId, type: "related_to" });
-    setLinkSearch("");
-    notify.success("Connected");
+    try {
+      await createLink.mutateAsync({ fromId: item.id, revision: item.revision, toId, type: "related_to" });
+      setLinkSearch("");
+      notify.success("Connected");
+    } catch (error) { reportWriteError(error); }
   }
 
   async function removeLink(linkId: string, direction: "out" | "in", type: string, revision: number) {
-    if (direction === "out") {
-      await deleteLink.mutateAsync({ fromId: item.id, revision, toId: linkId, type });
-    } else {
-      await deleteLink.mutateAsync({ fromId: linkId, revision, toId: item.id, type });
-    }
-    notify.success("Link removed");
+    try {
+      if (direction === "out") {
+        await deleteLink.mutateAsync({ fromId: item.id, revision, toId: linkId, type });
+      } else {
+        await deleteLink.mutateAsync({ fromId: linkId, revision, toId: item.id, type });
+      }
+      notify.success("Link removed");
+    } catch (error) { reportWriteError(error); }
   }
 
   async function handleDelete() {
-    await del.mutateAsync({ id: item.id, revision: item.revision });
-    closeItemDetail();
-    notify.success("Archived");
+    try {
+      await del.mutateAsync({ id: item.id, revision: item.revision });
+      closeItemDetail();
+      notify.success("Archived");
+    } catch (error) { reportWriteError(error); }
   }
 
   return (

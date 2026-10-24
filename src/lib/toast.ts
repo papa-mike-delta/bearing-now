@@ -15,6 +15,7 @@
 import { createElement } from "react";
 import { toast } from "sonner";
 import { CoachReceiptLink } from "@/lib/coach/receipt-link";
+import type { WriteSource } from "@/lib/browser-writes";
 
 const DEFAULT_DURATION = 4000;
 const COACH_RECEIPT_MS = 3000;
@@ -63,9 +64,9 @@ export const notify = {
   dismiss: (id?: string | number) => toast.dismiss(id),
 
   /** One-line Coach receipt toast: "<action> <Item title>" linking to the receipt. */
-  receipt: (message: string, receiptId: string, ok: boolean) => {
-    const content = createElement(CoachReceiptLink, { receiptId, className: "max-w-72", children: message });
-    const options = { duration: COACH_RECEIPT_MS };
+  receipt: (message: string, receiptId: string, ok: boolean, source: WriteSource = "coach") => {
+    const content = createElement(CoachReceiptLink, { receiptId, source, className: "max-w-72" }, message);
+    const options = { duration: source === "coach" ? COACH_RECEIPT_MS : DEFAULT_DURATION + 2000 };
     return ok ? toast.success(content, options) : toast.error(content, options);
   },
 };

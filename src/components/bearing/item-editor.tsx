@@ -1,5 +1,7 @@
 "use client";
 
+import { reportWriteError } from "@/hooks/use-browser-writes";
+
 import { useItemDraft, DraftNotice } from "./item-draft-session";
 import { useState } from "react";
 import { useOpenItem } from "@/hooks/use-open-item";
@@ -118,7 +120,7 @@ export function ItemEditor() {
       if (!completed.dirtyFields.length && current.itemEditorDraftKey === draftKey && current.itemEditorInstance === itemEditorInstance) closeItemEditor();
     } catch (e: any) {
       owner.fail(ticket, e);
-      notify.error(e.message || "Failed to save");
+      reportWriteError(e, "Failed to save");
     }
   }
 

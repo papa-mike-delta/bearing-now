@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useStore } from "zustand";
 import { createItemDraftOwner, normalizeItem, type ItemDraftOwner, type ItemSnapshot, type Draft } from "@/lib/item-drafts";
+import { operationReceiptHref } from "@/lib/browser-writes";
 
 const Context = createContext<{ owner: ItemDraftOwner; userId: string } | null>(null);
 
@@ -33,6 +34,7 @@ export function DraftNotice({ draft, onDiscard }: { draft?: Draft; onDiscard: ()
     <span role={draft.error ? "alert" : "status"}>
       {draft.conflict ? "This Item changed. Your edits are retained. Discard changes to load the latest Item." : draft.error ?? "Unsaved changes retained for this session."}
     </span>
+    {draft.failure?.receiptId && <a className="underline" href={operationReceiptHref(draft.failure.receiptId, draft.failure.source)} target="_blank" rel="noreferrer">View receipt</a>}
     <button type="button" className="underline" disabled={!!draft.pending} onClick={onDiscard}>Discard changes</button>
   </div>;
 }

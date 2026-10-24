@@ -1,26 +1,14 @@
 "use client";
 
+import { useBrowserWrites } from "@/hooks/use-browser-writes";
 import { notify } from "@/lib/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export const qk = {
-  items: (params?: Record<string, string>) => ["items", params] as const,
-  item: (id: string) => ["item", id] as const,
-  inbox: ["inbox"] as const,
-  projects: ["projects"] as const,
-  project: (id: string) => ["project", id] as const,
-  calendar: (params?: Record<string, string>) => ["calendar", params] as const,
-  reviews: (type?: string) => ["reviews", type] as const,
-  stats: ["stats"] as const,
-  tags: ["tags"] as const,
-  domains: ["domains"] as const,
-  search: (q: string) => ["search", q] as const,
-  habitLogs: (id: string) => ["habitLogs", id] as const,
-  insights: ["insights"] as const,
-  graph: (params?: Record<string, string>) => ["graph", params] as const,
-  onThisDay: ["onThisDay"] as const,
-};
+import { qk } from "./query-keys";
+export { qk } from "./query-keys";
 
+// Reads and non-Item mutations retain their existing transport. Item/Link
+// mutations below use the shared outcome boundary instead.
 async function jfetch<T>(url: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     headers: { "Content-Type": "application/json", ...(opts?.headers || {}) },
@@ -56,51 +44,24 @@ export function useItem(id: string | null) {
 }
 
 export function useCreateItem() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (body: any) => jfetch<any>("/api/items", { method: "POST", body: JSON.stringify(body) }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["items"] });
-      qc.invalidateQueries({ queryKey: qk.inbox });
-      qc.invalidateQueries({ queryKey: qk.stats });
-      qc.invalidateQueries({ queryKey: ["project"] });
-      qc.invalidateQueries({ queryKey: qk.calendar() });
-    },
-  });
+  const writes = useBrowserWrites();
+  return useMutation({ retry: false, mutationFn: (body: any) => writes.value({
+    source: "user", operation: "item.create", url: "/api/items", method: "POST", body,
+  }) });
 }
 
 export function useUpdateItem() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, ...body }: { id: string; revision: number; [key: string]: unknown }) =>
-      jfetch<any>(`/api/items/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
-    onError: (error, vars) => {
-      if ("status" in error && error.status === 409) qc.invalidateQueries({ queryKey: qk.item(vars.id) });
-    },
-    onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["items"] });
-      qc.invalidateQueries({ queryKey: qk.item(vars.id) });
-      qc.invalidateQueries({ queryKey: qk.inbox });
-      qc.invalidateQueries({ queryKey: qk.stats });
-      qc.invalidateQueries({ queryKey: ["project"] });
-      qc.invalidateQueries({ queryKey: qk.calendar() });
-    },
-  });
+  const writes = useBrowserWrites();
+  return useMutation({ retry: false, mutationFn: ({ id, ...body }: { id: string; revision: number; [key: string]: unknown }) => writes.value({
+    source: "user", operation: "item.update", url: `/api/items/${encodeURIComponent(id)}`, method: "PATCH", body, itemIds: [id],
+  }) });
 }
 
 export function useDeleteItem() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, revision }: { id: string; revision: number }) =>
-      jfetch<any>(`/api/items/${id}`, { method: "DELETE", body: JSON.stringify({ revision }) }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["items"] });
-      qc.invalidateQueries({ queryKey: qk.inbox });
-      qc.invalidateQueries({ queryKey: qk.stats });
-      qc.invalidateQueries({ queryKey: ["project"] });
-      qc.invalidateQueries({ queryKey: qk.calendar() });
-    },
-  });
+  const writes = useBrowserWrites();
+  return useMutation({ retry: false, mutationFn: ({ id, revision }: { id: string; revision: number }) => writes.value({
+    source: "user", operation: "item.archive", url: `/api/items/${encodeURIComponent(id)}`, method: "DELETE", body: { revision }, itemIds: [id],
+  }) });
 }
 
 // ── Inbox ──
@@ -109,14 +70,10 @@ export function useInbox() {
 }
 
 export function useQuickCapture() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (body: any) => jfetch<any>("/api/inbox", { method: "POST", body: JSON.stringify(body) }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.inbox });
-      qc.invalidateQueries({ queryKey: qk.stats });
-    },
-  });
+  const writes = useBrowserWrites();
+  return useMutation({ retry: false, mutationFn: (body: any) => writes.value({
+    source: "user", operation: "item.create", url: "/api/inbox", method: "POST", body,
+  }) });
 }
 
 // ── Projects ──
@@ -243,16 +200,10 @@ export function useOnThisDay() {
 
 // ── Scheduler ──
 export function useRunScheduler() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () => jfetch<any>("/api/scheduler", { method: "POST" }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["items"] });
-      qc.invalidateQueries({ queryKey: qk.stats });
-      qc.invalidateQueries({ queryKey: qk.calendar() });
-      qc.invalidateQueries({ queryKey: qk.insights });
-    },
-  });
+  const writes = useBrowserWrites();
+  return useMutation({ retry: false, mutationFn: () => writes.value({
+    source: "user", operation: "scheduler.run", url: "/api/scheduler", method: "POST",
+  }) });
 }
 
 // ── Search ──
@@ -266,48 +217,26 @@ export function useSearch(q: string) {
 
 // ── Habit logs ──
 export function useToggleHabit() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, date, value }: { id: string; date?: string; value?: number }) =>
-      jfetch<any>(`/api/items/${id}/habit-logs`, { method: "POST", body: JSON.stringify({ date, value }) }),
-    onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: qk.item(vars.id) });
-      qc.invalidateQueries({ queryKey: qk.habitLogs(vars.id) });
-      qc.invalidateQueries({ queryKey: qk.stats });
-      qc.invalidateQueries({ queryKey: ["items"] });
-    },
-  });
+  const writes = useBrowserWrites();
+  return useMutation({ retry: false, mutationFn: ({ id, date, value }: { id: string; date?: string; value?: number }) => writes.value({
+    source: "user", operation: "habit.toggle", url: `/api/items/${encodeURIComponent(id)}/habit-logs`,
+    method: "POST", body: { date, value }, itemIds: [id],
+  }) });
 }
 
 // ── Links ──
 export function useCreateLink() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ fromId, ...body }: { fromId: string; toId: string; revision: number; type?: string; note?: string }) =>
-      jfetch<any>(`/api/items/${fromId}/links`, { method: "POST", body: JSON.stringify(body) }),
-    onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: qk.item(vars.fromId) });
-      qc.invalidateQueries({ queryKey: qk.item(vars.toId) });
-      qc.invalidateQueries({ queryKey: ["items"] });
-      qc.invalidateQueries({ queryKey: qk.inbox });
-      qc.invalidateQueries({ queryKey: ["project"] });
-      qc.invalidateQueries({ queryKey: ["graph"] });
-    },
-  });
+  const writes = useBrowserWrites();
+  return useMutation({ retry: false, mutationFn: ({ fromId, ...body }: { fromId: string; toId: string; revision: number; type?: string; note?: string }) => writes.value({
+    source: "user", operation: "link.create", url: `/api/items/${encodeURIComponent(fromId)}/links`,
+    method: "POST", body, itemIds: [fromId, body.toId],
+  }) });
 }
 
 export function useDeleteLink() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ fromId, toId, type, revision }: { fromId: string; toId: string; type?: string; revision: number }) =>
-      jfetch<any>(`/api/items/${fromId}/links?${new URLSearchParams({ toId, type: type || "related_to", revision: String(revision) })}`, { method: "DELETE" }),
-    onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: qk.item(vars.fromId) });
-      qc.invalidateQueries({ queryKey: qk.item(vars.toId) });
-      qc.invalidateQueries({ queryKey: ["items"] });
-      qc.invalidateQueries({ queryKey: qk.inbox });
-      qc.invalidateQueries({ queryKey: ["project"] });
-      qc.invalidateQueries({ queryKey: ["graph"] });
-    },
-  });
+  const writes = useBrowserWrites();
+  return useMutation({ retry: false, mutationFn: ({ fromId, toId, type, revision }: { fromId: string; toId: string; type?: string; revision: number }) => writes.value({
+    source: "user", operation: "link.delete", url: `/api/items/${encodeURIComponent(fromId)}/links?${new URLSearchParams({ toId, type: type || "related_to", revision: String(revision) })}`,
+    method: "DELETE", itemIds: [fromId, toId],
+  }) });
 }
