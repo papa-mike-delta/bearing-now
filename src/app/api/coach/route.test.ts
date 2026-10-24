@@ -7,7 +7,7 @@ const db = vi.hoisted(() => ({
   item: { create: vi.fn(), findUnique: vi.fn(), findUniqueOrThrow: vi.fn(), updateMany: vi.fn(), findMany: vi.fn() },
   link: { findUnique: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn(), findMany: vi.fn() },
   setting: { findFirst: vi.fn(), findMany: vi.fn() },
-  operationLedger: { create: vi.fn(), count: vi.fn(), findUnique: vi.fn() },
+  operationLedger: { create: vi.fn(), count: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
   $queryRaw: vi.fn(), $transaction: vi.fn(),
 }));
 vi.mock("@/lib/db", () => ({ db }));
@@ -108,6 +108,41 @@ it.each(["updateItem", "archiveItem", "createLink", "deleteLink"])("keeps missin
 it.each([null, [], { tool: "constructor" }, { tool: "setOpen" }, { tool: "getItem", args: [] }, { tool: "updateItem", args: { id: "item", data: null } }])("rejects invalid calls without dispatch (%j)", async (body) => {
   expect((await POST(request(body))).status).toBe(400);
   expect(db.$transaction).not.toHaveBeenCalled();
+});
+
+it("lists Coach writes and conflict receipts for the verified session", async () => {
+  db.operationLedger.findMany.mockResolvedValue([
+    {
+      id: "receipt-2", actor: "agent:coach", operation: "item.update", status: "refused",
+      payload: JSON.stringify({ id: "item-1", revision: 4, data: { title: "Read" } }),
+      receipt: JSON.stringify({ ok: false, conflict: true, currentRevision: 5 }),
+      createdAt: new Date("2026-03-02T00:00:00.000Z"),
+    },
+    {
+      id: "receipt-1", actor: "agent:coach", operation: "item.create", status: "success",
+      payload: JSON.stringify({ data: { title: "Read" } }),
+      receipt: JSON.stringify({ ok: true, value: { title: "Read" } }),
+      createdAt: new Date("2026-03-01T00:00:00.000Z"),
+    },
+  ]);
+  const response = await GET(new NextRequest("http://localhost/api/coach", { headers: request({}).headers }));
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({
+    activity: [
+      { id: "receipt-2", operation: "item.update", status: "refused", line: "Refused update Read", createdAt: "2026-03-02T00:00:00.000Z" },
+      { id: "receipt-1", operation: "item.create", status: "success", line: "Created Read", createdAt: "2026-03-01T00:00:00.000Z" },
+    ],
+  });
+  expect(db.operationLedger.findUnique).not.toHaveBeenCalled();
+});
+
+it.each(["disabled", "unsigned"])("protects the activity feed (%s)", async (scenario) => {
+  if (scenario === "disabled") vi.stubEnv("COACH_TOOLS_ENABLED", "false");
+  const response = await GET(new NextRequest("http://localhost/api/coach", {
+    headers: scenario === "unsigned" ? {} : request({}).headers,
+  }));
+  expect(response.status).toBe(scenario === "unsigned" ? 401 : 404);
+  expect(db.operationLedger.findMany).not.toHaveBeenCalled();
 });
 
 it("reads the linked Coach receipt using the same session", async () => {
