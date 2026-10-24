@@ -1,23 +1,12 @@
 import type { Prisma } from "@prisma/client";
+import { OpenItemLeases } from "./open-item-leases";
 import type { Actor } from "./operation-ledger";
 
 export class WriteCaps {
-  static openPrefix(userId: string, itemId: string) {
-    return `open-item:${userId}:${Buffer.from(itemId).toString("hex")}:`;
-  }
-
   static async openItem(tx: Prisma.TransactionClient, actor: Actor, userId: string, itemIds?: string[]) {
     if (actor.startsWith("user:")) return null;
-    const marker = await tx.setting.findFirst({ where: {
-      userId,
-      ...(itemIds ? { OR: itemIds.map((id) => ({ id: { startsWith: WriteCaps.openPrefix(userId, id) } })) } :
-        { id: { startsWith: `open-item:${userId}:` } }),
-      value: { gt: new Date().toISOString() },
-    } });
-    return marker ? {
-      ok: false, itemOpen: true,
-      itemId: Buffer.from(marker.id.split(":")[2], "hex").toString(),
-    } as const : null;
+    const itemId = await OpenItemLeases.protectedItem(tx, userId, itemIds);
+    return itemId ? { ok: false, itemOpen: true, itemId } as const : null;
   }
 
   // Called under OperationLedger's transaction lock; only committed creates count.

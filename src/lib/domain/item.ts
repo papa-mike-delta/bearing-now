@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { OperationLedger, type Actor } from "./operation-ledger";
+import { OpenItemLeases } from "./open-item-leases";
 import { WriteCaps } from "./write-caps";
 import { isRevision, type DomainResult } from "./result";
 
@@ -43,23 +44,8 @@ export class ItemDomain {
   }
 
   static setOpen(userId: string, id: string, lease: string, open: boolean, actor: Actor) {
-    return OperationLedger.run(actor, userId, { operation: open ? "item.open" : "item.close", payload: { id, lease } }, async (tx) => {
-      if (!actor.startsWith("user:")) return { ok: false, error: "Only users can mark Items open" };
-      if (typeof lease !== "string" || !/^[a-zA-Z0-9-]{1,80}$/.test(lease)) return { ok: false, error: "Invalid open-item lease" };
-      const owned = await tx.item.findFirst({ where: { id, userId }, select: { id: true } });
-      if (!owned) return { ok: false, error: "Not found" };
-      const prefix = WriteCaps.openPrefix(userId, id);
-      const key = `${prefix}${Buffer.from(actor).toString("hex")}:${lease}`;
-      const now = new Date();
-      await tx.setting.deleteMany({ where: { userId, id: { startsWith: prefix }, value: { lte: now.toISOString() } } });
-      if (open) {
-        const value = new Date(now.getTime() + 90_000).toISOString();
-        await tx.setting.upsert({ where: { id: key }, create: { id: key, value, userId }, update: { value } });
-      } else {
-        await tx.setting.deleteMany({ where: { id: key, userId } });
-      }
-      return { ok: true, value: { open } };
-    });
+    return OperationLedger.run(actor, userId, { operation: open ? "item.open" : "item.close", payload: { id, lease } },
+      (tx) => OpenItemLeases.setOpen(tx, userId, id, lease, open, actor));
   }
 
   static async create(userId: string, data: ItemData, tagNames: string[] = [], actor: Actor = "agent:internal", purpose?: "restore", transaction?: Prisma.TransactionClient) {

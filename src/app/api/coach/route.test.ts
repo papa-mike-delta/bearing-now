@@ -1,3 +1,4 @@
+import { OpenItemLeases } from "@/lib/domain/open-item-leases";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { createSession } from "@/lib/auth";
@@ -13,7 +14,9 @@ const db = vi.hoisted(() => ({
 vi.mock("@/lib/db", () => ({ db }));
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   vi.resetAllMocks();
+  db.setting.findMany.mockResolvedValue([]);
   vi.stubEnv("COACH_TOOLS_ENABLED", "true");
   db.$transaction.mockImplementation((run) => run(db));
   db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
@@ -75,7 +78,7 @@ it.each([
 
 it.each([
   { name: "stale revision", status: 409, setup: () => { db.item.updateMany.mockResolvedValue({ count: 0 }); db.item.findFirst.mockResolvedValue({ revision: 5, title: "Read" }); }, expected: { conflict: true, currentRevision: 5 } },
-  { name: "open Item", status: 423, setup: () => db.setting.findFirst.mockResolvedValue({ id: "open-item:alice:6974656d:user:tab" }), expected: { itemOpen: true, itemId: "item" } },
+  { name: "open Item", status: 423, setup: () => vi.spyOn(OpenItemLeases, "protectedItem").mockResolvedValue("item"), expected: { itemOpen: true, itemId: "item" } },
 ])("propagates $name refusal with its receipt", async ({ status, setup, expected }) => {
   setup();
   const response = await POST(request({ tool: "updateItem", args: { id: "item", revision: 4, data: { title: "Read more" } } }));

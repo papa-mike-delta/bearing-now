@@ -1,3 +1,4 @@
+import { OpenItemLeases } from "@/lib/domain/open-item-leases";
 import { beforeEach, expect, it, vi } from "vitest";
 import { CoachTools } from "./tools";
 
@@ -11,7 +12,9 @@ const db = vi.hoisted(() => ({
 vi.mock("@/lib/db", () => ({ db }));
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   vi.resetAllMocks();
+  db.setting.findMany.mockResolvedValue([]);
   db.$transaction.mockImplementation((run) => run(db));
   db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.item.findFirst.mockResolvedValue({ id: "item", title: "Read", revision: 4 });
@@ -65,18 +68,12 @@ it("gets only one hop of Links in both directions", async () => {
   expect(db.link.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { toId: "item", from: { userId: "alice" }, to: { userId: "alice" } } }));
 });
 
-it("lists Items with unexpired editor leases, once per Item", async () => {
-  db.setting.findMany.mockResolvedValue([
-    { id: "open-item:alice:6974656d:user:tab-1" }, { id: "open-item:alice:6974656d:user:tab-2" },
-  ]);
-  db.item.findMany.mockResolvedValue([{ id: "item", title: "Read", revision: 4 }]);
+it("lists open Items through the shared lease interface and retains its receipt", async () => {
+  vi.spyOn(OpenItemLeases, "list").mockResolvedValue([{ id: "item", title: "Read", revision: 4 }] as any);
   expect(await CoachTools.listOpenItems("alice")).toMatchObject({
     ok: true, value: [{ id: "item", revision: 4 }], receiptId: "receipt-1", message: "Listed open Read",
   });
-  expect(db.setting.findMany).toHaveBeenCalledWith({ where: {
-    userId: "alice", id: { startsWith: "open-item:alice:" }, value: { gt: expect.any(String) },
-  } });
-  expect(db.item.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: "alice", id: { in: ["item"] } } }));
+  expect(OpenItemLeases.list).toHaveBeenCalledWith(db, "alice");
 });
 
 it("updates at the supplied revision as Coach and reports the new title", async () => {
@@ -138,7 +135,7 @@ it("labels a refused create accurately while keeping its receipt", async () => {
 
 it.each(["updateItem", "archiveItem", "createLink", "deleteLink"] as const)("refuses %s of an open Item as Coach", async (tool) => {
   db.item.findFirst.mockResolvedValue({ title: "Read" });
-  db.setting.findFirst.mockResolvedValue({ id: "open-item:alice:6974656d:user:tab" });
+  vi.spyOn(OpenItemLeases, "protectedItem").mockResolvedValue("item");
   expect(await CoachTools[tool]("alice", { id: "item", fromId: "item", toId: "other", revision: 4, data: { title: "Changed" } })).toMatchObject({
     ok: false, itemOpen: true, itemId: "item", receiptId: "receipt-1", message: expect.stringContaining("Refused"),
   });

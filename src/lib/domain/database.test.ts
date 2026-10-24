@@ -1,3 +1,4 @@
+import { OpenItemLeases } from "./open-item-leases";
 import { beforeEach, expect, it, vi } from "vitest";
 import { DatabaseDomain } from "./database";
 
@@ -6,12 +7,14 @@ const db = vi.hoisted(() => ({
   review: { deleteMany: vi.fn() }, link: { deleteMany: vi.fn() },
   tagOnItem: { deleteMany: vi.fn() }, tag: { deleteMany: vi.fn() },
   item: { deleteMany: vi.fn() }, project: { deleteMany: vi.fn() }, domain: { deleteMany: vi.fn() },
-  setting: { findFirst: vi.fn(), deleteMany: vi.fn() }, operationLedger: { create: vi.fn(), count: vi.fn() },
+  setting: { findMany: vi.fn(), deleteMany: vi.fn() }, operationLedger: { create: vi.fn(), count: vi.fn() },
   $transaction: vi.fn(), $queryRaw: vi.fn(),
 }));
 vi.mock("@/lib/db", () => ({ db }));
 beforeEach(() => {
+  vi.restoreAllMocks();
   vi.resetAllMocks();
+  db.setting.findMany.mockResolvedValue([]);
   db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
 });
@@ -25,7 +28,7 @@ it("records dataset deletion atomically and preserves audit history", async () =
 });
 
 it("records and refuses an agent clear when an Item is open", async () => {
-  db.setting.findFirst.mockResolvedValue({ id: "open-item:alice:6974656d:user:tab" });
+  vi.spyOn(OpenItemLeases, "protectedItem").mockResolvedValue("item");
   expect(await DatabaseDomain.clear("alice")).toEqual({ receiptId: "receipt-1", ok: false, itemOpen: true, itemId: "item" });
   expect(db.item.deleteMany).not.toHaveBeenCalled();
   expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ status: "refused" }) });

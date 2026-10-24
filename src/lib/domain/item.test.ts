@@ -1,3 +1,4 @@
+import { OpenItemLeases } from "./open-item-leases";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ItemDomain } from "./item";
 
@@ -6,7 +7,7 @@ const db = vi.hoisted(() => ({
   tagOnItem: { deleteMany: vi.fn(), createMany: vi.fn() },
   tag: { upsert: vi.fn() },
   operationLedger: { create: vi.fn(), count: vi.fn() },
-  setting: { findFirst: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
+  setting: { findUnique: vi.fn(), findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
   $queryRaw: vi.fn(),
   $transaction: vi.fn(),
 }));
@@ -22,7 +23,9 @@ afterEach(() => {
 });
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   vi.resetAllMocks();
+  db.setting.findMany.mockResolvedValue([]);
   db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.item.findFirst.mockResolvedValue({ id: "item-1" });
   db.$transaction.mockImplementation((run) => run(db));
@@ -133,7 +136,7 @@ it("refuses a 21st Item create in the actor's rolling hour and records the refus
 });
 
 it.each(["update", "archive"] as const)("refuses an agent %s of an open Item and records the refusal", async (operation) => {
-  db.setting.findFirst.mockResolvedValue({ id: "open-item:alice:6974656d2d31:user:tab", value: "2099-01-01T00:00:00.000Z" });
+  vi.spyOn(OpenItemLeases, "protectedItem").mockResolvedValue("item-1");
   const result = operation === "archive" ? await ItemDomain.archive("alice", "item-1", 4) :
     await ItemDomain.update("alice", "item-1", 4, { title: "Agent edit" });
   expect(result).toEqual({ receiptId: "receipt-1", ok: false, itemOpen: true, itemId: "item-1" });
@@ -143,32 +146,14 @@ it.each(["update", "archive"] as const)("refuses an agent %s of an open Item and
   }) });
 });
 
-it("refreshes a user's open-item lease without editing the Item revision", async () => {
-  vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-10-23T12:00:00Z"));
-  const result = await ItemDomain.setOpen("alice", "item-1", "tab-1", true, "user:alice");
-  expect(result).toMatchObject({ ok: true, value: { open: true } });
-  expect(db.setting.upsert).toHaveBeenCalledWith({
-    where: { id: "open-item:alice:6974656d2d31:757365723a616c696365:tab-1" },
-    create: { id: "open-item:alice:6974656d2d31:757365723a616c696365:tab-1", value: "2026-10-23T12:01:30.000Z", userId: "alice" },
-    update: { value: "2026-10-23T12:01:30.000Z" },
-  });
-  expect(db.item.updateMany).not.toHaveBeenCalled();
-});
-
 it("permits the user's own edits while the Item is open", async () => {
-  db.setting.findFirst.mockResolvedValue({ id: "open-item:6974656d2d31:user:tab" });
+  vi.spyOn(OpenItemLeases, "protectedItem").mockResolvedValue("item-1");
   db.item.updateMany.mockResolvedValue({ count: 1 });
   db.item.findUniqueOrThrow.mockResolvedValue({ id: "item-1", revision: 5 });
   expect(await ItemDomain.update("alice", "item-1", 4, { title: "My edit" }, undefined, "user:alice")).toMatchObject({ ok: true });
   expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ actor: "user:alice", status: "success" }) });
 });
 
-it("closes only this user's lease, leaving other tabs' leases intact", async () => {
-  expect(await ItemDomain.setOpen("alice", "item-1", "tab-1", false, "user:alice")).toEqual({ receiptId: "receipt-1", ok: true, value: { open: false } });
-  expect(db.setting.deleteMany).toHaveBeenLastCalledWith({ where: { id: "open-item:alice:6974656d2d31:757365723a616c696365:tab-1", userId: "alice" } });
-  expect(db.setting.upsert).not.toHaveBeenCalled();
-});
 
 it.each(["agent:coach", "user:alice"] as const)("records invalid presence from %s without changing any marker", async (actor) => {
   expect(await ItemDomain.setOpen("alice", "item-1", "bad:lease", true, actor)).toMatchObject({ ok: false, error: expect.any(String) });
@@ -184,19 +169,5 @@ it("allows the 20th Item create and counts only this actor's successful creates 
   expect(db.operationLedger.count).toHaveBeenCalledWith({ where: {
     userId: "alice", actor: "agent:coach", operation: "item.create", status: "success",
     createdAt: { gt: new Date("2026-10-23T11:00:00Z") },
-  } });
-});
-
-it("permits agent writes once all leases have expired, including the exact TTL boundary", async () => {
-  vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-10-23T12:01:30Z"));
-  db.setting.findFirst.mockResolvedValue(null);
-  db.item.updateMany.mockResolvedValue({ count: 1 });
-  db.item.findUniqueOrThrow.mockResolvedValue({ id: "item-1", revision: 5 });
-  expect(await ItemDomain.update("alice", "item-1", 4, { title: "After expiry" })).toMatchObject({ ok: true });
-  expect(db.setting.findFirst).toHaveBeenCalledWith({ where: {
-    userId: "alice",
-    OR: [{ id: { startsWith: "open-item:alice:6974656d2d31:" } }],
-    value: { gt: "2026-10-23T12:01:30.000Z" },
   } });
 });

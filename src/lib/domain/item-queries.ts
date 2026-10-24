@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { OpenItemLeases } from "./open-item-leases";
 import { db } from "@/lib/db";
 
 const detail = {
@@ -11,11 +12,7 @@ const detail = {
 };
 
 export async function listOpenItems(userId: string, client: Prisma.TransactionClient = db) {
-  const leases = await client.setting.findMany({ where: {
-    userId, id: { startsWith: `open-item:${userId}:` }, value: { gt: new Date().toISOString() },
-  } });
-  const ids = [...new Set(leases.map(({ id }) => Buffer.from(id.split(":")[2], "hex").toString()))];
-  return client.item.findMany({ where: { userId, id: { in: ids } }, orderBy: { title: "asc" } });
+  return OpenItemLeases.list(client, userId);
 }
 
 export function getItem(id: string, userId: string, client: Prisma.TransactionClient = db) {
