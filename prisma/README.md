@@ -11,15 +11,45 @@ npx prisma migrate deploy
 npx prisma generate
 ```
 
-For an existing database that matches the original schema and has no Prisma
-migration history, first mark the baseline as already applied. Do not execute
-the baseline SQL against an existing database:
+For an existing database that was created with `prisma db push` and has no
+Prisma migration history, mark every migration that already matches that
+database as applied. Do not execute those SQL files against it. A database
+that matches current main (baseline, schema foundations, and the operation
+ledger) needs all three marked, or `migrate deploy` replays foundations and
+the ledger and fails:
 
 ```sh
 npx prisma migrate resolve --applied 20261023000000_baseline
+npx prisma migrate resolve --applied 20261023000001_schema_foundations
+npx prisma migrate resolve --applied 20261023000002_operation_ledger
 npx prisma migrate deploy
 npx prisma generate
 ```
+
+`prisma migrate deploy` then applies only `20261023120000_per_user_data`.
+Do not mark that migration applied: its SQL backfills owners. It assigns every
+existing root row to the user `pauldevey91@gmail.com`, or else the user named
+`pauldevey91`. If any root row exists and neither user does, it raises and
+rolls the migration back. An empty database needs no such user. It never
+deletes rows. `prisma db push` cannot run that SQL. Adding required `userId`
+columns to populated tables fails in a non-interactive build, and accepting
+data loss still does not assign owners.
+
+Production builds run `bun run build:vercel` (`prisma generate && prisma migrate deploy && next build`).
+For a database that was previously pushed rather than migrated, do this once
+before that build, against a backup, and only after confirming Paul exists
+when any Domain, Item, Project, Tag, Review, Setting, or OperationLedger row
+exists:
+
+```sh
+npx prisma migrate resolve --applied 20261023000000_baseline
+npx prisma migrate resolve --applied 20261023000001_schema_foundations
+npx prisma migrate resolve --applied 20261023000002_operation_ledger
+npx prisma migrate deploy
+```
+
+Resolve does not run SQL. Deploy then runs only the per-user migration.
+Later builds see it as applied and do not repeat it.
 
 Item `revision` starts at zero for existing and new Items. Existing Item reads
 return it, and Item updates atomically increment it, including scheduler updates
@@ -80,7 +110,7 @@ of domain transactions. There is no maintenance bypass.
 Browser mutation routes derive `user:<id>` only from the signed session cookie;
 body/header actor claims have no authority. Unverified requests use
 `agent:anonymous` under the existing middleware policy. The scheduler uses
-`agent:scheduler`, seeds use `agent:seed`, and omitted domain actors default to
+`agent:scheduler` and updates only the signed-in user's items, seeds use `agent:seed`, and omitted domain actors default to
 `agent:internal`, so forgetting identity cannot bypass open-item protection.
 Future Coach calls must explicitly pass a stable `agent:<id>`, even when run
 on behalf of a signed-in user. User actors may edit their own open Items;
@@ -91,7 +121,7 @@ The detail sheet, Item editor, and journal editor use `useOpenItem`: PUT
 `/api/items/[id]/open` immediately and every 30 seconds, DELETE on close. Each
 mount gets a unique lease; close follows pending refreshes. The verified user's
 lease is stored in the existing `Setting` table as
-`open-item:<hex Item id>:<hex actor>:<lease>`, with a UTC ISO expiry 90 seconds
+`open-item:<userId>:<hex Item id>:<hex actor>:<lease>`, with a UTC ISO expiry 90 seconds
 after refresh. Hex encoding avoids prefix collisions and SQL LIKE wildcards.
 Independent leases prevent one tab from clearing another's protection. Expired
 markers are ignored (and cleaned on the next presence change), so a crashed tab

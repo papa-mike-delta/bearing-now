@@ -1,5 +1,5 @@
-import { db } from "@/lib/db";
-import { ok, bad } from "@/lib/api";
+import { Owned } from "@/lib/domain/owned";
+import { bad, sessionUser } from "@/lib/api";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -21,11 +21,13 @@ function toCSV(rows: (string | number)[][], headers: string[]): string {
 
 // GET /api/export?type=finance|reviews|items
 export async function GET(req: NextRequest) {
+  const session = await sessionUser(req);
+  if (session instanceof Response) return session;
   const sp = req.nextUrl.searchParams;
   const type = sp.get("type") || "finance";
 
   if (type === "finance") {
-    const items = await db.item.findMany({
+    const items = await Owned.items(session.userId, {
       where: { type: "finance" },
       orderBy: { dueDate: "asc" },
       include: { domain: true, project: { select: { name: true } } },
@@ -53,7 +55,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (type === "reviews") {
-    const reviews = await db.review.findMany({ orderBy: { date: "desc" } });
+    const reviews = await Owned.reviews(session.userId, { orderBy: { date: "desc" } });
     const rows = reviews.map((r) => [
       r.type,
       new Date(r.date).toISOString().slice(0, 10),
@@ -76,7 +78,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (type === "items") {
-    const items = await db.item.findMany({
+    const items = await Owned.items(session.userId, {
       orderBy: { createdAt: "desc" },
       include: { domain: true, project: { select: { name: true } } },
       take: 1000,

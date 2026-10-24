@@ -1,11 +1,14 @@
 import { db } from "@/lib/db";
-import { ok, bad, parseBody, parseMeta } from "@/lib/api";
+import { Owned } from "@/lib/domain/owned";
+import { ok, bad, notFound, parseBody, parseMeta, sessionUser } from "@/lib/api";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 // GET /api/projects
 export async function GET(req: NextRequest) {
+  const session = await sessionUser(req);
+  if (session instanceof Response) return session;
   const sp = req.nextUrl.searchParams;
   const where: any = {};
   const status = sp.get("status");
@@ -13,7 +16,7 @@ export async function GET(req: NextRequest) {
   const domain = sp.get("domain");
   if (domain) where.domainId = domain;
 
-  const projects = await db.project.findMany({
+  const projects = await Owned.projects(session.userId, {
     where,
     orderBy: { updatedAt: "desc" },
     include: {
@@ -24,7 +27,7 @@ export async function GET(req: NextRequest) {
   // attach computed item stats
   const withStats = await Promise.all(
     projects.map(async (p) => {
-      const items = await db.item.findMany({
+      const items = await Owned.items(session.userId, {
         where: { projectId: p.id, status: { in: ["active", "done", "inbox"] } },
         select: { type: true, status: true, dueDate: true },
       });
@@ -44,8 +47,12 @@ export async function GET(req: NextRequest) {
 
 // POST /api/projects
 export async function POST(req: NextRequest) {
+  const session = await sessionUser(req);
+  if (session instanceof Response) return session;
   const body = await parseBody(req);
   if (!body.name) return bad("name is required");
-  const project = await db.project.create({ data: body, include: { domain: true } });
+  const { userId: _userId, ...data } = body;
+  if (data.domainId && !await Owned.domain(session.userId, data.domainId)) return notFound();
+  const project = await db.project.create({ data: { ...data, userId: session.userId }, include: { domain: true } });
   return ok(parseMeta(project as any));
 }

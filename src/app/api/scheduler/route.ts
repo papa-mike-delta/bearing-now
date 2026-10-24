@@ -1,22 +1,20 @@
 import { ItemDomain } from "@/lib/domain/item";
-import { db } from "@/lib/db";
-import { ok, domainResponse } from "@/lib/api";
+import { Owned } from "@/lib/domain/owned";
+import { domainResponse, ok, sessionUser } from "@/lib/api";
+import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-// POST /api/scheduler — generates next instances for recurring items whose due date has passed.
-// This is a simple "run on demand" scheduler. In production this would be a cron job.
-export async function POST() {
+// POST /api/scheduler — roll the session user's recurring items whose due date has passed.
+export async function POST(req: NextRequest) {
+  const session = await sessionUser(req);
+  if (session instanceof Response) return session;
+  const userId = session.userId;
   const now = new Date();
   const results: { type: string; created: number; details: string[] }[] = [];
 
-  // 1. Recurring finance items (monthly/weekly/yearly) past their due date
-  const recurringFinances = await db.item.findMany({
-    where: {
-      type: "finance",
-      status: "active",
-      dueDate: { lt: now },
-    },
+  const recurringFinances = await Owned.items(userId, {
+    where: { type: "finance", status: "active", dueDate: { lt: now } },
   });
 
   const financeDetails: string[] = [];
@@ -24,32 +22,19 @@ export async function POST() {
     const meta = f.metadata ? safeParse(f.metadata) : {};
     if (!meta.recurring || meta.recurring === "one-time") continue;
 
-    // Calculate next due date based on recurrence
     const oldDue = f.dueDate ? new Date(f.dueDate) : now;
     let nextDue = new Date(oldDue);
-    const periods: Record<string, number> = {
-      weekly: 7,
-      monthly: 30,
-      yearly: 365,
-    };
+    const periods: Record<string, number> = { weekly: 7, monthly: 30, yearly: 365 };
     const days = periods[meta.recurring] || 30;
+    while (nextDue < now) nextDue = new Date(nextDue.getTime() + days * 86400000);
 
-    // Keep advancing until nextDue is in the future
-    while (nextDue < now) {
-      nextDue = new Date(nextDue.getTime() + days * 86400000);
-    }
-
-    // Update the existing item's due date to the next occurrence
-    // (rather than creating duplicates — recurring items are "rolling")
-    const result = await ItemDomain.update(f.id, f.revision, { dueDate: nextDue }, undefined, "agent:scheduler");
+    const result = await ItemDomain.update(userId, f.id, f.revision, { dueDate: nextDue }, undefined, "agent:scheduler");
     if (!result.ok) return domainResponse(result);
     financeDetails.push(`${f.title} → ${nextDue.toISOString().slice(0, 10)}`);
   }
   if (financeDetails.length) results.push({ type: "finance", created: financeDetails.length, details: financeDetails });
 
-  // 2. Mark overdue tasks as still active (no auto-complete, but we could add streak resets for habits)
-  // 3. Update habit streaks — if a habit wasn't logged yesterday, reset streak to 0
-  const habits = await db.item.findMany({
+  const habits = await Owned.items(userId, {
     where: { type: "habit", status: "active" },
     include: { habitLogs: { orderBy: { date: "desc" }, take: 2 } },
   });
@@ -58,13 +43,11 @@ export async function POST() {
   for (const h of habits) {
     const meta = h.metadata ? safeParse(h.metadata) : {};
     if (!meta.streak || meta.streak === 0) continue;
-
-    // Check if the last log was more than 2 days ago (allowing 1 missed day)
     const lastLog = h.habitLogs[0];
     if (lastLog) {
       const daysSince = Math.floor((now.getTime() - new Date(lastLog.date).getTime()) / 86400000);
       if (daysSince > 2) {
-        const result = await ItemDomain.update(h.id, h.revision, { metadata: JSON.stringify({ ...meta, streak: 0 }) }, undefined, "agent:scheduler");
+        const result = await ItemDomain.update(userId, h.id, h.revision, { metadata: JSON.stringify({ ...meta, streak: 0 }) }, undefined, "agent:scheduler");
         if (!result.ok) return domainResponse(result);
         streaksReset++;
       }
@@ -77,17 +60,10 @@ export async function POST() {
   return ok({
     runAt: now.toISOString(),
     results,
-    summary: {
-      financeUpdated: financeDetails.length,
-      streaksReset,
-    },
+    summary: { financeUpdated: financeDetails.length, streaksReset },
   });
 }
 
 function safeParse(s: string) {
-  try {
-    return JSON.parse(s);
-  } catch {
-    return {};
-  }
+  try { return JSON.parse(s); } catch { return {}; }
 }

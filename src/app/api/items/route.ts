@@ -1,12 +1,14 @@
 import { ItemDomain } from "@/lib/domain/item";
-import { db } from "@/lib/db";
-import { writeActor, ok, domainResponse, parseBody, parseListMeta, parseMeta } from "@/lib/api";
+import { Owned } from "@/lib/domain/owned";
+import { writeActor, sessionUser, ok, domainResponse, parseBody, parseListMeta, parseMeta } from "@/lib/api";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 // GET /api/items — list with rich filtering
 export async function GET(req: NextRequest) {
+  const session = await sessionUser(req);
+  if (session instanceof Response) return session;
   const sp = req.nextUrl.searchParams;
   const where: any = {};
 
@@ -37,7 +39,7 @@ export async function GET(req: NextRequest) {
   const order = sp.get("order") === "asc" ? "asc" : "desc";
   const limit = Math.min(Number(sp.get("limit") || 200), 500);
 
-  const items = await db.item.findMany({
+  const items = await Owned.items(session.userId, {
     where,
     orderBy: { [orderBy]: order },
     take: limit,
@@ -55,9 +57,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const body = await parseBody(req);
 
-  const { metadata, tagNames, ...rest } = body;
+  const { metadata, tagNames, userId: _userId, ...rest } = body;
 
-  const result = await ItemDomain.create({
+  const session = await sessionUser(req);
+  if (session instanceof Response) return session;
+  const result = await ItemDomain.create(session.userId, {
     ...rest,
     ...(metadata ? { metadata: JSON.stringify(metadata) } : {}),
   }, tagNames, await writeActor(req));

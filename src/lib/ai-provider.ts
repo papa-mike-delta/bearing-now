@@ -24,7 +24,7 @@ export async function getAIPrefs(req: NextRequest): Promise<AIPrefs> {
   const session = await getUserFromRequest(req);
   if (!session) return DEFAULT_PREFS;
 
-  const setting = await db.setting.findUnique({ where: { id: `prefs-${session.userId}` } });
+  const setting = await db.setting.findFirst({ where: { id: `prefs-${session.userId}`, userId: session.userId } });
   if (!setting) return DEFAULT_PREFS;
 
   return { ...DEFAULT_PREFS, ...JSON.parse(setting.value) };

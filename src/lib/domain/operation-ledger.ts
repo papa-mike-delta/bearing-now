@@ -85,6 +85,7 @@ function activityLine(operation: string, status: string, payload: unknown, recei
 export class OperationLedger {
   static async run<T>(
     actor: Actor,
+    userId: string,
     entry: { operation: string; payload: unknown },
     write: (tx: Prisma.TransactionClient) => Promise<DomainResult<T>>,
   ): Promise<DomainResult<T>> {
@@ -95,6 +96,7 @@ export class OperationLedger {
       const result = await write(tx);
       const receipt = await tx.operationLedger.create({ data: {
         actor,
+        userId,
         operation: entry.operation,
         payload: JSON.stringify(entry.payload),
         status: result.ok ? "success" : "refused",
@@ -105,9 +107,16 @@ export class OperationLedger {
     });
   }
 
-  static async listCoachActivity(): Promise<CoachActivity[]> {
+  static async coachReceipt(userId: string, id: string) {
+    const entry = await db.operationLedger.findFirst({ where: { id, userId, actor: "agent:coach" } });
+    if (!entry || entry.actor !== "agent:coach" || entry.userId !== userId) return null;
+    return entry;
+  }
+
+  static async listCoachActivity(userId: string): Promise<CoachActivity[]> {
     const entries = await db.operationLedger.findMany({
       where: {
+        userId,
         actor: "agent:coach",
         OR: [{ status: "refused" }, { operation: { in: coachWrites } }],
       },
@@ -123,7 +132,7 @@ export class OperationLedger {
       const refs = itemRefs(entry.operation, payload, receipt);
       return [refs.itemId, refs.fromId, refs.toId].filter((id): id is string => id !== undefined);
     }))];
-    const items = await db.item.findMany({ where: { id: { in: ids } }, select: { id: true, title: true } });
+    const items = await db.item.findMany({ where: { id: { in: ids }, userId }, select: { id: true, title: true } });
     const titles = new Map(items.map((item) => [item.id, item.title]));
     return parsed.map(({ entry, payload, receipt }) => ({
       id: entry.id,

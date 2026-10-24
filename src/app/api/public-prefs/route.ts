@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 // GET /api/public-prefs — returns non-sensitive preferences (no auth required)
 export async function GET() {
   // Check if any user has QR login disabled
-  const settings = await db.setting.findMany();
+  const settings = await db.setting.findMany({ where: { id: { startsWith: "prefs-" } }, select: { id: true, value: true } });
   let qrLoginEnabled = true;
   for (const s of settings) {
     if (s.id.startsWith("prefs-")) {

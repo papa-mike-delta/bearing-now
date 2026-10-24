@@ -1,5 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { createSession } from "@/lib/auth";
 import { POST } from "./route";
 
 const db = vi.hoisted(() => ({
@@ -18,7 +19,9 @@ beforeEach(() => {
 it("quick captures an inbox note at revision zero", async () => {
   item.create.mockResolvedValue({ id: "new", title: "Capture", status: "inbox", revision: 0 });
   const response = await POST(new NextRequest("http://localhost/api/inbox", {
-    method: "POST", body: JSON.stringify({ text: "  Capture  " }),
+    method: "POST",
+    headers: { cookie: `lifeos-session=${createSession("alice", "alice@example.com", true)}` },
+    body: JSON.stringify({ text: "  Capture  " }),
   }));
   expect(response.status).toBe(200);
   expect(await response.json()).toMatchObject({ title: "Capture", status: "inbox", revision: 0 });

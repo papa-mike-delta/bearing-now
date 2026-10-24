@@ -144,7 +144,9 @@ for (const type of ["Daily", "Weekly"]) {
     await page.getByRole("tab", { name: type, exact: true }).click();
     await page.getByRole("button", { name: "New reflection" }).click();
     await page.getByPlaceholder("Even small wins count…").fill(wins);
+    const saved = page.waitForResponse((response) => response.url().endsWith("/api/reviews") && response.request().method() === "POST");
     await page.getByRole("button", { name: "Save reflection" }).click();
+    expect((await saved).ok()).toBeTruthy();
     const response = await page.request.get("/api/reviews");
     expect((await response.json()).reviews).toEqual(expect.arrayContaining([expect.objectContaining({ wins, type: type.toLowerCase() })]));
   });

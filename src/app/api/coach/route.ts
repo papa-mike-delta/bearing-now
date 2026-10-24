@@ -4,7 +4,6 @@ import { getUserFromRequest } from "@/lib/auth";
 import { CoachTools } from "@/lib/coach/tools";
 import type { DomainResult } from "@/lib/domain/result";
 import { OperationLedger } from "@/lib/domain/operation-ledger";
-import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -27,22 +26,24 @@ async function authorize(req: Request) {
   if (!coachToolsEnabled()) return notFound();
   const session = await getUserFromRequest(req);
   if (!session?.twoFactorVerified) return bad("Unauthorized", 401);
+  return session;
 }
 
 // Receipt document, or the Coach activity feed when no receipt is requested.
 export async function GET(req: Request) {
-  const refusal = await authorize(req);
-  if (refusal) return refusal;
+  const session = await authorize(req);
+  if (session instanceof Response) return session;
   const id = new URL(req.url).searchParams.get("receipt");
-  if (!id) return ok({ activity: await OperationLedger.listCoachActivity() });
-  const entry = await db.operationLedger.findUnique({ where: { id } });
-  if (!entry || entry.actor !== "agent:coach") return notFound();
+  if (!id) return ok({ activity: await OperationLedger.listCoachActivity(session.userId) });
+  const entry = await OperationLedger.coachReceipt(session.userId, id);
+  if (!entry) return notFound();
   return ok({ ...entry, payload: JSON.parse(entry.payload), receipt: JSON.parse(entry.receipt) });
 }
 
 export async function POST(req: Request) {
-  const refusal = await authorize(req);
-  if (refusal) return refusal;
+  const session = await authorize(req);
+  if (session instanceof Response) return session;
+  const userId = session.userId;
   const body = await parseBody<unknown>(req);
   if (!isObject(body)) return bad("Invalid tool call");
   const args = body.args ?? {};
@@ -54,26 +55,26 @@ export async function POST(req: Request) {
   switch (body.tool) {
     case "searchItems":
       if (typeof args.q !== "string") return bad("q is required");
-      return toolResponse(await CoachTools.searchItems({ q: args.q }));
+      return toolResponse(await CoachTools.searchItems(userId, { q: args.q }));
     case "getItem":
     case "getLinks":
     case "archiveItem":
     case "updateItem": {
       if (typeof args.id !== "string" || !args.id) return bad("id is required");
-      if (body.tool === "getItem") return toolResponse(await CoachTools.getItem({ id: args.id }));
-      if (body.tool === "getLinks") return toolResponse(await CoachTools.getLinks({ id: args.id }));
+      if (body.tool === "getItem") return toolResponse(await CoachTools.getItem(userId, { id: args.id }));
+      if (body.tool === "getLinks") return toolResponse(await CoachTools.getLinks(userId, { id: args.id }));
       // Do not coerce or refresh revisions: the domain must refuse stale or missing ones.
       const revision = args.revision as number;
-      if (body.tool === "archiveItem") return toolResponse(await CoachTools.archiveItem({ id: args.id, revision }));
+      if (body.tool === "archiveItem") return toolResponse(await CoachTools.archiveItem(userId, { id: args.id, revision }));
       if (!isObject(args.data)) return bad("data is required");
-      return toolResponse(await CoachTools.updateItem({ id: args.id, revision, data: itemData(args.data), tagNames }));
+      return toolResponse(await CoachTools.updateItem(userId, { id: args.id, revision, data: itemData(args.data), tagNames }));
     }
     case "listOpenItems":
-      return toolResponse(await CoachTools.listOpenItems());
+      return toolResponse(await CoachTools.listOpenItems(userId));
     case "createItem":
       if (!isObject(args.data)) return bad("data is required");
-      return toolResponse(await CoachTools.createItem({
-        data: itemData(args.data) as Parameters<typeof CoachTools.createItem>[0]["data"], tagNames,
+      return toolResponse(await CoachTools.createItem(userId, {
+        data: itemData(args.data) as Parameters<typeof CoachTools.createItem>[1]["data"], tagNames,
       }));
     case "createLink":
     case "deleteLink": {
@@ -84,7 +85,7 @@ export async function POST(req: Request) {
         fromId: args.fromId, toId: args.toId, type: args.type as string | undefined,
         note: args.note as string | undefined, revision: args.revision as number,
       };
-      return toolResponse(await CoachTools[body.tool](data));
+      return toolResponse(await CoachTools[body.tool](userId, data));
     }
   }
   return bad("Unknown tool");

@@ -3,6 +3,7 @@ import { createSession } from "@/lib/auth";
 import { PUT, DELETE } from "./route";
 
 const db = vi.hoisted(() => ({
+  item: { findFirst: vi.fn() },
   setting: { upsert: vi.fn(), deleteMany: vi.fn() },
   operationLedger: { create: vi.fn() }, $transaction: vi.fn(), $queryRaw: vi.fn(),
 }));
@@ -17,6 +18,7 @@ const request = (method: string, lease: unknown = "tab-1", authenticated = true)
 beforeEach(() => {
   vi.resetAllMocks();
   db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
+  db.item.findFirst.mockResolvedValue({ id: "item-1" });
   db.$transaction.mockImplementation((run) => run(db));
 });
 

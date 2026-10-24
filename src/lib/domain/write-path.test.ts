@@ -7,7 +7,10 @@ const { db, tx } = vi.hoisted(() => ({
   // The root client deliberately exposes no writes. Only its transaction does.
   db: { $transaction: vi.fn() },
   tx: {
-    item: { create: vi.fn(), updateMany: vi.fn(), findUniqueOrThrow: vi.fn(), deleteMany: vi.fn() },
+    item: {
+      create: vi.fn(), updateMany: vi.fn(), findUniqueOrThrow: vi.fn(), deleteMany: vi.fn(),
+      findFirst: vi.fn(), findMany: vi.fn(),
+    },
     link: { findUnique: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
     setting: { findFirst: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
     operationLedger: { create: vi.fn(), count: vi.fn() },
@@ -23,6 +26,8 @@ beforeEach(() => {
   vi.resetAllMocks();
   tx.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(tx));
+  tx.item.findFirst.mockResolvedValue({ id: "item" });
+  tx.item.findMany.mockImplementation(async ({ where }) => (where?.id?.in ?? []).map((id: string) => ({ id })));
   tx.item.create.mockResolvedValue({ id: "item", revision: 0 });
   tx.item.updateMany.mockResolvedValue({ count: 1 });
   tx.item.findUniqueOrThrow.mockResolvedValue({ id: "item", revision: 1 });
@@ -30,14 +35,14 @@ beforeEach(() => {
 });
 
 const mutations = [
-  { operation: "item.create", run: () => ItemDomain.create({ title: "New", type: "note" }) },
-  { operation: "item.update", run: () => ItemDomain.update("item", 0, { title: "Updated" }) },
-  { operation: "item.archive", run: () => ItemDomain.archive("item", 0) },
-  { operation: "link.create", run: () => LinkDomain.create({ fromId: "item", toId: "other" }, 0) },
-  { operation: "link.delete", run: () => LinkDomain.delete({ fromId: "item", toId: "other" }, 0) },
-  { operation: "database.clear", run: () => DatabaseDomain.clear() },
-  { operation: "item.open", run: () => ItemDomain.setOpen("item", "tab", true, "user:alice") },
-  { operation: "item.close", run: () => ItemDomain.setOpen("item", "tab", false, "user:alice") },
+  { operation: "item.create", run: () => ItemDomain.create("alice", { title: "New", type: "note" }) },
+  { operation: "item.update", run: () => ItemDomain.update("alice", "item", 0, { title: "Updated" }) },
+  { operation: "item.archive", run: () => ItemDomain.archive("alice", "item", 0) },
+  { operation: "link.create", run: () => LinkDomain.create("alice", { fromId: "item", toId: "other" }, 0) },
+  { operation: "link.delete", run: () => LinkDomain.delete("alice", { fromId: "item", toId: "other" }, 0) },
+  { operation: "database.clear", run: () => DatabaseDomain.clear("alice") },
+  { operation: "item.open", run: () => ItemDomain.setOpen("alice", "item", "tab", true, "user:alice") },
+  { operation: "item.close", run: () => ItemDomain.setOpen("alice", "item", "tab", false, "user:alice") },
 ];
 
 it.each(mutations)("commits $operation and its receipt through the same transaction", async ({ operation, run }) => {

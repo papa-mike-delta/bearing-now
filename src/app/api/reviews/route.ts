@@ -1,15 +1,18 @@
 import { db } from "@/lib/db";
-import { ok, bad, parseBody } from "@/lib/api";
+import { Owned } from "@/lib/domain/owned";
+import { ok, bad, parseBody, sessionUser } from "@/lib/api";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 // GET /api/reviews?type=daily|weekly
 export async function GET(req: NextRequest) {
+  const session = await sessionUser(req);
+  if (session instanceof Response) return session;
   const sp = req.nextUrl.searchParams;
   const where: any = {};
   if (sp.get("type")) where.type = sp.get("type");
-  const reviews = await db.review.findMany({
+  const reviews = await Owned.reviews(session.userId, {
     where,
     orderBy: { date: "desc" },
     take: 50,
@@ -24,11 +27,14 @@ export async function GET(req: NextRequest) {
 
 // POST /api/reviews
 export async function POST(req: NextRequest) {
+  const session = await sessionUser(req);
+  if (session instanceof Response) return session;
   const body = await parseBody(req);
   if (!body.type) return bad("type is required");
   const date = body.date ? new Date(body.date) : new Date();
   const review = await db.review.create({
     data: {
+      userId: session.userId,
       type: body.type,
       date,
       status: body.status || "completed",

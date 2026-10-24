@@ -1,23 +1,21 @@
-import { db } from "@/lib/db";
-import { ok, bad } from "@/lib/api";
+import { Owned } from "@/lib/domain/owned";
+import { ok, sessionUser } from "@/lib/api";
 import { getAIPrefs, aiChatCompletion } from "@/lib/ai-provider";
 
 export const dynamic = "force-dynamic";
 
-// POST /api/ai/smart-inbox — AI suggests type, domain, and project for inbox items
+// POST /api/ai/smart-inbox — suggest type, domain, and project for the session user's inbox
 export async function POST(req: Request) {
+  const session = await sessionUser(req);
+  if (session instanceof Response) return session;
   const prefs = await getAIPrefs(req as any);
   if (!prefs.aiEnabled) return ok({ suggestions: [], error: "AI features are disabled. Enable them in Settings." });
 
-  const inboxItems = await db.item.findMany({
-    where: { status: "inbox" },
-    take: 20,
-  });
-
+  const inboxItems = await Owned.items(session.userId, { where: { status: "inbox" }, take: 20 });
   if (inboxItems.length === 0) return ok({ suggestions: [], message: "Inbox is empty" });
 
-  const domains = await db.domain.findMany();
-  const projects = await db.project.findMany({ where: { status: "active" } });
+  const domains = await Owned.domains(session.userId);
+  const projects = await Owned.projects(session.userId, { where: { status: "active" } });
 
   const itemsText = inboxItems.map((i, idx) => `${idx + 1}. "${i.title}"${i.content ? ` — ${i.content.slice(0, 100)}` : ""}`).join("\n");
   const domainsText = domains.map((d) => `${d.key} (${d.name})`).join(", ");
@@ -51,13 +49,8 @@ Respond with ONLY a JSON array. Each element: { "index": number, "type": string,
       if (!item) return null;
       const domain = domains.find((d) => d.key === s.domainKey);
       return {
-        itemId: item.id,
-        title: item.title,
-        suggestedType: s.type,
-        suggestedDomainKey: s.domainKey,
-        suggestedDomainId: domain?.id || null,
-        suggestedProjectId: s.projectId || null,
-        reason: s.reason,
+        itemId: item.id, title: item.title, suggestedType: s.type, suggestedDomainKey: s.domainKey,
+        suggestedDomainId: domain?.id || null, suggestedProjectId: s.projectId || null, reason: s.reason,
       };
     }).filter(Boolean);
 

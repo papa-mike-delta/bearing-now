@@ -3,10 +3,13 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createSession } from "@/lib/auth";
 import { DELETE, GET, POST } from "./route";
 
-const settings = vi.hoisted(() => new Map<string, { id: string; value: string }>());
+const settings = vi.hoisted(() => new Map<string, { id: string; value: string; userId?: string }>());
 vi.mock("@/lib/db", () => ({ db: { setting: {
-  findUnique: async ({ where }: { where: { id: string } }) => settings.get(where.id) ?? null,
-  upsert: async ({ create }: { create: { id: string; value: string } }) => { settings.set(create.id, create); return create; },
+  findFirst: async ({ where }: { where: { id: string; userId?: string } }) => {
+    const row = settings.get(where.id);
+    return row && (!where.userId || row.userId === where.userId) ? row : null;
+  },
+  upsert: async ({ create }: { create: { id: string; value: string; userId?: string } }) => { settings.set(create.id, create); return create; },
   deleteMany: async ({ where }: { where: { id: string } }) => { settings.delete(where.id); },
 } } }));
 
@@ -73,7 +76,7 @@ it("requires a verified session for loading, importing, and resetting", async ()
 });
 
 it("refuses unsafe stored data, including data restored from a backup", async () => {
-  settings.set("theme-user-1", { id: "theme-user-1", value: '{"light":{"--primary":"</style><script>alert(1)</script>"},"dark":{"--primary":"black"}}' });
+  settings.set("theme-user-1", { id: "theme-user-1", userId: "user-1", value: '{"light":{"--primary":"</style><script>alert(1)</script>"},"dark":{"--primary":"black"}}' });
   const response = await GET(request());
   expect(response.status).toBe(400);
   expect(await response.json()).toEqual({ error: "Stored theme is invalid. Import a new theme or reset it." });

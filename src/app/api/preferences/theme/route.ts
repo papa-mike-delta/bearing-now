@@ -8,7 +8,7 @@ export async function GET(req: Request) {
   const session = await getUserFromRequest(req);
   if (!session) return bad("Unauthorized", 401);
 
-  const setting = await db.setting.findUnique({ where: { id: `theme-${session.userId}` } });
+  const setting = await db.setting.findFirst({ where: { id: `theme-${session.userId}`, userId: session.userId } });
   try {
     return ok({ css: setting ? ThemeOverride.serialize(JSON.parse(setting.value)) : "" });
   } catch {
@@ -34,7 +34,11 @@ export async function POST(req: Request) {
 
   const id = `theme-${session.userId}`;
   const value = JSON.stringify(theme);
-  await db.setting.upsert({ where: { id }, update: { value }, create: { id, value } });
+  await db.setting.upsert({
+    where: { id },
+    update: { value, userId: session.userId },
+    create: { id, value, userId: session.userId },
+  });
   return ok({ css });
 }
 
@@ -42,6 +46,6 @@ export async function DELETE(req: Request) {
   const session = await getUserFromRequest(req);
   if (!session) return bad("Unauthorized", 401);
 
-  await db.setting.deleteMany({ where: { id: `theme-${session.userId}` } });
+  await db.setting.deleteMany({ where: { id: `theme-${session.userId}`, userId: session.userId } });
   return ok({ css: "" });
 }

@@ -1,5 +1,5 @@
-import { db } from "@/lib/db";
-import { ok, parseMeta } from "@/lib/api";
+import { Owned } from "@/lib/domain/owned";
+import { ok, parseMeta, sessionUser } from "@/lib/api";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -7,6 +7,8 @@ export const dynamic = "force-dynamic";
 // GET /api/calendar?from=ISO&to=ISO&layers=type,type
 // Aggregates anything with a date (dueDate, scheduledAt, startDate) into day buckets.
 export async function GET(req: NextRequest) {
+  const session = await sessionUser(req);
+  if (session instanceof Response) return session;
   const sp = req.nextUrl.searchParams;
   const from = sp.get("from") ? new Date(sp.get("from")!) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   const to = sp.get("to") ? new Date(sp.get("to")!) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59);
@@ -32,7 +34,7 @@ export async function GET(req: NextRequest) {
     else where.domainId = { in: vals };
   }
 
-  const items = await db.item.findMany({
+  const items = await Owned.items(session.userId, {
     where,
     include: { domain: true, project: { select: { id: true, name: true, color: true } } },
     orderBy: [{ dueDate: "asc" }, { scheduledAt: "asc" }],
