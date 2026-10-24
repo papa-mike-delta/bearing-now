@@ -1,13 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { SectionCard } from "./layout";
-import { notify, toast } from "@/lib/toast";
+import { CoachReceiptLink } from "@/lib/coach/receipt-link";
+import { notify } from "@/lib/toast";
 import type { DomainResult } from "@/lib/domain/result";
+
+type CoachActivityRow = { id: string; line: string };
+
+export function CoachActivityList({ activity }: { activity: CoachActivityRow[] }) {
+  return (
+    <div className="mt-4">
+      <h3 className="text-sm font-semibold">Activity</h3>
+      {activity.length === 0 ? (
+        <p className="mt-2 text-xs text-muted-foreground">No Coach activity yet</p>
+      ) : (
+        <ul className="mt-2 space-y-1 text-sm">
+          {activity.map((entry) => (
+            <li key={entry.id}>
+              <CoachReceiptLink receiptId={entry.id} className="max-w-full">{entry.line}</CoachReceiptLink>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 const examples = {
   searchItems: { q: "" },
@@ -27,7 +49,23 @@ export function CoachPanel() {
   const [args, setArgs] = useState(JSON.stringify(examples.searchItems, null, 2));
   const [output, setOutput] = useState("");
   const [pending, setPending] = useState(false);
+  const [activity, setActivity] = useState<CoachActivityRow[]>([]);
   const queryClient = useQueryClient();
+
+  async function loadActivity() {
+    try {
+      const response = await fetch("/api/coach", { credentials: "same-origin" });
+      if (!response.ok) return;
+      const body: { activity?: CoachActivityRow[] } = await response.json();
+      if (Array.isArray(body.activity)) setActivity(body.activity);
+    } catch {
+      // The tool form still works when the feed cannot load.
+    }
+  }
+
+  useEffect(() => {
+    void loadActivity();
+  }, []);
 
   async function invoke(event: React.FormEvent) {
     event.preventDefault();
@@ -46,17 +84,9 @@ export function CoachPanel() {
       });
       const result: DomainResult<unknown> & { message?: string } = await response.json();
       setOutput(JSON.stringify(result, null, 2));
-      if (result.receiptId && result.message) {
-        const message = (
-          <a className="block max-w-72 truncate underline" href={`/api/coach?receipt=${encodeURIComponent(result.receiptId)}`} target="_blank" rel="noreferrer">
-            {result.message}
-          </a>
-        );
-        if (result.ok) toast.success(message);
-        else toast.error(message);
-      } else {
-        notify.error("error" in result ? result.error : "Tool call failed");
-      }
+      if (result.receiptId && result.message) notify.receipt(result.message, result.receiptId, result.ok);
+      else notify.error("error" in result ? result.error : "Tool call failed");
+      void loadActivity();
       if (result.ok && ["createItem", "updateItem", "archiveItem", "createLink", "deleteLink"].includes(tool)) {
         void queryClient.invalidateQueries();
       }
@@ -71,6 +101,7 @@ export function CoachPanel() {
     <SectionCard className="mt-6">
       <details>
         <summary className="cursor-pointer text-sm font-semibold">Coach</summary>
+        <CoachActivityList activity={activity} />
         <form onSubmit={invoke} className="mt-4 space-y-3">
           <Label htmlFor="coach-tool">Tool</Label>
           <select id="coach-tool" value={tool} disabled={pending} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" onChange={(event) => {

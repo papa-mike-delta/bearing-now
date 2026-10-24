@@ -3,6 +3,7 @@ import { coachToolsEnabled } from "@/lib/coach/feature-flag";
 import { getUserFromRequest } from "@/lib/auth";
 import { CoachTools } from "@/lib/coach/tools";
 import type { DomainResult } from "@/lib/domain/result";
+import { OperationLedger } from "@/lib/domain/operation-ledger";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -28,12 +29,12 @@ async function authorize(req: Request) {
   if (!session?.twoFactorVerified) return bad("Unauthorized", 401);
 }
 
-// A minimal receipt view: the toast opens this authenticated JSON document.
+// Receipt document, or the Coach activity feed when no receipt is requested.
 export async function GET(req: Request) {
   const refusal = await authorize(req);
   if (refusal) return refusal;
   const id = new URL(req.url).searchParams.get("receipt");
-  if (!id) return bad("receipt is required");
+  if (!id) return ok({ activity: await OperationLedger.listCoachActivity() });
   const entry = await db.operationLedger.findUnique({ where: { id } });
   if (!entry || entry.actor !== "agent:coach") return notFound();
   return ok({ ...entry, payload: JSON.parse(entry.payload), receipt: JSON.parse(entry.receipt) });
