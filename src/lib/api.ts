@@ -56,3 +56,10 @@ export async function writeActor(req: Request): Promise<Actor> {
   const session = await getUserFromRequest(req);
   return session ? `user:${session.userId}` : "agent:anonymous";
 }
+
+// The owner id comes only from the verified session. A missing session is 401.
+export async function sessionUser(req: Request): Promise<{ userId: string } | NextResponse> {
+  const session = await getUserFromRequest(req);
+  if (!session) return bad("Unauthorized", 401);
+  return { userId: session.userId };
+}

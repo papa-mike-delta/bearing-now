@@ -20,6 +20,7 @@ it("creates an Item through the domain with revision zero and parsed metadata", 
   item.create.mockResolvedValue({ id: "new", revision: 0, metadata: '{"pages":10}' });
   const response = await POST(new NextRequest("http://localhost/api/items", {
     method: "POST",
+    headers: { cookie: `lifeos-session=${createSession("alice", "alice@example.com", true)}` },
     body: JSON.stringify({ title: "New", type: "note", revision: 99, metadata: { pages: 10 } }),
   }));
   expect(response.status).toBe(200);
@@ -43,7 +44,9 @@ it("returns 429 and records the refused create for the verified user", async () 
 
 it("records a validation refusal rather than skipping the domain ledger", async () => {
   const response = await POST(new NextRequest("http://localhost/api/items", {
-    method: "POST", body: JSON.stringify({ type: "note" }),
+    method: "POST",
+    headers: { cookie: `lifeos-session=${createSession("alice", "alice@example.com", true)}` },
+    body: JSON.stringify({ type: "note" }),
   }));
   expect(response.status).toBe(400);
   expect(item.create).not.toHaveBeenCalled();

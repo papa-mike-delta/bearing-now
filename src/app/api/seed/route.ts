@@ -34,17 +34,10 @@ export async function POST(_req: NextRequest) {
 }
 
 async function seed() {
-  // Check if data already exists
-  const existingDomains = await db.domain.count();
-  if (existingDomains > 0) {
-    return bad("Data already exists. Reset the database first.", 409);
-  }
-
-  // Demo user
   const DEMO_EMAIL = "demo@gmail.com";
   const DEMO_PASSWORD = "Password123";
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
-  await db.user.upsert({
+  const demo = await db.user.upsert({
     where: { email: DEMO_EMAIL },
     update: { passwordHash, name: "Demo User" },
     create: {
@@ -55,31 +48,36 @@ async function seed() {
     },
   });
 
+  const existingDomains = await db.domain.count({ where: { userId: demo.id } });
+  if (existingDomains > 0) {
+    return bad("Data already exists. Reset the database first.", 409);
+  }
+
   // Seed domains
   const domainMap: Record<string, string> = {};
   for (const dom of DOMAINS) {
     const d = await db.domain.create({
-      data: { key: dom.key, name: dom.name, description: dom.description, icon: dom.icon, color: dom.color, order: dom.order },
+      data: { key: dom.key, name: dom.name, description: dom.description, icon: dom.icon, color: dom.color, order: dom.order, userId: demo.id },
     });
     domainMap[dom.key] = d.id;
   }
 
   // Seed projects
   const projects = await Promise.all([
-    db.project.create({ data: { name: "Japan Trip 2025", description: "Two-week adventure across Tokyo, Kyoto, and Osaka.", color: "#ec4899", icon: "Plane", domainId: domainMap.creativity, status: "active", progress: 35, targetDate: daysFromNow(120) } }),
-    db.project.create({ data: { name: "Health Transformation", description: "Build strength, improve sleep, and run a half-marathon.", color: "#f43f5e", icon: "HeartPulse", domainId: domainMap.health, status: "active", progress: 55, targetDate: daysFromNow(200) } }),
-    db.project.create({ data: { name: "Launch Startup", description: "Ship the MVP and get first 100 paying customers.", color: "#10b981", icon: "Rocket", domainId: domainMap.wealth, status: "active", progress: 20, targetDate: daysFromNow(90) } }),
-    db.project.create({ data: { name: "Get out of Debt", description: "Pay off credit card and student loans.", color: "#71717a", icon: "TrendingDown", domainId: domainMap.wealth, status: "active", progress: 40, targetDate: daysFromNow(300) } }),
-    db.project.create({ data: { name: "Read 24 Books", description: "Two books a month for a year.", color: "#3b82f6", icon: "BookOpen", domainId: domainMap.growth, status: "active", progress: 50, targetDate: daysFromNow(180) } }),
+    db.project.create({ data: { name: "Japan Trip 2025", description: "Two-week adventure across Tokyo, Kyoto, and Osaka.", color: "#ec4899", icon: "Plane", domainId: domainMap.creativity, status: "active", progress: 35, targetDate: daysFromNow(120), userId: demo.id } }),
+    db.project.create({ data: { name: "Health Transformation", description: "Build strength, improve sleep, and run a half-marathon.", color: "#f43f5e", icon: "HeartPulse", domainId: domainMap.health, status: "active", progress: 55, targetDate: daysFromNow(200), userId: demo.id } }),
+    db.project.create({ data: { name: "Launch Startup", description: "Ship the MVP and get first 100 paying customers.", color: "#10b981", icon: "Rocket", domainId: domainMap.wealth, status: "active", progress: 20, targetDate: daysFromNow(90), userId: demo.id } }),
+    db.project.create({ data: { name: "Get out of Debt", description: "Pay off credit card and student loans.", color: "#71717a", icon: "TrendingDown", domainId: domainMap.wealth, status: "active", progress: 40, targetDate: daysFromNow(300), userId: demo.id } }),
+    db.project.create({ data: { name: "Read 24 Books", description: "Two books a month for a year.", color: "#3b82f6", icon: "BookOpen", domainId: domainMap.growth, status: "active", progress: 50, targetDate: daysFromNow(180), userId: demo.id } }),
   ]);
   const pmap: Record<string, string> = {};
   projects.forEach((p) => { pmap[p.name] = p.id; });
 
   // Keep this demo to 20 Items so a fresh seed fits the hourly write cap.
-  async function item(data: Omit<Prisma.ItemCreateManyInput, "metadata" | "revision"> & { metadata?: unknown }) {
+  async function item(data: Omit<Prisma.ItemCreateManyInput, "metadata" | "revision" | "userId"> & { metadata?: unknown }) {
     const meta = data.metadata ? { metadata: JSON.stringify(data.metadata) } : {};
     const { metadata, ...rest } = data;
-    const result = await ItemDomain.create({ ...rest, ...meta }, [], "agent:seed");
+    const result = await ItemDomain.create(demo.id, { ...rest, ...meta }, [], "agent:seed");
     if (!result.ok) throw new SeedRefusal(result);
     return result.value;
   }
@@ -137,18 +135,18 @@ async function seed() {
   await item({ type: "note", title: "Look into tax-advantaged accounts", domainId: domainMap.wealth, status: "inbox" });
 
   // Reviews
-  await db.review.create({ data: { type: "daily", date: daysFromNow(-1, 21), status: "completed", wins: "Shipped the landing page hero section.", challenges: "Got distracted by notifications.", learnings: "Deep work blocks need to be phone-free.", gratitude: "Grateful for my supportive partner.", mood: 4, energy: 3 } });
-  await db.review.create({ data: { type: "weekly", date: daysFromNow(-4, 20), status: "completed", weekStart: daysFromNow(-10), weekEnd: daysFromNow(-4), wins: "Hit 5/7 meditation days, read 80 pages.", challenges: "Overspent on takeout.", learnings: "Meal prep on Sunday makes the week smoother.", gratitude: "Grateful for Marcus's mentorship.", priorities: '["Launch landing page","Plan Japan itinerary","3 strength workouts"]', mood: 4, energy: 3 } });
+  await db.review.create({ data: { type: "daily", date: daysFromNow(-1, 21), status: "completed", wins: "Shipped the landing page hero section.", challenges: "Got distracted by notifications.", learnings: "Deep work blocks need to be phone-free.", gratitude: "Grateful for my supportive partner.", mood: 4, energy: 3, userId: demo.id } });
+  await db.review.create({ data: { type: "weekly", date: daysFromNow(-4, 20), status: "completed", weekStart: daysFromNow(-10), weekEnd: daysFromNow(-4), wins: "Hit 5/7 meditation days, read 80 pages.", challenges: "Overspent on takeout.", learnings: "Meal prep on Sunday makes the week smoother.", gratitude: "Grateful for Marcus's mentorship.", priorities: '["Launch landing page","Plan Japan itinerary","3 strength workouts"]', mood: 4, energy: 3, userId: demo.id } });
 
   // Links
-  const debtJournal = await db.item.findFirst({ where: { title: "Stress about money" } });
-  const financialVision = await db.item.findFirst({ where: { title: "Live with intention" } });
+  const debtJournal = await db.item.findFirst({ where: { title: "Stress about money", userId: demo.id } });
+  const financialVision = await db.item.findFirst({ where: { title: "Live with intention", userId: demo.id } });
   if (debtJournal && financialVision) {
-    const result = await LinkDomain.create({ fromId: debtJournal.id, toId: financialVision.id, type: LinkType.parse("related_to") }, debtJournal.revision, "agent:seed");
+    const result = await LinkDomain.create(demo.id, { fromId: debtJournal.id, toId: financialVision.id, type: LinkType.parse("related_to") }, debtJournal.revision, "agent:seed");
     if (!result.ok) return domainResponse(result);
   }
   if (medHabit && writeHabit) {
-    const result = await LinkDomain.create({ fromId: medHabit.id, toId: writeHabit.id, type: LinkType.parse("related_to") }, medHabit.revision, "agent:seed");
+    const result = await LinkDomain.create(demo.id, { fromId: medHabit.id, toId: writeHabit.id, type: LinkType.parse("related_to") }, medHabit.revision, "agent:seed");
     if (!result.ok) return domainResponse(result);
   }
 

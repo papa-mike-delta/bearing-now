@@ -3,24 +3,26 @@ import { createSession } from "@/lib/auth";
 import { POST } from "./route";
 
 const db = vi.hoisted(() => ({
-  habitLog: { deleteMany: vi.fn() },
+  habitLog: { deleteMany: vi.fn(), create: vi.fn() },
   reviewItem: { deleteMany: vi.fn() },
-  review: { deleteMany: vi.fn() },
+  review: { deleteMany: vi.fn(), create: vi.fn() },
   link: { deleteMany: vi.fn(), upsert: vi.fn(), findUnique: vi.fn() },
   tagOnItem: { deleteMany: vi.fn() },
-  tag: { deleteMany: vi.fn() },
-  item: { deleteMany: vi.fn(), create: vi.fn(), findUniqueOrThrow: vi.fn(), updateMany: vi.fn() },
-  project: { deleteMany: vi.fn() },
-  domain: { deleteMany: vi.fn() },
+  tag: { deleteMany: vi.fn(), create: vi.fn() },
+  item: { deleteMany: vi.fn(), create: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
+  project: { deleteMany: vi.fn(), create: vi.fn() },
+  domain: { deleteMany: vi.fn(), create: vi.fn() },
   operationLedger: { create: vi.fn(), count: vi.fn() },
-  setting: { findFirst: vi.fn() },
+  setting: { findFirst: vi.fn(), deleteMany: vi.fn() },
   $queryRaw: vi.fn(),
   $transaction: vi.fn(),
 }));
 vi.mock("@/lib/db", () => ({ db }));
 
-const request = (links: unknown) => new Request("http://localhost/api/backup", {
+const cookie = `lifeos-session=${createSession("alice", "alice@example.com", true)}`;
+const request = (links: unknown, authenticated = true) => new Request("http://localhost/api/backup", {
   method: "POST",
+  headers: authenticated ? { cookie } : {},
   body: JSON.stringify({ version: 1, links }),
 });
 
@@ -28,8 +30,9 @@ beforeEach(() => {
   vi.resetAllMocks();
   db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
-  db.item.findUniqueOrThrow.mockResolvedValue({ id: "item-1", revision: 0 });
   db.item.updateMany.mockResolvedValue({ count: 1 });
+  db.item.findFirst.mockImplementation(async ({ where }: { where: { id: string } }) => ({ id: where.id, revision: 0 }));
+  db.item.findMany.mockImplementation(async ({ where }) => (where?.id?.in ?? []).map((id: string) => ({ id })));
   db.link.upsert.mockResolvedValue({ id: "link-1" });
 });
 
@@ -51,32 +54,31 @@ it("restores all six core Link types", async () => {
   const response = await POST(request(links));
 
   expect(response.status).toBe(200);
-  expect(db.link.upsert.mock.calls.map(([{ create }]) => create)).toEqual(links);
+  expect(db.link.upsert.mock.calls.map(([{ create }]) => create)).toEqual(links.map((link) => ({ ...link, note: undefined })));
 });
 
 it.each([
-  { field: "items", count: 21, entry: { id: "item", type: "note", title: "Restore" }, limit: 20 },
-  { field: "links", count: 51, entry: { fromId: "item-1", toId: "item-2", type: "mentions" }, limit: 50 },
-])("refuses an over-cap $field restore before deleting existing data", async ({ field, count, entry, limit }) => {
+  { field: "items", count: 21, entry: { id: "item", type: "note", title: "Restore" } },
+  { field: "links", count: 51, entry: { fromId: "item-1", toId: "item-2", type: "mentions" } },
+])("requires a session before an over-cap $field restore can clear data", async ({ field, count, entry }) => {
   db.operationLedger.count.mockResolvedValue(0);
   const response = await POST(new Request("http://localhost/api/backup", {
     method: "POST", body: JSON.stringify({ version: 1, [field]: Array.from({ length: count }, () => entry) }),
   }));
-  expect(response.status).toBe(429);
-  expect(await response.json()).toEqual({ receiptId: "receipt-1", ok: false, rateLimited: true, limit });
+  expect(response.status).toBe(401);
   expect(db.item.deleteMany).not.toHaveBeenCalled();
   expect(db.habitLog.deleteMany).not.toHaveBeenCalled();
-  expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ operation: "database.clear", status: "refused" }) });
+  expect(db.operationLedger.create).not.toHaveBeenCalled();
 });
 
-it("preserves data if the actor lacks enough remaining allowance for a small restore", async () => {
+it("requires a session before a restore can clear data", async () => {
   db.operationLedger.count.mockResolvedValue(19);
   const response = await POST(new Request("http://localhost/api/backup", {
     method: "POST", body: JSON.stringify({ version: 1, items: [
       { id: "one", title: "One", type: "note" }, { id: "two", title: "Two", type: "note" },
     ] }),
   }));
-  expect(response.status).toBe(429);
+  expect(response.status).toBe(401);
   expect(db.item.deleteMany).not.toHaveBeenCalled();
 });
 
@@ -84,7 +86,7 @@ it("restores tagged items and links for a verified user with exhausted create al
   db.operationLedger.count.mockResolvedValue(50);
   const response = await POST(new Request("http://localhost/api/backup", {
     method: "POST",
-    headers: { cookie: `lifeos-session=${createSession("alice", "alice@example.com", true)}` },
+    headers: { cookie },
     body: JSON.stringify({ version: 1,
       items: [{ id: "item-1", title: "Tagged", type: "note", tags: [{ tag: { name: "work" } }] }],
       links: [{ fromId: "item-1", toId: "item-2", type: "mentions" }],
@@ -92,7 +94,12 @@ it("restores tagged items and links for a verified user with exhausted create al
   }));
   expect(response.status).toBe(200);
   expect(db.item.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({
-    id: "item-1", tags: { create: [{ tag: { connectOrCreate: { where: { name: "work" }, create: { name: "work" } } } }] },
+    id: "item-1",
+    userId: "alice",
+    tags: { create: [{ tag: { connectOrCreate: {
+      where: { userId_name: { userId: "alice", name: "work" } },
+      create: { name: "work", userId: "alice" },
+    } } }] },
   }) }));
   expect(db.link.upsert).toHaveBeenCalled();
   expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ actor: "user:alice", operation: "link.restore", status: "success" }) });

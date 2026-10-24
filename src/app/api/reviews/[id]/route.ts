@@ -1,13 +1,17 @@
 import { db } from "@/lib/db";
-import { ok, parseBody } from "@/lib/api";
+import { Owned } from "@/lib/domain/owned";
+import { ok, notFound, parseBody, sessionUser } from "@/lib/api";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const session = await sessionUser(req);
+  if (session instanceof Response) return session;
   const { id } = await ctx.params;
+  if (!await Owned.review(session.userId, id)) return notFound();
   const body = await parseBody(req);
-  const { priorities, ...rest } = body;
+  const { priorities, userId: _userId, ...rest } = body;
   const review = await db.review.update({
     where: { id },
     data: {
@@ -20,8 +24,11 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   return ok(review);
 }
 
-export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const session = await sessionUser(req);
+  if (session instanceof Response) return session;
   const { id } = await ctx.params;
+  if (!await Owned.review(session.userId, id)) return notFound();
   await db.review.delete({ where: { id } }).catch(() => {});
   return ok({ deleted: true });
 }

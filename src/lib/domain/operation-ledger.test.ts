@@ -42,7 +42,7 @@ it("lists the 50 newest Coach writes and conflict receipts with current Item tit
     entry(),
   ]);
 
-  await expect(OperationLedger.listCoachActivity()).resolves.toEqual([
+  await expect(OperationLedger.listCoachActivity("alice")).resolves.toEqual([
     {
       id: "receipt-new", operation: "item.update", status: "refused",
       line: "Refused update Read", createdAt: "2026-03-02T00:00:00.000Z",
@@ -54,6 +54,7 @@ it("lists the 50 newest Coach writes and conflict receipts with current Item tit
   ]);
   expect(db.operationLedger.findMany).toHaveBeenCalledWith({
     where: {
+      userId: "alice",
       actor: "agent:coach",
       OR: [
         { status: "refused" },
@@ -68,7 +69,7 @@ it("lists the 50 newest Coach writes and conflict receipts with current Item tit
   });
   expect(db.item.findMany).toHaveBeenCalledTimes(1);
   expect(db.item.findMany).toHaveBeenCalledWith({
-    where: { id: { in: ["item-1", "item-new"] } },
+    where: { id: { in: ["item-1", "item-new"] }, userId: "alice" },
     select: { id: true, title: true },
   });
 });
@@ -149,7 +150,7 @@ it.each([
   db.operationLedger.findMany.mockResolvedValue([
     entry({ operation, status, payload: JSON.stringify(payload), receipt: JSON.stringify(receipt) }),
   ]);
-  await expect(OperationLedger.listCoachActivity()).resolves.toEqual([
+  await expect(OperationLedger.listCoachActivity("alice")).resolves.toEqual([
     expect.objectContaining({ operation, status, line }),
   ]);
   expect(line).not.toMatch(/\n/);

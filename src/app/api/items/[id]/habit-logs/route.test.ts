@@ -1,14 +1,23 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { createSession } from "@/lib/auth";
 import { POST } from "./route";
 
-const db = vi.hoisted(() => ({ habitLog: { findUnique: vi.fn(), create: vi.fn(), delete: vi.fn() } }));
+const db = vi.hoisted(() => ({
+  habitLog: { findUnique: vi.fn(), create: vi.fn(), delete: vi.fn() },
+  item: { findFirst: vi.fn() },
+}));
 vi.mock("@/lib/db", () => ({ db }));
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  db.item.findFirst.mockResolvedValue({ id: "habit" });
+});
 
 it.each(["2026-10-23", "2026-03-08", "2026-11-01"])("stores calendar date %s without shifting and toggles the same log", async (date) => {
   const request = () => new NextRequest("http://localhost/api/items/habit/habit-logs", {
-    method: "POST", body: JSON.stringify({ date }),
+    method: "POST",
+    headers: { cookie: `lifeos-session=${createSession("alice", "alice@example.com", true)}` },
+    body: JSON.stringify({ date }),
   });
   const ctx = { params: Promise.resolve({ id: "habit" }) };
   const stored = { id: "log", itemId: "habit", date: new Date(`${date}T00:00:00.000Z`), value: 1 };

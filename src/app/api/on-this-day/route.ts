@@ -1,10 +1,13 @@
-import { db } from "@/lib/db";
-import { ok, parseMeta } from "@/lib/api";
+import { Owned } from "@/lib/domain/owned";
+import { ok, parseMeta, sessionUser } from "@/lib/api";
+import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 // GET /api/on-this-day — journal entries and reviews from this same day in past years/weeks
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const session = await sessionUser(req);
+  if (session instanceof Response) return session;
   const now = new Date();
   const month = now.getMonth();
   const date = now.getDate();
@@ -14,7 +17,7 @@ export async function GET() {
   oneYearAgo.setFullYear(now.getFullYear() - 3);
 
   const [journals, reviews] = await Promise.all([
-    db.item.findMany({
+    Owned.items(session.userId, {
       where: {
         type: "journal",
         status: { not: "archived" },
@@ -27,7 +30,7 @@ export async function GET() {
       orderBy: { scheduledAt: "desc" },
       take: 200,
     }),
-    db.review.findMany({
+    Owned.reviews(session.userId, {
       where: { date: { gte: oneYearAgo } },
       orderBy: { date: "desc" },
       take: 200,
@@ -56,7 +59,7 @@ export async function GET() {
     }));
 
   // Also include items completed on this day in past (milestones, bookmarks)
-  const completedOnDay = await db.item.findMany({
+  const completedOnDay = await Owned.items(session.userId, {
     where: {
       completedAt: { gte: oneYearAgo, not: null },
       status: "done",

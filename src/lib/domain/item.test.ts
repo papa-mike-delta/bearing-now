@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ItemDomain } from "./item";
 
 const db = vi.hoisted(() => ({
-  item: { findUnique: vi.fn(), findUniqueOrThrow: vi.fn(), updateMany: vi.fn(), create: vi.fn() },
+  item: { findFirst: vi.fn(), findUniqueOrThrow: vi.fn(), updateMany: vi.fn(), create: vi.fn() },
   tagOnItem: { deleteMany: vi.fn(), createMany: vi.fn() },
   tag: { upsert: vi.fn() },
   operationLedger: { create: vi.fn(), count: vi.fn() },
@@ -24,6 +24,7 @@ afterEach(() => {
 beforeEach(() => {
   vi.resetAllMocks();
   db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
+  db.item.findFirst.mockResolvedValue({ id: "item-1" });
   db.$transaction.mockImplementation((run) => run(db));
 });
 
@@ -31,19 +32,19 @@ it("updates at the loaded revision and returns the next revision", async () => {
   db.item.updateMany.mockResolvedValue({ count: 1 });
   db.item.findUniqueOrThrow.mockResolvedValue({ id: "item-1", title: "Updated", revision: 5 });
 
-  expect(await ItemDomain.update("item-1", 4, { title: "Updated" })).toEqual({
+  expect(await ItemDomain.update("alice", "item-1", 4, { title: "Updated" })).toEqual({
     receiptId: "receipt-1", ok: true, value: { id: "item-1", title: "Updated", revision: 5 },
   });
   expect(db.item.updateMany).toHaveBeenCalledWith({
-    where: { id: "item-1", revision: 4 },
+    where: { id: "item-1", userId: "alice", revision: 4 },
     data: { title: "Updated", revision: { increment: 1 } },
   });
 });
 
 it("rejects a stale revision without changing tags", async () => {
   db.item.updateMany.mockResolvedValue({ count: 0 });
-  db.item.findUnique.mockResolvedValue({ revision: 5 });
-  expect(await ItemDomain.update("item-1", 4, { title: "Stale" }, ["new"])).toEqual({
+  db.item.findFirst.mockResolvedValue({ revision: 5 });
+  expect(await ItemDomain.update("alice", "item-1", 4, { title: "Stale" }, ["new"])).toEqual({
     receiptId: "receipt-1", ok: false, conflict: true, currentRevision: 5,
   });
   expect(db.tagOnItem.deleteMany).not.toHaveBeenCalled();
@@ -52,18 +53,18 @@ it("rejects a stale revision without changing tags", async () => {
 it("archives at the loaded revision", async () => {
   db.item.updateMany.mockResolvedValue({ count: 1 });
   db.item.findUniqueOrThrow.mockResolvedValue({ id: "item-1", status: "archived", revision: 5 });
-  expect(await ItemDomain.archive("item-1", 4)).toMatchObject({
+  expect(await ItemDomain.archive("alice", "item-1", 4)).toMatchObject({
     ok: true, value: { status: "archived", revision: 5 },
   });
   expect(db.item.updateMany).toHaveBeenCalledWith({
-    where: { id: "item-1", revision: 4 },
+    where: { id: "item-1", userId: "alice", revision: 4 },
     data: { status: "archived", completedAt: null, revision: { increment: 1 } },
   });
 });
 
 it("creates an Item with its initial revision and tags", async () => {
   db.item.create.mockResolvedValue({ id: "new", title: "New", revision: 0, tags: [{ tag: { name: "work" } }] });
-  expect(await ItemDomain.create({ type: "note", title: "New" }, ["work"])).toMatchObject({
+  expect(await ItemDomain.create("alice", { type: "note", title: "New" }, ["work"])).toMatchObject({
     ok: true, value: { id: "new", revision: 0, tags: [{ tag: { name: "work" } }] },
   });
   expect(db.item.create).toHaveBeenCalledWith(expect.objectContaining({
@@ -80,7 +81,7 @@ it("returns synchronized tags and manages completion on status changes", async (
   db.item.updateMany.mockResolvedValue({ count: 1 });
   db.tag.upsert.mockResolvedValue({ id: "tag-1" });
   db.item.findUniqueOrThrow.mockResolvedValue({ revision: 5, tags: [{ tag: { name: "work" } }] });
-  expect(await ItemDomain.update("item-1", 4, { status: "done" }, ["work"])).toMatchObject({
+  expect(await ItemDomain.update("alice", "item-1", 4, { status: "done" }, ["work"])).toMatchObject({
     ok: true, value: { revision: 5, tags: [{ tag: { name: "work" } }] },
   });
   expect(db.item.updateMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -91,20 +92,20 @@ it("returns synchronized tags and manages completion on status changes", async (
 
 it("rejects an archive with a stale revision", async () => {
   db.item.updateMany.mockResolvedValue({ count: 0 });
-  db.item.findUnique.mockResolvedValue({ revision: 5 });
-  expect(await ItemDomain.archive("item-1", 4)).toEqual({ receiptId: "receipt-1", ok: false, conflict: true, currentRevision: 5 });
+  db.item.findFirst.mockResolvedValue({ revision: 5 });
+  expect(await ItemDomain.archive("alice", "item-1", 4)).toEqual({ receiptId: "receipt-1", ok: false, conflict: true, currentRevision: 5 });
 });
 
 it("reports a removed Item as a conflict with no current revision", async () => {
   db.item.updateMany.mockResolvedValue({ count: 0 });
-  db.item.findUnique.mockResolvedValue(null);
-  expect(await ItemDomain.update("missing", 4, { title: "Stale" })).toEqual({
+  db.item.findFirst.mockResolvedValue(null);
+  expect(await ItemDomain.update("alice", "missing", 4, { title: "Stale" })).toEqual({
     receiptId: "receipt-1", ok: false, conflict: true, currentRevision: null,
   });
 });
 
 it.each([undefined, null, "4", -1, 1.5, Number.MAX_SAFE_INTEGER + 1])("rejects invalid revision %j in the domain", async (revision) => {
-  expect(await ItemDomain.update("item-1", revision as number, { title: "Invalid" })).toMatchObject({ ok: false, error: expect.any(String) });
+  expect(await ItemDomain.update("alice", "item-1", revision as number, { title: "Invalid" })).toMatchObject({ ok: false, error: expect.any(String) });
   expect(db.item.updateMany).not.toHaveBeenCalled();
   expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ status: "refused" }) });
 });
@@ -113,15 +114,15 @@ it("blocks identity changes and nested writes that would bypass revision checks"
   db.item.updateMany.mockResolvedValue({ count: 1 });
   db.item.findUniqueOrThrow.mockResolvedValue({ id: "item-1", revision: 5 });
   const untrusted = JSON.parse('{"title":"Allowed","id":"other","revision":99,"linksFrom":{"create":{"toId":"other"}}}');
-  await ItemDomain.update("item-1", 4, untrusted);
+  await ItemDomain.update("alice", "item-1", 4, untrusted);
   expect(db.item.updateMany).toHaveBeenCalledWith({
-    where: { id: "item-1", revision: 4 }, data: { title: "Allowed", revision: { increment: 1 } },
+    where: { id: "item-1", userId: "alice", revision: 4 }, data: { title: "Allowed", revision: { increment: 1 } },
   });
 });
 
 it("refuses a 21st Item create in the actor's rolling hour and records the refusal", async () => {
   db.operationLedger.count.mockResolvedValue(20);
-  expect(await ItemDomain.create({ type: "note", title: "Over cap" }, [], "agent:coach")).toEqual({
+  expect(await ItemDomain.create("alice", { type: "note", title: "Over cap" }, [], "agent:coach")).toEqual({
     receiptId: "receipt-1", ok: false, rateLimited: true, limit: 20,
   });
   expect(db.item.create).not.toHaveBeenCalled();
@@ -132,9 +133,9 @@ it("refuses a 21st Item create in the actor's rolling hour and records the refus
 });
 
 it.each(["update", "archive"] as const)("refuses an agent %s of an open Item and records the refusal", async (operation) => {
-  db.setting.findFirst.mockResolvedValue({ id: "open-item:6974656d2d31:user:tab", value: "2099-01-01T00:00:00.000Z" });
-  const result = operation === "archive" ? await ItemDomain.archive("item-1", 4) :
-    await ItemDomain.update("item-1", 4, { title: "Agent edit" });
+  db.setting.findFirst.mockResolvedValue({ id: "open-item:alice:6974656d2d31:user:tab", value: "2099-01-01T00:00:00.000Z" });
+  const result = operation === "archive" ? await ItemDomain.archive("alice", "item-1", 4) :
+    await ItemDomain.update("alice", "item-1", 4, { title: "Agent edit" });
   expect(result).toEqual({ receiptId: "receipt-1", ok: false, itemOpen: true, itemId: "item-1" });
   expect(db.item.updateMany).not.toHaveBeenCalled();
   expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({
@@ -145,11 +146,11 @@ it.each(["update", "archive"] as const)("refuses an agent %s of an open Item and
 it("refreshes a user's open-item lease without editing the Item revision", async () => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-10-23T12:00:00Z"));
-  const result = await ItemDomain.setOpen("item-1", "tab-1", true, "user:alice");
+  const result = await ItemDomain.setOpen("alice", "item-1", "tab-1", true, "user:alice");
   expect(result).toMatchObject({ ok: true, value: { open: true } });
   expect(db.setting.upsert).toHaveBeenCalledWith({
-    where: { id: "open-item:6974656d2d31:757365723a616c696365:tab-1" },
-    create: { id: "open-item:6974656d2d31:757365723a616c696365:tab-1", value: "2026-10-23T12:01:30.000Z" },
+    where: { id: "open-item:alice:6974656d2d31:757365723a616c696365:tab-1" },
+    create: { id: "open-item:alice:6974656d2d31:757365723a616c696365:tab-1", value: "2026-10-23T12:01:30.000Z", userId: "alice" },
     update: { value: "2026-10-23T12:01:30.000Z" },
   });
   expect(db.item.updateMany).not.toHaveBeenCalled();
@@ -159,18 +160,18 @@ it("permits the user's own edits while the Item is open", async () => {
   db.setting.findFirst.mockResolvedValue({ id: "open-item:6974656d2d31:user:tab" });
   db.item.updateMany.mockResolvedValue({ count: 1 });
   db.item.findUniqueOrThrow.mockResolvedValue({ id: "item-1", revision: 5 });
-  expect(await ItemDomain.update("item-1", 4, { title: "My edit" }, undefined, "user:alice")).toMatchObject({ ok: true });
+  expect(await ItemDomain.update("alice", "item-1", 4, { title: "My edit" }, undefined, "user:alice")).toMatchObject({ ok: true });
   expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ actor: "user:alice", status: "success" }) });
 });
 
 it("closes only this user's lease, leaving other tabs' leases intact", async () => {
-  expect(await ItemDomain.setOpen("item-1", "tab-1", false, "user:alice")).toEqual({ receiptId: "receipt-1", ok: true, value: { open: false } });
-  expect(db.setting.deleteMany).toHaveBeenLastCalledWith({ where: { id: "open-item:6974656d2d31:757365723a616c696365:tab-1" } });
+  expect(await ItemDomain.setOpen("alice", "item-1", "tab-1", false, "user:alice")).toEqual({ receiptId: "receipt-1", ok: true, value: { open: false } });
+  expect(db.setting.deleteMany).toHaveBeenLastCalledWith({ where: { id: "open-item:alice:6974656d2d31:757365723a616c696365:tab-1", userId: "alice" } });
   expect(db.setting.upsert).not.toHaveBeenCalled();
 });
 
 it.each(["agent:coach", "user:alice"] as const)("records invalid presence from %s without changing any marker", async (actor) => {
-  expect(await ItemDomain.setOpen("item-1", "bad:lease", true, actor)).toMatchObject({ ok: false, error: expect.any(String) });
+  expect(await ItemDomain.setOpen("alice", "item-1", "bad:lease", true, actor)).toMatchObject({ ok: false, error: expect.any(String) });
   expect(db.setting.upsert).not.toHaveBeenCalled();
   expect(db.setting.deleteMany).not.toHaveBeenCalled();
 });
@@ -179,9 +180,9 @@ it("allows the 20th Item create and counts only this actor's successful creates 
   vi.spyOn(Date, "now").mockReturnValue(new Date("2026-10-23T12:00:00Z").getTime());
   db.operationLedger.count.mockResolvedValue(19);
   db.item.create.mockResolvedValue({ id: "twentieth", revision: 0 });
-  expect(await ItemDomain.create({ title: "Twentieth", type: "note" }, [], "agent:coach")).toMatchObject({ ok: true });
+  expect(await ItemDomain.create("alice", { title: "Twentieth", type: "note" }, [], "agent:coach")).toMatchObject({ ok: true });
   expect(db.operationLedger.count).toHaveBeenCalledWith({ where: {
-    actor: "agent:coach", operation: "item.create", status: "success",
+    userId: "alice", actor: "agent:coach", operation: "item.create", status: "success",
     createdAt: { gt: new Date("2026-10-23T11:00:00Z") },
   } });
 });
@@ -192,9 +193,10 @@ it("permits agent writes once all leases have expired, including the exact TTL b
   db.setting.findFirst.mockResolvedValue(null);
   db.item.updateMany.mockResolvedValue({ count: 1 });
   db.item.findUniqueOrThrow.mockResolvedValue({ id: "item-1", revision: 5 });
-  expect(await ItemDomain.update("item-1", 4, { title: "After expiry" })).toMatchObject({ ok: true });
+  expect(await ItemDomain.update("alice", "item-1", 4, { title: "After expiry" })).toMatchObject({ ok: true });
   expect(db.setting.findFirst).toHaveBeenCalledWith({ where: {
-    OR: [{ id: { startsWith: "open-item:6974656d2d31:" } }],
+    userId: "alice",
+    OR: [{ id: { startsWith: "open-item:alice:6974656d2d31:" } }],
     value: { gt: "2026-10-23T12:01:30.000Z" },
   } });
 });

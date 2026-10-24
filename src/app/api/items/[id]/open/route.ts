@@ -9,7 +9,7 @@ async function setOpen(req: Request, ctx: { params: Promise<{ id: string }> }, o
   if (!session) return bad("Unauthorized", 401);
   const { id } = await ctx.params;
   const { lease } = await parseBody<{ lease: string }>(req);
-  return domainResponse(await ItemDomain.setOpen(id, lease, open, `user:${session.userId}`));
+  return domainResponse(await ItemDomain.setOpen(session.userId, id, lease, open, `user:${session.userId}`));
 }
 
 export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }) {

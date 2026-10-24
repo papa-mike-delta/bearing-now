@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   const session = await getUserFromRequest(req);
   if (!session) return bad("Unauthorized", 401);
 
-  const setting = await db.setting.findUnique({ where: { id: `prefs-${session.userId}` } });
+  const setting = await db.setting.findFirst({ where: { id: `prefs-${session.userId}`, userId: session.userId } });
   const prefs = setting ? { ...DEFAULT_PREFS, ...JSON.parse(setting.value) } : DEFAULT_PREFS;
 
   // Don't return the API key
@@ -36,17 +36,18 @@ export async function PATCH(req: NextRequest) {
 
   const body = await parseBody(req);
 
-  const existing = await db.setting.findUnique({ where: { id: `prefs-${session.userId}` } });
+  const existing = await db.setting.findFirst({ where: { id: `prefs-${session.userId}`, userId: session.userId } });
   const current = existing ? JSON.parse(existing.value) : DEFAULT_PREFS;
 
   // Merge — don't overwrite apiKey with empty string
   const merged = { ...current, ...body };
   if (body.aiApiKey === "") delete merged.aiApiKey; // keep existing if empty
 
+  const id = `prefs-${session.userId}`;
   await db.setting.upsert({
-    where: { id: `prefs-${session.userId}` },
-    update: { value: JSON.stringify(merged) },
-    create: { id: `prefs-${session.userId}`, value: JSON.stringify(merged) },
+    where: { id },
+    update: { value: JSON.stringify(merged), userId: session.userId },
+    create: { id, value: JSON.stringify(merged), userId: session.userId },
   });
 
   const { aiApiKey, ...safePrefs } = merged;

@@ -1,10 +1,11 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { createSession } from "@/lib/auth";
 import { POST, DELETE } from "./route";
 
 const db = vi.hoisted(() => ({
   link: { upsert: vi.fn(), findUnique: vi.fn(), deleteMany: vi.fn() },
-  item: { updateMany: vi.fn(), findUnique: vi.fn() },
+  item: { updateMany: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
   operationLedger: { create: vi.fn(), count: vi.fn() },
   setting: { findFirst: vi.fn() },
   $queryRaw: vi.fn(),
@@ -14,8 +15,10 @@ const { link } = db;
 vi.mock("@/lib/db", () => ({ db }));
 
 const ctx = { params: Promise.resolve({ id: "item-1" }) };
+const cookie = `lifeos-session=${createSession("alice", "alice@example.com", true)}`;
 const request = (body: unknown) => new NextRequest("http://localhost/api/items/item-1/links", {
   method: "POST",
+  headers: { cookie },
   body: JSON.stringify(body),
 });
 
@@ -24,6 +27,8 @@ beforeEach(() => {
   db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
   db.$transaction.mockImplementation((run) => run(db));
   db.item.updateMany.mockResolvedValue({ count: 1 });
+  db.item.findFirst.mockResolvedValue({ id: "item-1", revision: 4 });
+  db.item.findMany.mockImplementation(async ({ where }) => (where?.id?.in ?? []).map((id: string) => ({ id })));
 });
 
 it.each([
@@ -52,9 +57,9 @@ it.each(["related", "unknown", "", null, 0, false, {}, [[]]])("rejects type %j w
 
 it.each(["POST", "DELETE"])("returns 409 for stale Link %s", async (method) => {
   db.item.updateMany.mockResolvedValue({ count: 0 });
-  db.item.findUnique.mockResolvedValue({ revision: 5 });
+  db.item.findFirst.mockResolvedValue({ id: "item-1", revision: 5 });
   const req = method === "POST" ? request({ toId: "item-2", revision: 4 }) :
-    new NextRequest("http://localhost/api/items/item-1/links?toId=item-2&revision=4", { method: "DELETE" });
+    new NextRequest("http://localhost/api/items/item-1/links?toId=item-2&revision=4", { method: "DELETE", headers: { cookie } });
   const response = await (method === "POST" ? POST : DELETE)(req, ctx);
   expect(response.status).toBe(409);
   expect(await response.json()).toMatchObject({ conflict: true, currentRevision: 5 });
@@ -63,13 +68,13 @@ it.each(["POST", "DELETE"])("returns 409 for stale Link %s", async (method) => {
 });
 
 it("deletes a Link with a matching revision", async () => {
-  const response = await DELETE(new NextRequest("http://localhost/api/items/item-1/links?toId=item-2&revision=4", { method: "DELETE" }), ctx);
+  const response = await DELETE(new NextRequest("http://localhost/api/items/item-1/links?toId=item-2&revision=4", { method: "DELETE", headers: { cookie } }), ctx);
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({ deleted: true });
 });
 
 it("rejects a Link delete without a revision", async () => {
-  const response = await DELETE(new NextRequest("http://localhost/api/items/item-1/links?toId=item-2", { method: "DELETE" }), ctx);
+  const response = await DELETE(new NextRequest("http://localhost/api/items/item-1/links?toId=item-2", { method: "DELETE", headers: { cookie } }), ctx);
   expect(response.status).toBe(400);
   expect(link.deleteMany).not.toHaveBeenCalled();
 });
@@ -82,12 +87,12 @@ it("returns 429 for a capped Link create", async () => {
   expect(link.upsert).not.toHaveBeenCalled();
 });
 
-it.each(["POST", "DELETE"])("returns 423 for Link %s touching an open target", async (method) => {
-  db.setting.findFirst.mockResolvedValue({ id: "open-item:6974656d2d32:user:tab" });
-  const req = method === "POST" ? request({ toId: "item-2", revision: 4 }) :
-    new NextRequest("http://localhost/api/items/item-1/links?toId=item-2&revision=4", { method: "DELETE" });
+it.each(["POST", "DELETE"])("returns 401 for Link %s without a session", async (method) => {
+  const req = method === "POST" ? new NextRequest("http://localhost/api/items/item-1/links", {
+    method: "POST", body: JSON.stringify({ toId: "item-2", revision: 4 }),
+  }) : new NextRequest("http://localhost/api/items/item-1/links?toId=item-2&revision=4", { method: "DELETE" });
   const response = await (method === "POST" ? POST : DELETE)(req, ctx);
-  expect(response.status).toBe(423);
-  expect(await response.json()).toEqual({ receiptId: "receipt-1", ok: false, itemOpen: true, itemId: "item-2" });
+  expect(response.status).toBe(401);
   expect(db.item.updateMany).not.toHaveBeenCalled();
+  expect(db.operationLedger.create).not.toHaveBeenCalled();
 });

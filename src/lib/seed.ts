@@ -24,7 +24,7 @@ async function main() {
   const DEMO_EMAIL = "demo@gmail.com";
   const DEMO_PASSWORD = "Password123";
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
-  await db.user.upsert({
+  const demo = await db.user.upsert({
     where: { email: DEMO_EMAIL },
     update: { passwordHash, name: "Demo User" },
     create: {
@@ -36,10 +36,17 @@ async function main() {
   });
   console.log(`👤 Demo user ready: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
 
+  const existing = await db.domain.count({ where: { userId: demo.id } });
+  if (existing > 0) {
+    console.error("Demo user already has domains. Refusing to seed.");
+    process.exitCode = 1;
+    return;
+  }
+
   // Domains
   for (const dom of DOMAINS) {
     await db.domain.upsert({
-      where: { key: dom.key },
+      where: { userId_key: { userId: demo.id, key: dom.key } },
       update: {
         name: dom.name,
         description: dom.description,
@@ -54,10 +61,11 @@ async function main() {
         icon: dom.icon,
         color: dom.color,
         order: dom.order,
+        userId: demo.id,
       },
     });
   }
-  const domains = await db.domain.findMany();
+  const domains = await db.domain.findMany({ where: { userId: demo.id } });
   const dmap = Object.fromEntries(domains.map((d) => [d.key, d.id]));
 
   // Projects / Threads
@@ -113,16 +121,16 @@ async function main() {
         progress: 50,
         targetDate: daysFromNow(180),
       },
-    ].map((p) => db.project.create({ data: p as any })),
+    ].map((p) => db.project.create({ data: { ...p, userId: demo.id } as any })),
   );
   const pmap = Object.fromEntries(projects.map((p) => [p.name, p.id]));
 
   // Keep this demo to 20 Items so a fresh seed fits the hourly write cap.
   // Helper to create item + metadata
-  async function item(data: Omit<Prisma.ItemCreateManyInput, "metadata" | "revision"> & { metadata?: unknown }) {
+  async function item(data: Omit<Prisma.ItemCreateManyInput, "metadata" | "revision" | "userId"> & { metadata?: unknown }) {
     const meta = data.metadata ? { metadata: JSON.stringify(data.metadata) } : {};
     const { metadata, ...rest } = data;
-    const result = await ItemDomain.create({ ...rest, ...meta }, [], "agent:seed");
+    const result = await ItemDomain.create(demo.id, { ...rest, ...meta }, [], "agent:seed");
     if (!result.ok) throw new Error(`Seed refused: ${JSON.stringify(result)}`);
     return result.value;
   }
@@ -187,19 +195,17 @@ async function main() {
   await item({ type: "task", title: "Grocery: oats, eggs, spinach, bananas", domainId: dmap.admin, status: "active", priority: 2, dueDate: daysFromNow(1), content: "Weekly grocery run" });
 
   // ── Bi-directional links ──
-  const debtJournal = await db.item.findFirst({ where: { title: "Stress about money" } });
-  const debtProject = await db.project.findFirst({ where: { name: "Get out of Debt" } });
-  const financialVision = await db.item.findFirst({ where: { title: "Live with intention" } });
-  const halfGoal = await db.item.findFirst({ where: { title: "Run a half-marathon" } });
-  const healthProject = await db.project.findFirst({ where: { name: "Health Transformation" } });
+  const debtJournal = await db.item.findFirst({ where: { title: "Stress about money", userId: demo.id } });
+  const financialVision = await db.item.findFirst({ where: { title: "Live with intention", userId: demo.id } });
+  const halfGoal = await db.item.findFirst({ where: { title: "Run a half-marathon", userId: demo.id } });
   if (debtJournal && financialVision) {
-    await LinkDomain.create({ fromId: debtJournal.id, toId: financialVision.id, type: LinkType.parse("related_to"), note: "journal references the vision" }, debtJournal.revision, "agent:seed").catch(() => {});
+    await LinkDomain.create(demo.id, { fromId: debtJournal.id, toId: financialVision.id, type: LinkType.parse("related_to"), note: "journal references the vision" }, debtJournal.revision, "agent:seed").catch(() => {});
   }
   if (halfGoal && runHabit) {
-    await LinkDomain.create({ fromId: halfGoal.id, toId: runHabit.id, type: LinkType.parse("related_to"), note: "habit supports this goal" }, halfGoal.revision, "agent:seed").catch(() => {});
+    await LinkDomain.create(demo.id, { fromId: halfGoal.id, toId: runHabit.id, type: LinkType.parse("related_to"), note: "habit supports this goal" }, halfGoal.revision, "agent:seed").catch(() => {});
   }
   if (medHabit && writeHabit) {
-    await LinkDomain.create({ fromId: medHabit.id, toId: writeHabit.id, type: LinkType.parse("related_to") }, medHabit.revision, "agent:seed").catch(() => {});
+    await LinkDomain.create(demo.id, { fromId: medHabit.id, toId: writeHabit.id, type: LinkType.parse("related_to") }, medHabit.revision, "agent:seed").catch(() => {});
   }
 
   // ── Reviews ──
@@ -216,6 +222,7 @@ async function main() {
       mood: 4,
       energy: 3,
       notes: "Felt focused in the morning, drained by evening.",
+      userId: demo.id,
     },
   });
   await db.review.create({
@@ -230,6 +237,7 @@ async function main() {
       priorities: '["Reply to landlord","Book flights","Read 20 pages"]',
       mood: 3,
       energy: 3,
+      userId: demo.id,
     },
   });
   await db.review.create({
@@ -247,6 +255,7 @@ async function main() {
       mood: 4,
       energy: 3,
       notes: "Good momentum overall. Need to tighten the budget.",
+      userId: demo.id,
     },
   });
 

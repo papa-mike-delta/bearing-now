@@ -20,6 +20,14 @@ model User {
   totpVerified Boolean   @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  domains  Domain[]
+  items    Item[]
+  projects Project[]
+  tags     Tag[]
+  reviews  Review[]
+  settings Setting[]
+  ledger   OperationLedger[]
 }
 
 // ─── Life Domains ────────────────────────────────────────────────────────────
@@ -27,16 +35,20 @@ model User {
 // Network, Growth, Creativity & Joy, Admin
 model Domain {
   id          String   @id @default(cuid())
-  key         String   @unique
+  key         String
   name        String
   description String?
   icon        String?
   color       String   @default("#71717a")
   accent      String?  // tailwind-ish accent token
   order       Int      @default(0)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Restrict)
   items       Item[]
   projects    Project[]
   createdAt   DateTime @default(now())
+
+  @@unique([userId, key])
 }
 
 // ─── Universal Item (the "Digital Brain" node) ───────────────────────────────
@@ -73,6 +85,9 @@ model Item {
 
   metadata    String?  // JSON string for type-specific fields
 
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -89,6 +104,7 @@ model Item {
   @@index([projectId])
   @@index([dueDate])
   @@index([scheduledAt])
+  @@index([userId])
 }
 
 // ─── Project / Thread ────────────────────────────────────────────────────────
@@ -106,6 +122,8 @@ model Project {
   startDate   DateTime?
   targetDate  DateTime?
   completedAt DateTime?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Restrict)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -113,6 +131,7 @@ model Project {
 
   @@index([status])
   @@index([domainId])
+  @@index([userId])
 }
 
 // ─── Directed, typed Link ────────────────────────────────────────────────────
@@ -136,10 +155,14 @@ model Link {
 // ─── Tags ────────────────────────────────────────────────────────────────────
 model Tag {
   id        String   @id @default(cuid())
-  name      String   @unique
+  name      String
   color     String   @default("#71717a")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
   items     TagOnItem[]
   createdAt DateTime @default(now())
+
+  @@unique([userId, name])
 }
 
 model TagOnItem {
@@ -184,12 +207,15 @@ model Review {
   energy     Int?
   notes      String?
 
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   items      ReviewItem[]
 
   @@index([type, date])
+  @@index([userId])
 }
 
 model ReviewItem {
@@ -218,14 +244,20 @@ model Reminder {
 
 // ─── Settings (key-value) ────────────────────────────────────────────────────
 model Setting {
-  id    String @id
-  value String
+  id     String @id
+  value  String
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
 }
 
 // Durable audit history, independent of Items so reset/restore cannot erase it.
 model OperationLedger {
   id        String   @id @default(cuid())
   actor     String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
   operation String
   payload   String   // JSON request
   status    String   // success | refused
@@ -233,4 +265,5 @@ model OperationLedger {
   createdAt DateTime @default(now())
 
   @@index([actor, operation, status, createdAt])
+  @@index([userId, actor, operation, status, createdAt])
 }

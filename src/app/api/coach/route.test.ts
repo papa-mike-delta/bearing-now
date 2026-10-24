@@ -4,10 +4,10 @@ import { createSession } from "@/lib/auth";
 import { GET, POST } from "./route";
 
 const db = vi.hoisted(() => ({
-  item: { create: vi.fn(), findUnique: vi.fn(), findUniqueOrThrow: vi.fn(), updateMany: vi.fn(), findMany: vi.fn() },
+  item: { create: vi.fn(), findFirst: vi.fn(), findUniqueOrThrow: vi.fn(), updateMany: vi.fn(), findMany: vi.fn() },
   link: { findUnique: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn(), findMany: vi.fn() },
   setting: { findFirst: vi.fn(), findMany: vi.fn() },
-  operationLedger: { create: vi.fn(), count: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
+  operationLedger: { create: vi.fn(), count: vi.fn(), findFirst: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
   $queryRaw: vi.fn(), $transaction: vi.fn(),
 }));
 vi.mock("@/lib/db", () => ({ db }));
@@ -17,6 +17,8 @@ beforeEach(() => {
   vi.stubEnv("COACH_TOOLS_ENABLED", "true");
   db.$transaction.mockImplementation((run) => run(db));
   db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
+  db.item.findFirst.mockResolvedValue({ id: "item", title: "Read", revision: 4 });
+  db.item.findMany.mockImplementation(async ({ where }) => where?.id?.in ? where.id.in.map((id: string) => ({ id, title: "Read" })) : []);
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -59,10 +61,8 @@ it.each([
   { tool: "createLink", args: { fromId: "item", toId: "other", type: "tracks", revision: 4 } },
   { tool: "deleteLink", args: { fromId: "item", toId: "other", type: "tracks", revision: 4 } },
 ])("dispatches $tool and returns its ledger receipt", async (call) => {
-  db.item.findUnique.mockResolvedValue({ id: "item", title: "Read", revision: 4 });
   db.item.findUniqueOrThrow.mockResolvedValue({ id: "item", title: "Read more", revision: 5 });
   db.item.updateMany.mockResolvedValue({ count: 1 });
-  db.item.findMany.mockResolvedValue([]);
   db.link.findMany.mockResolvedValue([]);
   db.link.upsert.mockResolvedValue({ id: "link" });
   db.setting.findMany.mockResolvedValue([]);
@@ -74,8 +74,8 @@ it.each([
 });
 
 it.each([
-  { name: "stale revision", status: 409, setup: () => { db.item.updateMany.mockResolvedValue({ count: 0 }); db.item.findUnique.mockResolvedValue({ revision: 5, title: "Read" }); }, expected: { conflict: true, currentRevision: 5 } },
-  { name: "open Item", status: 423, setup: () => db.setting.findFirst.mockResolvedValue({ id: "open-item:6974656d:user:tab" }), expected: { itemOpen: true, itemId: "item" } },
+  { name: "stale revision", status: 409, setup: () => { db.item.updateMany.mockResolvedValue({ count: 0 }); db.item.findFirst.mockResolvedValue({ revision: 5, title: "Read" }); }, expected: { conflict: true, currentRevision: 5 } },
+  { name: "open Item", status: 423, setup: () => db.setting.findFirst.mockResolvedValue({ id: "open-item:alice:6974656d:user:tab" }), expected: { itemOpen: true, itemId: "item" } },
 ])("propagates $name refusal with its receipt", async ({ status, setup, expected }) => {
   setup();
   const response = await POST(request({ tool: "updateItem", args: { id: "item", revision: 4, data: { title: "Read more" } } }));
@@ -137,7 +137,7 @@ it("lists Coach writes and conflict receipts for the verified session", async ()
   expect(db.operationLedger.findUnique).not.toHaveBeenCalled();
   expect(db.item.findMany).toHaveBeenCalledTimes(1);
   expect(db.item.findMany).toHaveBeenCalledWith({
-    where: { id: { in: ["item-1"] } },
+    where: { id: { in: ["item-1"] }, userId: "alice" },
     select: { id: true, title: true },
   });
 });
@@ -152,8 +152,8 @@ it.each(["disabled", "unsigned"])("protects the activity feed (%s)", async (scen
 });
 
 it("reads the linked Coach receipt using the same session", async () => {
-  db.operationLedger.findUnique.mockResolvedValue({
-    id: "receipt-1", actor: "agent:coach", operation: "item.create", status: "success",
+  db.operationLedger.findFirst.mockResolvedValue({
+    id: "receipt-1", actor: "agent:coach", userId: "alice", operation: "item.create", status: "success",
     payload: '{"data":{"title":"Read"}}', receipt: '{"ok":true,"value":{"title":"Read"}}',
   });
   const response = await GET(new NextRequest("http://localhost/api/coach?receipt=receipt-1", {
@@ -167,7 +167,7 @@ it("reads the linked Coach receipt using the same session", async () => {
 
 it.each(["disabled", "unsigned", "missing", "other actor"])("protects receipt access (%s)", async (scenario) => {
   if (scenario === "disabled") vi.stubEnv("COACH_TOOLS_ENABLED", "false");
-  db.operationLedger.findUnique.mockResolvedValue(scenario === "other actor" ? { actor: "user:alice" } : null);
+  db.operationLedger.findFirst.mockResolvedValue(scenario === "other actor" ? { actor: "user:alice", userId: "alice" } : null);
   const response = await GET(new NextRequest("http://localhost/api/coach?receipt=receipt-1", {
     headers: scenario === "unsigned" ? {} : request({}).headers,
   }));
