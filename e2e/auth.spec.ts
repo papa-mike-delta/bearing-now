@@ -38,3 +38,20 @@ test("demo login form authenticates", async ({ page }) => {
   await new LoginPage(page).login();
   expect(await (await page.request.get("/api/auth/session")).json()).toMatchObject({ authenticated: true });
 });
+
+test("a forged session cookie still sees the landing and login pages", async ({ page, context }) => {
+  await context.addCookies([{ name: "lifeos-session", value: "forged", url: "http://localhost:3000" }]);
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/$/);
+  await page.goto("/login");
+  await expect(page).toHaveURL(/\/login$/);
+});
+
+test("going back after signing in from the landing page stays in the app", async ({ page }) => {
+  await page.goto("/");
+  await new LoginPage(page).login();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/app$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/app$/);
+});

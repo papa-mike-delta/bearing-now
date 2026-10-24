@@ -4,7 +4,7 @@ Run from this checkout on a disposable local PostgreSQL database:
 
 ```sh
 npm install
-npx playwright install chromium
+npx playwright install chromium webkit  # webkit runs *.mobile.spec.ts as iPhone 13
 # DATABASE_URL in .env.local or .env; migrate/seed first if necessary:
 bun run src/lib/seed.ts
 npm run test:e2e
@@ -65,6 +65,8 @@ All five regression tests assert correct user-visible behavior as normal passing
 | Item editor tag preservation | Changing only the title preserves tags | Editor seeds `tagNames: []` rather than mapping existing `item.tags`, then saves the empty array and removes all associations | `src/components/bearing/item-editor.tsx` initialization/save | fixed in this PR — Initialize tagNames from the existing item tag associations. |
 | Habit Mark today | Today becomes logged and the button changes to Done today | Parsing YYYY-MM-DD as UTC and then setting local midnight stores the previous date in America/New_York; UI still offers Mark today | `src/app/api/items/[id]/habit-logs/route.ts` POST | fixed in this PR — Use local calendar keys in the browser and store supplied dates at UTC midnight without local normalization. |
 | Full JSON backup import | The app can restore its own exported dataset | HTTP 429 when item count exceeds the remaining 20-per-hour actor create allowance, including the seeded dataset; import is rejected before clearing data | `src/lib/domain/database.ts` `DatabaseDomain.clear` / `src/lib/domain/write-caps.ts`, reached by `/api/backup` POST | fixed in this PR — Exempt authenticated user restores at the domain cap boundary; ordinary creates and agent restores remain capped. |
+| Inbox edit on a phone (live report) | Tapping the pencil on a bookmark capture opens the editor | Nothing happens: items saved without metadata come back as `metadata: null`; the editor seed spread overwrote the `{}` default and the bookmark fields read `form.metadata.medium` during render, crashing the dialog | `src/components/bearing/item-editor.tsx` initialization | fixed (fix-inbox-edit-and-app-guard) |
+| Signed-in back navigation | Swipe-back from /app stays in the app | Landing and login pages were served (and bfcached) to signed-in users | `src/middleware.ts` (now `src/proxy.ts`) | fixed (fix-inbox-edit-and-app-guard) |
 
 Restore exemptions apply only to authenticated user backup operations and retain distinct item.restore/link.restore ledger receipts so restored records do not consume ordinary create allowances. Agent restores still undergo cap preflight before data is cleared. Tests isolate tag restoration with a one-item backup and separately exercise the full exported dataset.
 

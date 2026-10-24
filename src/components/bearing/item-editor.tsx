@@ -54,9 +54,11 @@ export function ItemEditor() {
         projectId: "",
         dueDate: "",
         scheduledAt: "",
-        metadata: {},
         tagNames: itemEditorSeed?.tags?.map(({ tag }) => tag.name) || [],
         ...(itemEditorSeed || {}),
+        // API items carry `metadata: null` when none was saved; the type-specific
+        // fields read form.metadata.* during render, so never let null through.
+        metadata: itemEditorSeed?.metadata ?? {},
       });
       setTagInput("");
     }

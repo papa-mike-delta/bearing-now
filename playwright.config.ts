@@ -14,7 +14,13 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"], storageState: "e2e/.auth/demo.json" },
       dependencies: ["setup"],
-      testIgnore: /auth\.setup\.ts/,
+      testIgnore: [/auth\.setup\.ts/, /\.mobile\.spec\.ts/],
+    },
+    {
+      name: "mobile-safari",
+      use: { ...devices["iPhone 13"], storageState: "e2e/.auth/demo.json" },
+      dependencies: ["setup"],
+      testMatch: /\.mobile\.spec\.ts/,
     },
   ],
   webServer: {
