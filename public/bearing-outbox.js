@@ -158,6 +158,8 @@ export async function syncOutbox(userId, options = {}) {
             occurredAt,
             timezone,
             ...(intendedType ? { intendedType } : {}),
+            ...(entry.place ? { place: entry.place } : {}),
+            ...(entry.mentionIds ? { mentionIds: entry.mentionIds } : {}),
           }),
         });
         if (

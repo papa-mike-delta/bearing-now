@@ -241,3 +241,215 @@ it("organizing an explicit Task capture clears both Inbox flags without another 
   expect((await V1.item(userId, itemId)).status).toBe("todo");
   expect(await v1db.item.count({ where: { userId, type: "task" } })).toBe(1);
 });
+
+// #46: connected life contracts over the same canonical records.
+import { Connected } from "@/lib/v1/connected-service";
+it("keeps Person mentions, confirmed interactions, follow-ups and linked references distinct and tenant scoped", async () => {
+  const person = (
+    await V1.createItem(p, {
+      type: "person",
+      title: "Alex",
+      metadata: {
+        version: 1,
+        email: "alex@example.test",
+        birthday: "1990-12-25",
+      },
+    })
+  ).value;
+  const book = (
+    await V1.createItem(p, {
+      type: "bookmark",
+      template: "media",
+      title: "A flexible reference",
+      metadata: { version: 1, category: "media", format: "Audio essay" },
+    })
+  ).value;
+  await V1.createLink(p, {
+    fromId: person.id,
+    toId: book.id,
+    type: "related_to",
+  });
+  const moment = (
+    await Workflow.capture(
+      p,
+      input({ text: "Thought about Alex", mentionIds: [person.id] }),
+    )
+  ).value;
+  await Connected.mention(p, moment.id, { itemId: person.id });
+  expect(
+    await v1db.momentItem.count({
+      where: { userId, momentId: moment.id, itemId: person.id },
+    }),
+  ).toBe(1);
+  expect(
+    await v1db.activity.count({ where: { userId, kind: "interaction" } }),
+  ).toBe(0);
+  const task = (
+    await V1.createItem(p, {
+      type: "task",
+      title: "Call Alex",
+      status: "delegated",
+      delegateId: person.id,
+      followUpAt: "2026-11-01T12:00:00Z",
+    })
+  ).value;
+  expect(
+    (await V1.items(userId, { status: "in_progress" })).map((i) => i.id),
+  ).toContain(task.id);
+  const contact = {
+    kind: "interaction",
+    clientId: "contact-alex",
+    itemId: person.id,
+    occurredAt: "2026-10-25T14:00:00Z",
+    timezone: "UTC",
+    data: { note: "Spoke on phone" },
+  };
+  await V1.createActivity(p, contact);
+  await V1.createActivity(p, contact);
+  expect(
+    await v1db.activity.count({ where: { userId, kind: "interaction" } }),
+  ).toBe(1);
+  await expect(
+    Connected.mention(q, moment.id, { itemId: person.id }),
+  ).rejects.toMatchObject({ status: 404 });
+  await expect(
+    V1.createLink(q, { fromId: person.id, toId: book.id, type: "related_to" }),
+  ).rejects.toMatchObject({ status: 404 });
+  expect((await Workflow.workspace(other)).links).toEqual([]);
+});
+it("links private health-reference Notes to canonical Me without creating a second identity", async () => {
+  const me = await V1.me(userId);
+  const note = (
+    await V1.createItem(p, {
+      type: "note",
+      template: "note",
+      title: "Private medication reference",
+      content: "Reference only, no advice.",
+    })
+  ).value;
+  await V1.createLink(p, { fromId: note.id, toId: me.id, type: "related_to" });
+  expect((await Workflow.workspace(userId)).links).toHaveLength(1);
+  expect(await Workflow.search(other, { q: "medication" })).toEqual([]);
+  await expect(V1.item(other, note.id)).rejects.toMatchObject({ status: 404 });
+  expect((await V1.me(other)).id).not.toBe(me.id);
+});
+it("saves routine steps independently and resets the next occurrence while preserving completed snapshots", async () => {
+  const habit = (
+    await V1.createItem(p, {
+      type: "habit",
+      template: "routine",
+      title: "Morning routine",
+      content: "- [x] Drink water\n- [ ] Stretch",
+      timezone: "America/New_York",
+      metadata: { version: 1, cadence: "daily", unit: "rounds" },
+    })
+  ).value;
+  const payload = {
+    revision: 0,
+    occurredAt: "2026-11-01T05:30:00Z",
+    timezone: "America/New_York",
+    checklist: [true, false],
+    value: 2,
+    complete: false,
+  };
+  const draft = (await Connected.habit(p, habit.id, payload)).value;
+  expect(draft.completed).toBe(false);
+  expect(
+    await v1db.activity.count({ where: { userId, kind: "habit_completion" } }),
+  ).toBe(0);
+  const complete = { ...payload, revision: draft.revision, complete: true };
+  const [a, b] = await Promise.all([
+    Connected.habit(p, habit.id, complete),
+    Connected.habit(p, habit.id, complete),
+  ]);
+  expect(a.value).toEqual(b.value);
+  const history = await v1db.activity.findMany({
+    where: { userId, kind: "habit_completion" },
+  });
+  expect(history).toHaveLength(1);
+  expect(history[0].data).toMatchObject({
+    content: habit.content,
+    checklist: [true, false],
+    value: 2,
+    period: "2026-11-01",
+  });
+  expect((await V1.item(userId, habit.id)).status).toBe("inbox");
+  await Connected.habit(p, habit.id, {
+    ...payload,
+    occurredAt: "2026-11-02T17:00:00Z",
+    checklist: [false, false],
+  });
+  const rows = (await Workflow.workspace(userId)).habitOccurrences;
+  expect(rows).toHaveLength(2);
+  expect(rows.find((r) => r.key.endsWith("2026-11-02"))?.value).toMatchObject({
+    checklist: [false, false],
+    completed: false,
+  });
+  await expect(Connected.habit(q, habit.id, payload)).rejects.toMatchObject({
+    status: 404,
+  });
+  await expect(
+    Connected.habit(p, habit.id, { ...complete, value: 3 }),
+  ).rejects.toMatchObject({ status: 409 });
+});
+it("records one Focus Activity per session while mood check-ins and Reviews remain separate", async () => {
+  const task = (await V1.createItem(p, { type: "task", title: "Focus anchor" }))
+    .value;
+  const focus = {
+    kind: "focus",
+    clientId: "focus-session-one",
+    occurredAt: "2026-10-25T14:00:00Z",
+    timezone: "UTC",
+    itemId: task.id,
+    data: { minutes: 25 },
+  };
+  await Promise.all([V1.createActivity(p, focus), V1.createActivity(p, focus)]);
+  expect(await v1db.activity.count({ where: { userId, kind: "focus" } })).toBe(
+    1,
+  );
+  const mood = {
+    kind: "check_in",
+    clientId: "mood-one",
+    occurredAt: "2026-10-25T15:00:00Z",
+    timezone: "UTC",
+    data: { mood: 4, energy: 3 },
+  };
+  await V1.createActivity(p, mood);
+  await V1.createActivity(p, { ...mood, data: { energy: 3, mood: 4 } });
+  await V1.createActivity(p, {
+    ...mood,
+    clientId: "mood-two",
+    occurredAt: "2026-10-25T17:00:00Z",
+  });
+  await V1.createReview(p, {
+    period: "daily",
+    localDate: "2026-10-25",
+    timezone: "UTC",
+    prompts: { notes: "A separate reflection" },
+  });
+  expect(
+    await v1db.activity.count({ where: { userId, kind: "check_in" } }),
+  ).toBe(2);
+  expect(await v1db.review.count({ where: { userId } })).toBe(1);
+  expect((await V1.item(userId, task.id)).status).toBe("inbox");
+  await expect(V1.createActivity(q, focus)).rejects.toMatchObject({
+    status: 404,
+  });
+});
+it("captures Place coordinates once without venue lookup or visit Activity", async () => {
+  const value = input({
+    text: "By the river",
+    place: { latitude: 40.7, longitude: -73.9 },
+  });
+  const a = await Workflow.capture(p, value),
+    b = await Workflow.capture(p, value);
+  expect(a.value.id).toBe(b.value.id);
+  const places = await V1.items(userId, { type: "bookmark" });
+  expect(places).toHaveLength(1);
+  expect(places[0].metadata).toMatchObject({
+    category: "place",
+    latitude: 40.7,
+    longitude: -73.9,
+  });
+  expect(await v1db.activity.count({ where: { userId } })).toBe(0);
+});

@@ -6,6 +6,8 @@ import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { DraftNotice, useItemDraft } from "../item-draft-session";
 import { useOpenItem } from "@/hooks/use-open-item";
+import { StructuredFields, newItemSeed, typeNames } from "./structured-fields";
+import type { CanonicalItem } from "@/lib/v1/contracts";
 import { itemInput } from "@/lib/v1/contracts";
 import {
   itemDto,
@@ -80,25 +82,12 @@ export function ItemEditor({
 }: {
   item?: ItemRecord;
   draftKey?: string;
-  type?: "task" | "note";
+  type?: CanonicalItem["type"];
 }) {
   const { userId, data: workspace, timezone, mutate, refresh } = useWorkspace(),
     router = useRouter();
   const seed = useMemo(
-    () =>
-      item
-        ? itemSeed(item)
-        : {
-            type,
-            template: type,
-            title: "",
-            content: "",
-            status: "todo",
-            priority: 0,
-            metadata: { version: 1 },
-            timezone,
-            tagIds: [],
-          },
+    () => (item ? itemSeed(item) : newItemSeed(type, timezone)),
     [item, type, timezone],
   );
   const { owner, draft, data } = useItemDraft(
@@ -169,6 +158,11 @@ export function ItemEditor({
             onChange={(e) => change({ title: e.target.value })}
           />
         </label>
+        <StructuredFields
+          data={data}
+          change={change}
+          onError={setActionError}
+        />
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="text-sm">
             Status
@@ -315,7 +309,9 @@ export function ItemEditor({
         {!!tasks.length && (
           <fieldset className="space-y-2 rounded-xl border border-border p-3">
             <legend className="px-1 text-sm font-medium">
-              Checklist · save to keep changes
+              {data.type === "habit"
+                ? "Checklist template · occurrence ticks are below"
+                : "Checklist · save to keep changes"}
             </legend>
             {tasks.map((task) => (
               <div
@@ -326,6 +322,7 @@ export function ItemEditor({
                   <input
                     type="checkbox"
                     checked={task.checked}
+                    disabled={data.type === "habit"}
                     onChange={(e) =>
                       change({
                         content: toggleMarkdownTask(
@@ -365,7 +362,7 @@ export function ItemEditor({
             ? "Saving…"
             : item
               ? "Save changes"
-              : `Create ${type === "task" ? "Task" : "Note"}`}
+              : `Create ${typeNames[type]}`}
         </Button>
       </form>
       {item && (

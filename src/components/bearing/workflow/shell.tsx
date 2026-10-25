@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useTheme } from "next-themes";
+import { ConnectedFocus, ConnectedGraph } from "./perspectives";
 import { Appearance } from "./appearance";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -40,6 +41,7 @@ const nav = [
   ["projects", "Projects", "Folder"],
   ["library", "Library", "Library"],
   ["calendar", "Calendar", "CalendarDays"],
+  ["focus", "Focus", "Timer"],
   ["coach", "Coach", "Sparkles"],
   ["settings", "Settings", "Settings"],
 ];
@@ -222,7 +224,7 @@ function Content({
   useEffect(() => {
     if (view === "library" && recordId === "new" && !params.get("draft"))
       router.replace(
-        `/app/library/new?type=${params.get("type") === "note" ? "note" : "task"}&draft=${crypto.randomUUID()}`,
+        `/app/library/new?type=${["task", "note", "person", "bookmark", "habit", "event", "goal"].includes(params.get("type") || "") ? params.get("type") : "task"}&draft=${crypto.randomUUID()}`,
       );
     const target = params.get("moment")
       ? `moment-${params.get("moment")}`
@@ -479,6 +481,10 @@ function Content({
               <Projects key={recordId || "all"} recordId={recordId} />
             ) : view === "calendar" ? (
               <Calendar date={date} />
+            ) : view === "focus" ? (
+              <ConnectedFocus />
+            ) : view === "graph" ? (
+              <ConnectedGraph />
             ) : view === "coach" || view === "search" ? (
               <Search
                 key={`${view}:${params.toString()}`}

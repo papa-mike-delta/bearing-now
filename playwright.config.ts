@@ -16,13 +16,13 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], storageState: v1 ? "e2e/.auth/workflow.json" : "e2e/.auth/demo.json" },
       dependencies: ["setup"],
       testIgnore: [/auth\.setup\.ts/, /\.mobile\.spec\.ts/, ...(v1 ? [] : [/v1-.*\.spec\.ts/])],
-      ...(v1 ? { testMatch: /v1-(workflow|foundations)\.spec\.ts/ } : {}),
+      ...(v1 ? { testMatch: /v1-(workflow|foundations|connected)\.spec\.ts/ } : {}),
     },
     {
       name: "mobile-safari",
       use: { ...devices["iPhone 13"], storageState: v1 ? "e2e/.auth/workflow.json" : "e2e/.auth/demo.json" },
       dependencies: ["setup"],
-      testMatch: v1 ? /v1-(workflow|foundations)\.spec\.ts/ : /\.mobile\.spec\.ts/,
+      testMatch: v1 ? /v1-(workflow|foundations|connected)\.spec\.ts/ : /\.mobile\.spec\.ts/,
     },
   ],
   webServer: {

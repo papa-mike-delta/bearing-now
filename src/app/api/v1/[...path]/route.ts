@@ -5,6 +5,7 @@ import { v1db } from "@/lib/v1/db";
 import { V1, Fault, parse, type Principal } from "@/lib/v1/service";
 import { V1Backup } from "@/lib/v1/backup";
 import { V1Demo } from "@/lib/v1/demo";
+import { Connected } from "@/lib/v1/connected-service";
 import { Workflow } from "@/lib/v1/workflow";
 import { id, revision } from "@/lib/v1/contracts";
 export const dynamic = "force-dynamic";
@@ -79,8 +80,22 @@ async function handle(
       method === "POST"
     )
       result = await Workflow.organize(p, recordId, body);
+    else if (
+      resource === "journal" &&
+      recordId &&
+      action === "mention" &&
+      method === "POST"
+    )
+      result = await Connected.mention(p, recordId, body);
     else if (resource === "journal" && recordId && !action && method === "PUT")
       result = await Workflow.editMoment(p, recordId, body);
+    else if (
+      resource === "items" &&
+      recordId &&
+      action === "occurrence" &&
+      method === "PUT"
+    )
+      result = await Connected.habit(p, recordId, body);
     else if (resource === "items" && !action) {
       if (method === "GET") {
         if (recordId) result = await V1.item(p.userId, recordId);
