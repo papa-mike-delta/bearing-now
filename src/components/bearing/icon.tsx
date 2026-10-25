@@ -14,5 +14,5 @@ export function Icon({ name, fallback = "Circle", className, ...rest }: IconProp
   const Comp = (Icons as any)[name] as Icons.LucideIcon | undefined;
   const Fallback = (Icons as any)[fallback] as Icons.LucideIcon;
   const C = Comp || Fallback;
-  return <C className={cn("h-4 w-4", className)} {...rest} />;
+  return <C aria-hidden={rest["aria-label"] || rest["aria-labelledby"] ? undefined : true} focusable="false" className={cn("h-4 w-4", className)} {...rest} />;
 }

@@ -51,10 +51,10 @@ export function ProjectsView() {
               {(["active", "all"] as const).map((f) => (
                 <button
                   key={f}
-                  onClick={() => setFilter(f)}
+                  aria-pressed={filter === f} onClick={() => setFilter(f)}
                   className={cn("rounded-md px-3 py-1 text-xs font-medium capitalize transition-all", filter === f ? "bg-background shadow-sm" : "text-muted-foreground")}
                 >
-                  {f}
+                  {filter === f && <Icon name="Check" className="mr-1 inline h-3 w-3" />}{f}
                 </button>
               ))}
             </div>
@@ -123,7 +123,7 @@ export function ProjectsView() {
                     <p className="text-xs text-muted-foreground">Target {smartDate(p.targetDate)}</p>
                   )}
                 </div>
-                {p.status !== "active" && (
+                {(
                   <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium capitalize text-muted-foreground">{p.status}</span>
                 )}
               </div>
@@ -172,7 +172,7 @@ function ProjectDetail({ id }: { id: string }) {
         <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full opacity-20 blur-3xl" style={{ background: projectColor(project) }} />
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-4">
-            <button onClick={() => setView("projects")} className="mt-1 flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 hover:bg-muted">
+            <button aria-label="Back to projects" onClick={() => setView("projects")} className="mt-1 flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 hover:bg-muted">
               <Icon name="ArrowLeft" className="h-4 w-4" />
             </button>
             <span

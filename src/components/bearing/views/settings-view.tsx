@@ -261,7 +261,7 @@ export function SettingsView() {
                 <p className="mb-3 break-all rounded bg-muted/50 p-2 font-mono text-xs">{manualEntry}</p>
                 <div className="flex gap-2">
                   <Input value={verifyCode} onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" className="h-9 text-center text-lg font-bold tracking-widest" />
-                  <Button size="sm" onClick={confirm2FA} disabled={loading || verifyCode.length !== 6} className="gap-1.5">{loading ? <Icon name="Loader2" className="h-3.5 w-3.5 animate-spin" /> : "Confirm"}</Button>
+                  <Button aria-label="Confirm verification code" size="sm" onClick={confirm2FA} disabled={loading || verifyCode.length !== 6} className="gap-1.5">{loading ? <Icon name="Loader2" className="h-3.5 w-3.5 animate-spin" /> : "Confirm"}</Button>
                   <Button size="sm" variant="ghost" onClick={() => { setShow2FASetup(false); setVerifyCode(""); }}>Cancel</Button>
                 </div>
               </div>
@@ -477,7 +477,7 @@ function ToggleRow({ icon, color, title, desc, checked, onChange }: { icon: stri
         <span className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: colorWithAlpha(color, 10), color }}><Icon name={icon} className="h-4 w-4" /></span>
         <div><p className="text-sm font-medium">{title}</p><p className="text-xs text-muted-foreground">{desc}</p></div>
       </div>
-      <Switch checked={checked} onCheckedChange={onChange} />
+      <Switch aria-label={title} checked={checked} onCheckedChange={onChange} />
     </div>
   );
 }

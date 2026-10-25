@@ -1,10 +1,12 @@
 "use client";
 
+import { FinanceAmount, PriorityBadge, StatusBadge } from "./semantic-state";
+
 import { colorWithAlpha, projectColor } from "@/lib/product-colors";
 
 import { cn } from "@/lib/utils";
 import { Icon } from "./icon";
-import { ITEM_TYPE_MAP, DOMAIN_MAP, PRIORITY_META } from "@/lib/constants";
+import { ITEM_TYPE_MAP, DOMAIN_MAP } from "@/lib/constants";
 import { smartDate, dateColor } from "@/lib/dates";
 import { useUpdateItem } from "@/lib/hooks";
 import { notify } from "@/lib/toast";
@@ -52,7 +54,7 @@ export function ItemCard({ item, onClick, compact, showProject, className }: Ite
       {/* checkbox or type icon */}
       <div className="ml-1.5 flex-shrink-0 pt-0.5">
         {completable ? (
-          <button onClick={toggleDone} className="flex h-5 w-5 items-center justify-center" aria-label="toggle complete">
+          <button onClick={toggleDone} className="flex h-5 w-5 items-center justify-center" aria-label={`${done ? "Reopen" : "Complete"} ${item.title}`} aria-pressed={done}>
             <div
               className={cn(
                 "flex h-[18px] w-[18px] items-center justify-center rounded-md border-2 transition-all",
@@ -84,12 +86,7 @@ export function ItemCard({ item, onClick, compact, showProject, className }: Ite
             {onClick ? <button className="text-left" onClick={(event) => { event.stopPropagation(); onClick(); }}>{item.title}</button> : item.title}
           </h4>
           {item.priority > 0 && (
-            <span
-              className="mt-0.5 flex-shrink-0 rounded-md px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide"
-              style={{ background: colorWithAlpha(PRIORITY_META[item.priority]?.color, 10), color: PRIORITY_META[item.priority]?.color }}
-            >
-              {PRIORITY_META[item.priority]?.name}
-            </span>
+            <PriorityBadge priority={item.priority} />
           )}
         </div>
 
@@ -98,6 +95,8 @@ export function ItemCard({ item, onClick, compact, showProject, className }: Ite
         )}
 
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">{typeMeta.name}</span>
+          <StatusBadge status={item.status} />
           {(item.dueDate || item.scheduledAt) && (
             <span className={cn("inline-flex items-center gap-1 text-xs font-medium", dateColor(item.dueDate || item.scheduledAt))}>
               <Icon name="CalendarClock" className="h-3 w-3" />
@@ -130,9 +129,7 @@ export function ItemCard({ item, onClick, compact, showProject, className }: Ite
               </span>
             ))}
           {item.metadata?.amount != null && (
-            <span className="text-xs font-semibold" style={{ color: item.metadata.kind === "income" ? "var(--income)" : "var(--expense)" }}>
-              {item.metadata.kind === "income" ? "+" : "−"}${Number(item.metadata.amount).toLocaleString()}
-            </span>
+            <FinanceAmount kind={item.metadata.kind} amount={item.metadata.amount} />
           )}
           {item.metadata?.rating && (
             <span className="inline-flex items-center gap-0.5 text-xs text-priority-high">

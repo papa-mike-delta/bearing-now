@@ -106,6 +106,7 @@ for (const mode of ["light", "dark"] as const) {
         await screenshot(page, testInfo.outputPath(`${mode}-charts.png`));
       }
       await app.navigate("Dashboard");
+      await expect(page.getByRole("heading", { name: "Today's focus", exact: true })).toBeVisible();
       // A stored reflection may already cover today in the browser timezone.
       await expect(page.getByText(/^Mood(?:$| (?:Low|Meh|Okay|Good|Great) · Energy)/).first()).toBeVisible();
       if (stage === "imported") {

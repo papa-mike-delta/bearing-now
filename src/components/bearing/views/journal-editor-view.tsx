@@ -1,5 +1,7 @@
 "use client";
 
+import { ScaleChoices } from "../semantic-state";
+
 import { colorWithAlpha } from "@/lib/product-colors";
 
 import { reportWriteError } from "@/hooks/use-browser-writes";
@@ -215,7 +217,7 @@ export function JournalEditorView() {
           {journalEditId && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-1.5 text-expense hover:bg-expense/10 hover:text-expense">
+                <Button aria-label="Archive journal" variant="ghost" size="sm" className="gap-1.5 text-expense hover:bg-expense/10 hover:text-expense">
                   <Icon name="Trash2" className="h-3.5 w-3.5" />
                 </Button>
               </AlertDialogTrigger>
@@ -274,28 +276,7 @@ export function JournalEditorView() {
             <Icon name="Calendar" className="h-3 w-3" style={{ color: ACCENT }} />
             {fmtDate(new Date(), "EEEE, MMMM d · p")}
           </div>
-          <div className="flex flex-wrap items-center gap-1">
-            <span className="mr-1 w-full text-xs text-muted-foreground sm:w-auto">Mood:</span>
-            {[
-              { v: 1, e: "Frown", c: "var(--mood-1)" },
-              { v: 2, e: "Meh", c: "var(--mood-2)" },
-              { v: 3, e: "Smile", c: "var(--mood-3)" },
-              { v: 4, e: "SmilePlus", c: "var(--mood-4)" },
-              { v: 5, e: "Laugh", c: "var(--mood-5)" },
-            ].map((m) => (
-              <button
-                key={m.v}
-                aria-label={`Mood ${m.v} of 5`} aria-pressed={mood === m.v}
-                onClick={() => setMood(m.v)}
-                className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded-md text-sm transition-all",
-                  mood === m.v ? "bg-type-journal/20 ring-1 ring-type-journal/40" : "hover:bg-muted",
-                )}
-              >
-                <Icon name={m.e} className="h-4 w-4" />
-              </button>
-            ))}
-          </div>
+          <div className="w-full"><span className="mb-1 block text-xs text-muted-foreground">Mood</span><ScaleChoices scale="Mood" value={mood} onChange={setMood} /></div>
         </div>
 
         {/* Title */}

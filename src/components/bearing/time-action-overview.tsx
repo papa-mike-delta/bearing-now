@@ -1,5 +1,7 @@
 "use client";
 
+import { PriorityBadge } from "./semantic-state";
+
 import { useItems, useStats } from "@/lib/hooks";
 import { useBearing } from "@/store/bearing";
 import { Icon } from "./icon";
@@ -151,9 +153,9 @@ export function TimeActionOverview() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.04 }}
                   onClick={() => openItemDetail(h.id)}
-                  className="group flex w-full items-center gap-2"
+                  className="group flex w-full flex-wrap items-center gap-2"
                 >
-                  <span className="flex-1 truncate text-xs font-medium">{h.title}</span>
+                  <span className="min-w-0 flex-1 basis-40 break-words text-xs font-medium">{h.title}</span>
                   {/* 7-day dots */}
                   <div className="flex gap-0.5">
                     {Array.from({ length: 7 }).map((_, idx) => (
@@ -189,7 +191,7 @@ function TaskRow({ task, delay, onClick }: { task: any; delay: number; onClick: 
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay }}
       onClick={onClick}
-      className="group flex w-full items-center gap-2 rounded-lg border border-border/40 bg-background/40 p-2 text-left transition-all hover:bg-background"
+      className="group flex w-full flex-wrap items-center gap-2 rounded-lg border border-border/40 bg-background/40 p-2 text-left transition-all hover:bg-background"
     >
       <span className={cn(
         "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border-2 transition-all",
@@ -197,12 +199,13 @@ function TaskRow({ task, delay, onClick }: { task: any; delay: number; onClick: 
       )}>
         {isDone && <Icon name="Check" className="h-3 w-3" strokeWidth={3} />}
       </span>
-      <span className={cn("flex-1 truncate text-xs font-medium", isDone && "text-muted-foreground line-through")}>
+      <span className={cn("min-w-0 flex-1 basis-40 break-words text-xs font-medium", isDone && "text-muted-foreground line-through")}>
         {task.title}
       </span>
       {task.priority > 0 && (
-        <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: ["var(--muted-foreground)", "var(--type-bookmark)", "var(--priority-medium)", "var(--priority-high)", "var(--expense)"][task.priority] }} />
+        <PriorityBadge priority={task.priority} />
       )}
+      {task.energy > 0 && <span className="inline-flex items-center gap-1 text-xs"><Icon name={energyMeta.icon} />Energy {energyMeta.name}</span>}
       {task.dueDate && (
         <span className={cn("flex-shrink-0 text-xs", dateColor(task.dueDate))}>{smartDate(task.dueDate)}</span>
       )}

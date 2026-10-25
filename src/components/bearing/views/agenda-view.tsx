@@ -1,5 +1,7 @@
 "use client";
 
+import { FinanceAmount, PriorityBadge, StatusBadge } from "../semantic-state";
+
 import { projectColor } from "@/lib/product-colors";
 
 import { useState, useMemo } from "react";
@@ -45,13 +47,13 @@ export function AgendaView() {
         color="var(--info)"
         actions={
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setWeekStart(subWeeks(weekStart, 1))}>
+            <Button variant="outline" size="icon" className="h-8 w-8" aria-label="Previous week" onClick={() => setWeekStart(subWeeks(weekStart, 1))}>
               <Icon name="ChevronLeft" className="h-4 w-4" />
             </Button>
             <Button variant="outline" size="sm" className="h-8" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>
               This week
             </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setWeekStart(addWeeks(weekStart, 1))}>
+            <Button variant="outline" size="icon" className="h-8 w-8" aria-label="Next week" onClick={() => setWeekStart(addWeeks(weekStart, 1))}>
               <Icon name="ChevronRight" className="h-4 w-4" />
             </Button>
           </div>
@@ -159,15 +161,14 @@ export function AgendaView() {
                             <p className={cn("text-xs font-medium leading-tight", isDone && "line-through")}>
                               {item.title}
                             </p>
+                            <div className="mt-1 flex flex-wrap gap-1"><StatusBadge status={item.status} />{item.priority > 0 && <PriorityBadge priority={item.priority} />}</div>
                             {item.project && (
                               <span className="text-xs" style={{ color: projectColor(item.project, item.type) }}>
                                 {item.project.name}
                               </span>
                             )}
                             {item.metadata?.amount != null && (
-                              <span className="ml-1 text-xs font-semibold" style={{ color: item.metadata.kind === "income" ? "var(--income)" : "var(--expense)" }}>
-                                ${item.metadata.amount}
-                              </span>
+                              <FinanceAmount kind={item.metadata.kind} amount={item.metadata.amount} />
                             )}
                           </div>
                         </motion.button>

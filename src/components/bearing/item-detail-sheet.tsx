@@ -1,5 +1,8 @@
 "use client";
 
+import { PriorityBadge, StatusBadge } from "./semantic-state";
+import { financeCue, formatFinanceAmount } from "@/lib/semantic-state";
+
 import { colorGradient, colorWithAlpha, projectColor } from "@/lib/product-colors";
 
 import { reportWriteError } from "@/hooks/use-browser-writes";
@@ -24,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { useBearing } from "@/store/bearing";
 import { useItem, useUpdateItem, useDeleteItem, useCreateLink, useDeleteLink, useItems, useToggleHabit } from "@/lib/hooks";
 import { Icon } from "./icon";
-import { ITEM_TYPE_MAP, DOMAIN_MAP, PRIORITY_META, STATUS_META } from "@/lib/constants";
+import { ITEM_TYPE_MAP, DOMAIN_MAP } from "@/lib/constants";
 import { fmtDate, smartDate, dateColor } from "@/lib/dates";
 import { notify } from "@/lib/toast";
 import ReactMarkdown from "react-markdown";
@@ -175,25 +178,8 @@ export function ItemDetailSheet() {
 
                 {/* Status + key meta pills */}
                 <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
-                    style={{
-                      background: colorWithAlpha((STATUS_META as any)[item.status]?.color || "var(--muted-foreground)", 13),
-                      color: (STATUS_META as any)[item.status]?.color || "var(--muted-foreground)",
-                    }}
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: (STATUS_META as any)[item.status]?.color }} />
-                    {(STATUS_META as any)[item.status]?.name || item.status}
-                  </span>
-                  {item.priority > 0 && (
-                    <span
-                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                      style={{ background: colorWithAlpha(PRIORITY_META[item.priority]?.color, 13), color: PRIORITY_META[item.priority]?.color }}
-                    >
-                      <Icon name="Flag" className="h-2.5 w-2.5" />
-                      {PRIORITY_META[item.priority]?.name}
-                    </span>
-                  )}
+                  <StatusBadge status={item.status} />
+                  {item.priority > 0 && <PriorityBadge priority={item.priority} />}
                   {item.dueDate && (
                     <span className={cn("inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium", dateColor(item.dueDate))}>
                       <Icon name="CalendarClock" className="h-2.5 w-2.5" />
@@ -423,7 +409,7 @@ export function ItemDetailSheet() {
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="ghost" className="ml-auto gap-1.5 text-expense hover:bg-expense/10 hover:text-expense">
+                    <Button aria-label="Archive Item" size="sm" variant="ghost" className="ml-auto gap-1.5 text-expense hover:bg-expense/10 hover:text-expense">
                       <Icon name="Trash2" className="h-3.5 w-3.5" />
                     </Button>
                   </AlertDialogTrigger>
@@ -455,6 +441,7 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
 
   // Finance: prominent amount display
   if (item.type === "finance" && m.amount != null) {
+    const cue = financeCue(m.kind);
     const isIncome = m.kind === "income";
     const isGoal = m.kind === "goal";
     return (
@@ -467,13 +454,13 @@ function TypeHighlight({ item, typeMeta }: { item: any; typeMeta: any }) {
         <div className="flex items-end justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {isGoal ? "Savings goal" : isIncome ? "Income" : "Expense"}
+              {cue.label}
             </p>
             <p
               className="mt-0.5 text-3xl font-bold tabular-nums"
               style={{ color: isIncome ? "var(--income)" : isGoal ? "var(--type-bookmark)" : "var(--expense)" }}
             >
-              {isIncome ? "+" : isGoal ? "" : "−"}${Number(m.amount).toLocaleString()}
+              {formatFinanceAmount(m.kind, m.amount)}
             </p>
           </div>
           {m.recurring && m.recurring !== "one-time" && (
@@ -799,6 +786,7 @@ function ReadingProgressUpdater({ item, currentPage, totalPages, accentColor }: 
   return (
     <div className="mt-2 flex items-center gap-2">
       <input
+        aria-label="Current page"
         type="number"
         min={0}
         max={totalPages}

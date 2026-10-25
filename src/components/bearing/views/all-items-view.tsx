@@ -57,10 +57,10 @@ export function AllItemsView() {
             {["active", "done", "inbox", "archived", "all"].map((s) => (
               <button
                 key={s}
-                onClick={() => setStatusFilter(s === "all" ? "active,done,archived,inbox,snoozed" : s)}
+                aria-pressed={statusFilter === s || (s === "all" && statusFilter.includes(","))} onClick={() => setStatusFilter(s === "all" ? "active,done,archived,inbox,snoozed" : s)}
                 className={cn("rounded-md px-2.5 py-1 text-xs font-medium capitalize transition-all", statusFilter === s || (s === "all" && statusFilter.includes(",")) ? "bg-background shadow-sm" : "text-muted-foreground")}
               >
-                {s}
+                {(statusFilter === s || (s === "all" && statusFilter.includes(","))) && <Icon name="Check" className="mr-1 inline h-3 w-3" />}{s}
               </button>
             ))}
           </div>
@@ -80,22 +80,22 @@ export function AllItemsView() {
 
         <div className="flex flex-wrap gap-1.5">
           <button
-            onClick={() => setTypeFilter(null)}
+            aria-pressed={!typeFilter} onClick={() => setTypeFilter(null)}
             className={cn("rounded-full px-2.5 py-1 text-xs font-medium transition-all", !typeFilter ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70")}
           >
-            All types
+            {!typeFilter && <Icon name="Check" className="mr-1 inline h-3 w-3" />}All types
           </button>
           {ITEM_TYPES.map((t) => {
             const on = typeFilter === t.type;
             return (
               <button
                 key={t.type}
-                onClick={() => setTypeFilter(t.type)}
+                aria-pressed={on} onClick={() => setTypeFilter(t.type)}
                 className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-all", on ? "text-white" : "bg-muted text-muted-foreground hover:bg-muted/70")}
                 style={on ? { background: colorWithAlpha(t.color, 16), color: "var(--foreground)" } : {}}
               >
                 <Icon name={t.icon} className="h-3 w-3" />
-                {t.name}
+                {on && <Icon name="Check" className="h-3 w-3" />}{t.name}
               </button>
             );
           })}

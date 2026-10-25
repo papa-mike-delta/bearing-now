@@ -1,5 +1,7 @@
 "use client";
 
+import { scaleValueText } from "@/lib/semantic-state";
+
 import { colorWithAlpha } from "@/lib/product-colors";
 
 import { useState } from "react";
@@ -153,18 +155,18 @@ function ReviewForm({ type, onDone }: { type: "daily" | "weekly"; onDone: () => 
             <div>
               <Label className="mb-2 block text-xs font-medium text-muted-foreground">Mood</Label>
               <div className="flex items-center gap-3">
-                <Slider value={[form.mood]} onValueChange={(v) => set("mood", v[0])} min={1} max={5} step={1} className="flex-1" />
-                <span className="w-16 text-right text-sm font-semibold">
-                  {["", "Low", "Meh", "Okay", "Good", "Great"][form.mood]}
+                <Slider thumbLabel="Mood" valueText={(value) => scaleValueText("Mood", value)} value={[form.mood]} onValueChange={(v) => set("mood", v[0])} min={1} max={5} step={1} className="flex-1" />
+                <span className="w-28 text-right text-xs font-semibold">
+                  {scaleValueText("Mood", form.mood)}
                 </span>
               </div>
             </div>
             <div>
               <Label className="mb-2 block text-xs font-medium text-muted-foreground">Energy</Label>
               <div className="flex items-center gap-3">
-                <Slider value={[form.energy]} onValueChange={(v) => set("energy", v[0])} min={1} max={5} step={1} className="flex-1" />
-                <span className="w-16 text-right text-sm font-semibold">
-                  {["", "Drained", "Low", "Steady", "Strong", "Charged"][form.energy]}
+                <Slider thumbLabel="Energy" valueText={(value) => scaleValueText("Energy", value)} value={[form.energy]} onValueChange={(v) => set("energy", v[0])} min={1} max={5} step={1} className="flex-1" />
+                <span className="w-28 text-right text-xs font-semibold">
+                  {scaleValueText("Energy", form.energy)}
                 </span>
               </div>
             </div>
@@ -227,7 +229,7 @@ function ReviewCard({ review, onOpenItem }: { review: any; onOpenItem: (id: stri
   return (
     <motion.div layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
       <SectionCard className="overflow-hidden">
-        <button onClick={() => setExpanded((e) => !e)} className="flex w-full items-center gap-3 text-left">
+        <button aria-expanded={expanded} onClick={() => setExpanded((e) => !e)} className="flex w-full items-center gap-3 text-left">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: colorWithAlpha(moodColors[review.mood] || "var(--type-journal)", 10), color: moodColors[review.mood] || "var(--type-journal)" }}>
             <Icon name={moodIcons[review.mood] || "Smile"} className="h-5 w-5" />
           </span>
@@ -236,6 +238,7 @@ function ReviewCard({ review, onOpenItem }: { review: any; onOpenItem: (id: stri
               <h3 className="text-sm font-semibold capitalize">{review.type} reflection</h3>
               <Badge variant="secondary" className="text-xs">{fmtDate(date, "EEE, MMM d")}</Badge>
             </div>
+            <p className="mt-1 text-xs text-muted-foreground">Mood {scaleValueText("Mood", review.mood)} · Energy {scaleValueText("Energy", review.energy)}</p>
             {review.wins && <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{review.wins}</p>}
           </div>
           <Icon name={expanded ? "ChevronUp" : "ChevronDown"} className="h-4 w-4 text-muted-foreground" />
@@ -270,7 +273,7 @@ function ReviewCard({ review, onOpenItem }: { review: any; onOpenItem: (id: stri
                     {review.mood && <span>Mood {["", "Low", "Meh", "Okay", "Good", "Great"][review.mood]}</span>}
                     {review.energy && <span>Energy {["", "Drained", "Low", "Steady", "Strong", "Charged"][review.energy]}</span>}
                   </div>
-                  <Button variant="ghost" size="sm" className="text-expense hover:text-expense" onClick={() => { del.mutate(review.id); notify.success("Deleted"); }}>
+                  <Button aria-label={`Delete ${review.type} reflection`} variant="ghost" size="sm" className="text-expense hover:text-expense" onClick={() => { del.mutate(review.id); notify.success("Deleted"); }}>
                     <Icon name="Trash2" className="h-3.5 w-3.5" />
                   </Button>
                 </div>

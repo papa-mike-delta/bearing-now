@@ -60,13 +60,13 @@ export function CalendarView() {
         color="var(--info)"
         actions={
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCursor(subMonths(cursor, 1))}>
+            <Button variant="outline" size="icon" className="h-8 w-8" aria-label="Previous month" onClick={() => setCursor(subMonths(cursor, 1))}>
               <Icon name="ChevronLeft" className="h-4 w-4" />
             </Button>
             <Button variant="outline" size="sm" className="h-8" onClick={() => { setCursor(new Date()); setSelectedDay(new Date()); }}>
               Today
             </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCursor(addMonths(cursor, 1))}>
+            <Button variant="outline" size="icon" className="h-8 w-8" aria-label="Next month" onClick={() => setCursor(addMonths(cursor, 1))}>
               <Icon name="ChevronRight" className="h-4 w-4" />
             </Button>
           </div>
@@ -114,6 +114,7 @@ export function CalendarView() {
               return (
                 <button
                   key={i}
+                  aria-label={`${format(day, "EEEE, MMMM d, yyyy")}, ${items.length} Items`} aria-pressed={!!isSelected}
                   onClick={() => setSelectedDay(day)}
                   className={cn(
                     "min-h-[88px] border-b border-r border-border/40 p-1.5 text-left transition-colors hover:bg-muted/40",
@@ -162,16 +163,16 @@ export function CalendarView() {
           <SectionCard title="Layers" icon="Layers">
             <div className="mb-3 flex gap-1 rounded-lg bg-muted p-1">
               <button
-                onClick={() => setCalendarLayerMode("type")}
+                aria-pressed={calendarLayerMode === "type"} onClick={() => setCalendarLayerMode("type")}
                 className={cn("flex-1 rounded-md py-1 text-xs font-medium transition-all", calendarLayerMode === "type" ? "bg-background shadow-sm" : "text-muted-foreground")}
               >
-                By type
+                {calendarLayerMode === "type" && <Icon name="Check" className="mr-1 inline h-3 w-3" />}By type
               </button>
               <button
-                onClick={() => setCalendarLayerMode("domain")}
+                aria-pressed={calendarLayerMode === "domain"} onClick={() => setCalendarLayerMode("domain")}
                 className={cn("flex-1 rounded-md py-1 text-xs font-medium transition-all", calendarLayerMode === "domain" ? "bg-background shadow-sm" : "text-muted-foreground")}
               >
-                By domain
+                {calendarLayerMode === "domain" && <Icon name="Check" className="mr-1 inline h-3 w-3" />}By domain
               </button>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -180,6 +181,7 @@ export function CalendarView() {
                 return (
                   <button
                     key={l.id}
+                    aria-pressed={on}
                     onClick={() => toggleLayer(l.id)}
                     className={cn(
                       "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-all",
@@ -188,7 +190,7 @@ export function CalendarView() {
                     style={on ? { background: colorWithAlpha(l.color, 16), color: "var(--foreground)" } : {}}
                   >
                     <span className="h-2 w-2 rounded-full" style={{ background: on ? "white" : l.color }} />
-                    {l.name}
+                    {on && <Icon name="Check" className="h-3 w-3" />}{l.name}
                   </button>
                 );
               })}

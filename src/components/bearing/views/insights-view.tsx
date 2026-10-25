@@ -1,5 +1,8 @@
 "use client";
 
+import { ChartData, SeriesKey } from "../chart-data";
+import { scaleValueText } from "@/lib/semantic-state";
+
 import { colorWithAlpha, projectColor } from "@/lib/product-colors";
 
 import { useInsights, downloadCSV, useRunScheduler } from "@/lib/hooks";
@@ -80,18 +83,19 @@ export function InsightsView() {
               onClick={() => { runScheduler.mutate(); notify.info("Running scheduler…"); }}
               disabled={runScheduler.isPending}
               className="gap-1.5"
+              aria-label={runScheduler.isPending ? "Running scheduler" : "Sync recurring items and habits"}
               title="Advance recurring items and reset stale habit streaks"
             >
               <Icon name={runScheduler.isPending ? "Loader2" : "RefreshCw"} className={`h-3.5 w-3.5 ${runScheduler.isPending ? "animate-spin" : ""}`} />
               <span className="hidden sm:inline">{runScheduler.isPending ? "Running…" : "Sync"}</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => downloadCSV("finance")} className="gap-1.5">
+            <Button variant="outline" size="sm" aria-label="Export finances CSV" onClick={() => downloadCSV("finance")} className="gap-1.5">
               <Icon name="Download" className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Finances</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => downloadCSV("reviews")} className="gap-1.5">
+            <Button variant="outline" size="sm" aria-label="Export reviews CSV" onClick={() => downloadCSV("reviews")} className="gap-1.5">
               <Icon name="Download" className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Reviews</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => downloadCSV("items")} className="gap-1.5">
+            <Button variant="outline" size="sm" aria-label="Export all items CSV" onClick={() => downloadCSV("items")} className="gap-1.5">
               <Icon name="Download" className="h-3.5 w-3.5" /> <span className="hidden sm:inline">All items</span>
             </Button>
           </div>
@@ -128,9 +132,10 @@ export function InsightsView() {
             </ResponsiveContainer>
           )}
           <div className="mt-2 flex justify-center gap-4 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1"><span className="h-2 w-3 rounded-full bg-type-idea" /> Mood</span>
-            <span className="inline-flex items-center gap-1"><span className="h-2 w-3 rounded-full bg-priority-high" /> Energy</span>
+            <SeriesKey label="Mood" color="var(--mood-series)" />
+            <SeriesKey label="Energy" color="var(--energy-series)" dashed />
           </div>
+          <ChartData label="Mood and energy" columns={["Date", "Mood (1–5)", "Energy (1–5)"]} rows={data.moodTrend.map((m: any) => [fmtDate(m.date, "MMM d, yyyy"), scaleValueText("Mood", m.mood), scaleValueText("Energy", m.energy)])} />
         </SectionCard>
 
         {/* Activity (created vs completed) */}
@@ -156,13 +161,14 @@ export function InsightsView() {
                 itemStyle={{ color: "var(--foreground)" }}
               />
               <Area type="monotone" dataKey="created" stroke="var(--info)" strokeWidth={2} fill="url(#gCreated)" />
-              <Area type="monotone" dataKey="completed" stroke="var(--success)" strokeWidth={2} fill="url(#gCompleted)" />
+              <Area type="monotone" dataKey="completed" strokeDasharray="4 3" stroke="var(--success)" strokeWidth={2} fill="url(#gCompleted)" />
             </AreaChart>
           </ResponsiveContainer>
           <div className="mt-2 flex justify-center gap-4 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1"><span className="h-2 w-3 rounded-full bg-info" /> Created</span>
-            <span className="inline-flex items-center gap-1"><span className="h-2 w-3 rounded-full bg-success" /> Completed</span>
+            <SeriesKey label="Created" color="var(--info)" />
+            <SeriesKey label="Completed" color="var(--success)" dashed />
           </div>
+          <ChartData label="Activity" columns={["Date", "Created", "Completed"]} rows={data.dailyActivity.map((d: any) => [fmtDate(d.date, "MMM d, yyyy"), d.created, d.completed])} />
         </SectionCard>
 
         {/* Habit consistency heatmap */}
@@ -170,9 +176,9 @@ export function InsightsView() {
           {data.habitMatrix.length === 0 ? (
             <EmptyChart message="No active habits yet. Create one in Time & Action." />
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 overflow-x-auto" tabIndex={0} role="region" aria-label="Habit completion chart">
               {data.habitMatrix.map((h: any) => (
-                <div key={h.id} className="flex items-center gap-3">
+                <div key={h.id} className="flex min-w-[600px] items-center gap-3">
                   <div className="w-32 flex-shrink-0 truncate text-xs font-medium">{h.title}</div>
                   <div className="flex flex-1 gap-1">
                     {h.days.map((d: any, i: number) => (
@@ -181,23 +187,27 @@ export function InsightsView() {
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ delay: i * 0.02 }}
-                        className="h-6 flex-1 rounded-sm"
+                        className="flex h-6 min-w-6 flex-1 items-center justify-center rounded-sm border border-border"
+                        role="img" aria-label={`${fmtDate(d.date, "MMM d")}: ${d.done ? "Done" : "Not done"}`}
                         title={`${fmtDate(d.date, "MMM d")}: ${d.done ? "done" : "—"}`}
                         style={{
                           background: d.done ? "var(--success)" : "var(--muted)",
-                          opacity: d.done ? 1 : 0.4,
+                          opacity: 1,
                         }}
-                      />
+                      ><Icon name={d.done ? "Check" : "Minus"} className="h-3 w-3" /></motion.div>
                     ))}
                   </div>
                   <div className="w-10 text-right text-xs font-semibold tabular-nums text-muted-foreground">{h.consistency}%</div>
                 </div>
               ))}
-              <div className="flex justify-end gap-1 pt-1 text-xs text-muted-foreground">
-                <span>14 days ago</span><span>→</span><span>today</span>
+              <div className="flex flex-wrap justify-end gap-2 pt-1 text-xs text-muted-foreground">
+                <span>14 days ago to today</span>
+                <span className="inline-flex items-center gap-1"><Icon name="Check" className="h-3 w-3" />Done</span>
+                <span className="inline-flex items-center gap-1"><Icon name="Minus" className="h-3 w-3" />Not done</span>
               </div>
             </div>
           )}
+          <ChartData label="Habit consistency" columns={["Habit", "Date", "State"]} rows={data.habitMatrix.flatMap((h: any) => h.days.map((d: any) => [h.title, fmtDate(d.date, "MMM d, yyyy"), d.done ? "Done" : "Not done"]))} />
         </SectionCard>
 
         {/* Finance breakdown */}
