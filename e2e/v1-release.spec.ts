@@ -189,7 +189,6 @@ test("recurring Tasks retain completed instances and generate one successor acro
     const current = await (
       await page.request.get(`/api/v1/items/${first.id}`)
     ).json();
-    const { itemInput } = await import("../src/lib/v1/contracts");
     const {
       type,
       template,
@@ -208,7 +207,7 @@ test("recurring Tasks retain completed instances and generate one successor acro
       localDate,
       timezone,
     } = current;
-    const data = itemInput.parse({
+    const data = {
       type,
       template,
       title,
@@ -226,7 +225,7 @@ test("recurring Tasks retain completed instances and generate one successor acro
       localDate,
       timezone,
       tagIds: [],
-    });
+    };
     const completion = {
       revision: current.revision,
       data: { ...data, status: "done" },
