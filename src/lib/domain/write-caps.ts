@@ -15,7 +15,7 @@ export class WriteCaps {
     if (purpose === "restore" && actor.startsWith("user:")) return null;
     const limit = operation === "item.create" ? 20 : 50;
     const count = await tx.operationLedger.count({ where: {
-      userId, actor, operation, status: "success",
+      userId, actor, operation: { in: [operation, `v1.${operation}`] }, status: "success",
       createdAt: { gt: new Date(Date.now() - 60 * 60 * 1000) },
     } });
     return count + amount > limit ? { ok: false, rateLimited: true, limit } as const : null;

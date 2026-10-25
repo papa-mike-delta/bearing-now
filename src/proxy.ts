@@ -13,7 +13,7 @@ export function proxy(req: NextRequest) {
   // Verify the signature so a stale cookie can't loop /login <-> /app.
   if (pathname === "/" || pathname === "/login") {
     const token = req.cookies.get("lifeos-session")?.value;
-    if (token && verifySession(token)?.twoFactorVerified) return NextResponse.redirect(new URL("/app", req.url));
+    if (token && verifySession(token)?.twoFactorVerified && !req.nextUrl.searchParams.has("qr")) return NextResponse.redirect(new URL("/app", req.url));
     // no-store keeps these pages out of the back/forward cache, so going back
     // after signing in re-requests them and hits the redirect above.
     const res = NextResponse.next();

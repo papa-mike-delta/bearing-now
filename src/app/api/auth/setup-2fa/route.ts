@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { ok, bad, parseBody, generateTOTPSecret, generateOTPAuthURL, generateTOTPCode, verifySession, verifyTOTP } from "@/lib/auth-utils";
+import { ok, bad, parseBody, generateTOTPSecret, generateOTPAuthURL, verifySession, verifyTOTP } from "@/lib/auth-utils";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   if (!match) return bad("No active session", 401);
 
   const session = verifySession(match[1]);
-  if (!session) return bad("Invalid or expired session", 401);
+  if (!session?.twoFactorVerified) return bad("Invalid or expired session", 401);
 
   const user = await db.user.findUnique({ where: { id: session.userId } });
   if (!user) return bad("User not found", 401);

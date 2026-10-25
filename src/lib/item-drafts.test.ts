@@ -119,3 +119,35 @@ it("leaves the draft intact on transport failure or a mismatched save response",
   expect(owner.complete(ticket, b)).toBeNull();
   expect(owner.get(key)).toMatchObject({ data: { id: "a", revision: 2, content: "Keep me" }, error: expect.stringContaining("Invalid save response") });
 });
+
+it("keeps Journal drafts in their own namespace when record ids coincide", () => {
+  const owner = createItemDraftOwner();
+  owner.receive("item:shared", {
+    id: "shared",
+    revision: 0,
+    type: "note",
+    title: "Item",
+  });
+  owner.receive("moment:shared", {
+    id: "shared",
+    revision: 0,
+    type: "journal-moment",
+    title: "Journal",
+    content: "Original",
+  });
+  owner.change("moment:shared", { content: "Edited moment" });
+  const ticket = owner.beginSave("moment:shared")!;
+  owner.complete(
+    ticket,
+    {
+      id: "shared",
+      revision: 1,
+      type: "journal-moment",
+      title: "Journal",
+      content: "Edited moment",
+    },
+    "moment",
+  );
+  expect(owner.get("item:shared")?.data.title).toBe("Item");
+  expect(owner.get("moment:shared")?.data.content).toBe("Edited moment");
+});

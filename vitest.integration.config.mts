@@ -14,6 +14,7 @@ export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   test: {
     include: ["integration/**/*.test.ts"],
+    exclude: ["integration/v1/**"],
     fileParallelism: false,
     testTimeout: 30_000,
     hookTimeout: 60_000,

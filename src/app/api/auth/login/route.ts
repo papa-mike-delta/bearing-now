@@ -1,3 +1,4 @@
+import { sessionCookie } from "@/lib/session";
 import { db } from "@/lib/db";
 import { ok, bad, parseBody, verifyPassword, createSession } from "@/lib/auth-utils";
 import type { NextRequest } from "next/server";
@@ -9,7 +10,7 @@ export async function POST(req: NextRequest) {
   const body = await parseBody(req);
   const { email, password } = body;
 
-  if (!email || !password) return bad("Email and password are required");
+  if (typeof email !== "string" || typeof password !== "string" || !email || !password) return bad("Email and password are required");
 
   const user = await db.user.findUnique({ where: { email: email.toLowerCase() } });
   if (!user) return bad("Invalid email or password", 401);
@@ -21,13 +22,13 @@ export async function POST(req: NextRequest) {
   if (user.totpVerified && user.totpSecret) {
     const session = createSession(user.id, user.email, false);
     const res = ok({ requiresVerification: true, email: user.email });
-    res.headers.set("Set-Cookie", `lifeos-session=${session}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`);
+    res.headers.set("Set-Cookie", sessionCookie(session, 600));
     return res;
   }
 
   // No 2FA — fully authenticated directly
   const session = createSession(user.id, user.email, true);
   const res = ok({ authenticated: true, email: user.email, name: user.name });
-  res.headers.set("Set-Cookie", `lifeos-session=${session}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`);
+  res.headers.set("Set-Cookie", sessionCookie(session, 604800));
   return res;
 }

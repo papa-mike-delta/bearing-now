@@ -110,5 +110,6 @@ export async function getUserFromRequest(req: Request): Promise<SessionData | nu
   const cookie = req.headers.get("cookie") || "";
   const match = cookie.match(/lifeos-session=([^;]+)/);
   if (!match) return null;
-  return verifySession(match[1]);
+  const session = verifySession(match[1]);
+  return session?.twoFactorVerified ? session : null;
 }
