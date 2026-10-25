@@ -5,7 +5,8 @@ export class LoginPage {
 
   async login(email = "demo@gmail.com", password = "Password123") {
     await this.page.goto("/login");
-    await this.page.getByRole("button", { name: "Fill demo credentials" }).click();
+    await this.page.locator('input[type="email"]').fill("demo@gmail.com");
+    await this.page.locator('input[type="password"]').fill("Password123");
     await expect(this.page.locator('input[type="email"]')).toHaveValue("demo@gmail.com");
     await this.page.locator('input[type="email"]').fill(email);
     await this.page.locator('input[type="password"]').fill(password);

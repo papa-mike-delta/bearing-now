@@ -1,7 +1,7 @@
 {
   "name": "bearing-now",
   "version": "0.2.0",
-  "description": "An open-source personal operating system for tasks, notes, journals, habits, finances, and reflections.",
+  "description": "Capture, organize, connect and recall personal information with Daily Journal, connected Items and approval-gated Coach.",
   "private": true,
   "license": "MIT",
   "keywords": [
@@ -17,9 +17,6 @@
     "journal",
     "journal-app",
     "task-manager",
-    "calendar-planner",
-    "finance-tracker",
-    "goal-tracker",
     "focus-timer",
     "pomodoro",
     "knowledge-graph",
@@ -30,12 +27,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/karim-coder/bearing-now.git"
+    "url": "https://github.com/papa-mike-delta/bearing-now.git"
   },
   "bugs": {
-    "url": "https://github.com/karim-coder/bearing-now/issues"
+    "url": "https://github.com/papa-mike-delta/bearing-now/issues"
   },
-  "homepage": "https://github.com/karim-coder/bearing-now#readme",
+  "homepage": "https://github.com/papa-mike-delta/bearing-now#readme",
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "node scripts/prepare-offline.mjs && npm run db:generate && next build",
@@ -50,9 +47,11 @@
     "db:reset": "prisma migrate reset",
     "test:e2e": "playwright test",
     "test:integration": "vitest run --config vitest.integration.config.mts",
-    "db:v1:deploy": "tsx scripts/deploy-v1.ts",
+    "db:v1:deploy": "node --import tsx scripts/deploy-v1.ts",
     "test:v1": "vitest run --config vitest.v1.config.mts",
-    "test:e2e:coach": "playwright test --config e2e/v1-coach.config.ts"
+    "test:e2e:coach": "playwright test --config e2e/v1-coach.config.ts",
+    "test:e2e:release": "playwright test --config e2e/v1-release.config.ts",
+    "db:invite": "node --import tsx scripts/create-invitation.ts"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.78",

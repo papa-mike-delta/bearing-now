@@ -4,7 +4,7 @@ import { coachToolsEnabled } from "@/lib/coach/feature-flag";
 import { verifySession } from "@/lib/session";
 
 // Routes that don't require authentication
-const PUBLIC_ROUTES = ["/", "/login", "/api/auth", "/api/public-prefs"];
+const PUBLIC_ROUTES = ["/", "/login", "/help", "/api/auth", "/api/public-prefs"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;

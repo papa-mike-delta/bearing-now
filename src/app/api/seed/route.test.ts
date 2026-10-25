@@ -50,3 +50,13 @@ it("returns 409 when the demo user already has domains and creates nothing", asy
   expect(db.item.create).not.toHaveBeenCalled();
   expect(db.domain.create).not.toHaveBeenCalled();
 });
+
+it("retires the shared credential seed in V1 without touching users or data", async () => {
+  vi.stubEnv("BEARING_V1_ENABLED", "true");
+  try {
+    const response = await POST(new NextRequest("http://localhost/api/seed", { method: "POST" }));
+    expect(response.status).toBe(410);
+    expect(db.user.upsert).not.toHaveBeenCalled();
+    expect(db.item.create).not.toHaveBeenCalled();
+  } finally { vi.unstubAllEnvs(); }
+});

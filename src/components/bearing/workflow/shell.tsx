@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { ConnectedFocus, ConnectedGraph } from "./perspectives";
 import { ConversationalCoach } from "./coach";
+import { DataSettings } from "./data-settings";
 import { Appearance } from "./appearance";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -640,39 +641,7 @@ function Settings({ onSignOut }: { onSignOut(): void }) {
           <Button>Create label</Button>
         </form>
       </SectionCard>
-      <SectionCard title="Optional demo data">
-        <p className="mb-3 text-sm text-muted-foreground">
-          Add examples only to your account. Edited examples and personal
-          references are protected from removal.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={() => void action(() => mutate("demo", {}))}
-          >
-            Add demo data
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (
-                window.confirm(
-                  "Remove unedited demo data from this account? Personal references may prevent removal.",
-                )
-              )
-                void action(() =>
-                  mutate(
-                    "demo",
-                    { confirmation: "REMOVE DEMO DATA" },
-                    "DELETE",
-                  ),
-                );
-            }}
-          >
-            Remove demo data
-          </Button>
-        </div>
-      </SectionCard>
+      <DataSettings />
       {error && (
         <p role="alert" className="text-destructive">
           {error}

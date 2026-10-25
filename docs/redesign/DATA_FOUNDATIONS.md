@@ -1,9 +1,8 @@
 # V1 data foundations (#44)
 
-This implements the backend foundation from PR #43 and issues #44–#48. The approved
-spec and execution plan remain the product authority. The current UI continues to
-use the legacy model; workflow, connected-life and conversational Coach UI belongs
-to #45, #46 and #47. This is not a claim that those experiences have shipped.
+This documents the additive backend introduced in #44. Workflow, connected-life
+and conversational Coach are now implemented in #45–#47. See the current
+[architecture](../ARCHITECTURE.md) and [release runbook](../RELEASE.md).
 
 ## Deployment boundary
 
@@ -27,7 +26,7 @@ For an isolated development/preview database:
    run `BEARING_V1_SCHEMA_REVIEWED=yes npm run db:v1:deploy` on that database.
 5. Set `BEARING_V1_ENABLED=true` and a random `SESSION_SECRET` of at least 32
    characters. Production refuses the old development secret and short/missing keys.
-6. Create an invitation with `npx tsx scripts/create-invitation.ts email@example.com`.
+6. Create an invitation with `npm run db:invite -- email@example.com`.
    Share the resulting code privately; it is email-bound, expires after seven days,
    is stored only as a SHA-256 digest, and is consumed in the account-creation transaction.
 7. Register with the invitation field at `/login` (or `/login?invite=CODE`). The new
@@ -115,7 +114,7 @@ Writes share the existing advisory transaction lock and audit table. Successful
 writes and receipts commit together; failures roll back before a refusal receipt is
 recorded. Revision-checked Item/Project updates reject stale values. Agents require
 an approved server-side change context, obey open editor leases and have no direct
-HTTP actor override. Approval UI/proposal execution remains #47. Item/Link create
+HTTP actor override. Approval UI/proposal execution is documented in CONVERSATIONAL_COACH.md. Item/Link create
 caps combine legacy and V1 receipts, including generated recurring instances and
 demo rows. User-confirmed restore is a maintenance operation, not a cap-limited
 series of edits. Receipts survive reset and restore.
@@ -142,8 +141,7 @@ query, nested write, or caller-selected table endpoint.
 | `demo` | Explicit optional seed; confirmed removable seed |
 
 Keyword search, app routes, offline IndexedDB transport, proposal execution and
-full editing UIs are follow-up slices. Stable server capture keys and the persistence
-contracts needed by those slices are implemented here.
+editing UIs are implemented in the workflow, connected-life and Coach slices.
 
 ## Portability and demo lifecycle
 

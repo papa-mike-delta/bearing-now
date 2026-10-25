@@ -45,8 +45,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: siteConfig.ogImage,
-        width: 2058,
-        height: 1338,
+        width: 1440,
+        height: 1000,
         alt: "bearing.now public landing page and app preview",
       },
     ],

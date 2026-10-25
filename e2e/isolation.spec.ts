@@ -18,7 +18,8 @@ test("one account cannot read or link another account's item", async ({ page, br
   const other = await context.newPage();
   await other.addInitScript(() => localStorage.setItem("lifeos-onboarded", "true"));
   await other.goto("/login");
-  await other.getByRole("button", { name: "Fill demo credentials" }).click();
+  await other.locator('input[type="email"]').fill("demo@gmail.com");
+  await other.locator('input[type="password"]').fill("Password123");
   await expect(other.locator('input[type="email"]')).toHaveValue("demo@gmail.com");
   await other.getByRole("button", { name: "Create account", exact: true }).click();
   await other.getByPlaceholder("Your name").fill(AppPage.unique("other"));

@@ -1,4 +1,5 @@
 "use client";
+import { TaskRecurrence } from "./recurrence";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
@@ -365,6 +366,7 @@ export function ItemEditor({
               : `Create ${typeNames[type]}`}
         </Button>
       </form>
+      {item?.type === "task" && <TaskRecurrence item={item} unsaved={!!draft?.dirtyFields.length || !!draft?.pending} />}
       {item && (
         <details>
           <summary className="min-h-11 cursor-pointer py-3 text-sm">

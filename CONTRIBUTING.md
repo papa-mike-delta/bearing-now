@@ -1,55 +1,23 @@
-# Contributing to Bearing
+# Contributing
 
-Thank you for your interest in contributing! This document outlines how to get started.
+Start with the [README setup](README.md) using Node 22+ and disposable PostgreSQL.
+Read the [approved V1 contract](docs/redesign/BEARING_V1_SPEC.md),
+[architecture](docs/ARCHITECTURE.md) and [release gates](docs/RELEASE.md).
 
-## Getting Started
+Use a feature branch and make reviewable changes. Reuse shared Zod contracts,
+server services, revision checks, editor leases and audit receipts. Ownership comes
+from the verified session, never user-supplied JSON. Coach tools may propose writes;
+only user-approved batches execute them. Keep keys server-side. No production reset
+or migration is implied by a code contribution.
 
-1. Fork the repository
-2. Clone your fork: `git clone https://github.com/karim-coder/life-os.git`
-3. Install dependencies: `bun install`
-4. Set up the database: `cp .env.example .env && bun run db:push`
-5. (Optional) Seed test data: `bun run src/lib/seed.ts`
-6. Start dev server: `bun run dev`
+Run `npm run lint`, `npx tsc --noEmit --incremental false`, `npm test`, and
+`npm run build`. For domain/auth/backup changes also run both PostgreSQL integration
+suites. For UI/workflow changes run the relevant Playwright journey on desktop and
+phone, inspect screenshots and keyboard/reduced-motion behavior. See
+[e2e/README.md](e2e/README.md). Tests must use disposable data.
 
-## Development Workflow
-
-1. Create a feature branch: `git checkout -b feature/my-feature`
-2. Make your changes
-3. Run linting: `bun run lint`
-4. Commit with clear messages: `git commit -m "feat: add habit streak counter"`
-5. Push to your fork: `git push origin feature/my-feature`
-6. Open a Pull Request
-
-## Commit Convention
-
-We use conventional commits:
-- `feat:` — New feature
-- `fix:` — Bug fix
-- `docs:` — Documentation
-- `style:` — Formatting/style
-- `refactor:` — Code refactoring
-- `test:` — Tests
-- `chore:` — Build/tooling
-
-## Code Style
-
-- TypeScript throughout with strict typing
-- Use existing shadcn/ui components when possible
-- Follow the existing file structure conventions
-- Keep components focused and reusable
-- Use Tailwind CSS classes (no inline styles except for dynamic values)
-
-## Pull Request Guidelines
-
-- Describe what your PR does and why
-- Include screenshots for UI changes
-- Ensure `bun run lint` passes
-- Keep PRs focused — one feature/fix per PR
-
-## Reporting Issues
-
-Use GitHub Issues with the appropriate template (bug report or feature request).
-
-## Code of Conduct
-
-Be kind, respectful, and constructive. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+Include the problem, resulting behavior, actual checks and outstanding limits in
+PR descriptions. Never describe a fixture-based provider run as live AI verification,
+or a local run as a staging deployment. Update help/docs/metadata whenever behavior
+changes. Historical ADRs describe earlier decisions; current V1 contracts and
+architecture take precedence where the old model differs.

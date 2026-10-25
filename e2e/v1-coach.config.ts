@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 const url = process.env.V1_TEST_DATABASE_URL;
 if (!url)
   throw new Error(
-    "V1_TEST_DATABASE_URL must identify a migrated, seeded disposable database",
+    "V1_TEST_DATABASE_URL must identify a disposable database",
   );
 process.env.DATABASE_URL = url;
 const secret =
@@ -37,7 +37,7 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
-      command: "npm run dev",
+      command: "node --import tsx e2e/scripts/release-fixture.ts && npm run dev -- --hostname 127.0.0.1",
       url: "http://127.0.0.1:3000/login",
       reuseExistingServer: false,
       env: {

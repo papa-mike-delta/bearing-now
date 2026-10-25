@@ -2,7 +2,22 @@
 
 All notable changes to Bearing will be documented in this file.
 
-## [Unreleased]
+## [Unreleased] — V1 release preparation
+
+- Seven canonical Item kinds, Me, optional Projects, classified Areas/Tags and typed Links.
+- Quick Capture, Daily Journal, offline text outbox, connected People/Places,
+  independent Habit Routine occurrences, Focus Activity and grounded conversational Coach.
+- Truthful landing page/SEO/PWA metadata and an actual V1 Journal screenshot.
+- Invitation-only login guidance and explicit per-account demo progress/readiness/errors;
+  shared legacy demo seed is disabled while V1 is enabled.
+- Settings export/clear/restore with typed confirmation and pending-outbox protection.
+- Task recurrence setup and occurrence-history links in the V1 editor.
+- Current help, setup, architecture, backup and preview/rollback runbooks.
+- Consolidated isolated browser release suite and CI, plus concurrent/failed demo tests.
+
+Hosted preview, live-provider smoke checks and production approval remain separate
+release gates. Earlier entries below describe the **historical legacy app**, not
+current V1 promises.
 
 ## [1.0.0] — 2026-06-19
 

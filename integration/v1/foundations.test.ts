@@ -1015,3 +1015,30 @@ it("recurrence preserves date-only deadline offsets in the configured timezone",
   expect(next.localDate).toBe("2026-03-09");
   expect((await V1.item(owner, first.id)).localDate).toBe("2026-03-08");
 });
+
+it("concurrent explicit demo setup is idempotent and preserves both accounts' real data", async () => {
+  const real = await V1.createItem(p, note("Keep my real note"));
+  const foreign = await V1.createItem(q, note("Other account private note"));
+  const results = await Promise.all([V1Demo.seed(p), V1Demo.seed(p)]);
+  expect(results.filter(r => "seeded" in r.value)).toHaveLength(1);
+  expect(results.filter(r => "alreadySeeded" in r.value)).toHaveLength(1);
+  expect(await v1db.item.count({ where: { userId: owner, demoBatchId: { not: null } } })).toBe(7);
+  await V1Demo.remove(p, "REMOVE DEMO DATA");
+  expect((await V1.item(owner, real.value.id)).title).toBe("Keep my real note");
+  expect((await V1.item(other, foreign.value.id)).title).toBe("Other account private note");
+  expect(await v1db.item.count({ where: { userId: owner, demoBatchId: { not: null } } })).toBe(0);
+});
+
+it("failed demo setup rolls back partial examples and a later explicit retry succeeds", async () => {
+  await v1db.$executeRawUnsafe(`CREATE FUNCTION fail_demo_review() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fixture seed failure'; END $$`);
+  await v1db.$executeRawUnsafe(`CREATE TRIGGER fail_demo_review BEFORE INSERT ON "V1Review" FOR EACH ROW EXECUTE FUNCTION fail_demo_review()`);
+  try {
+    await expect(V1Demo.seed(p)).rejects.toThrow("no changes were saved");
+    expect(await v1db.item.count({ where: { userId: owner, demoBatchId: { not: null } } })).toBe(0);
+    expect(await v1db.preference.findUnique({ where: { userId_key: { userId: owner, key: "system.demo" } } })).toBeNull();
+  } finally {
+    await v1db.$executeRawUnsafe(`DROP TRIGGER fail_demo_review ON "V1Review"`);
+    await v1db.$executeRawUnsafe(`DROP FUNCTION fail_demo_review()`);
+  }
+  expect((await V1Demo.seed(p)).value).toMatchObject({ seeded: true });
+});

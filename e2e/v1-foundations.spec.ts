@@ -63,9 +63,8 @@ test("pending 2FA stays on verification after reload and cannot read either data
       data: { totpSecret: secret, totpVerified: true },
     });
     await page.goto("/login");
-    await page
-      .getByRole("button", { name: "Fill demo credentials", exact: true })
-      .click();
+    await page.locator('input[type="email"]').fill("demo@gmail.com");
+  await page.locator('input[type="password"]').fill("Password123");
     await page.locator('form button[type="submit"]').click();
     await expect(
       page.getByRole("heading", {

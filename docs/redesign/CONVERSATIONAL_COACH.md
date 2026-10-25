@@ -131,14 +131,15 @@ the real AI SDK transport. No real provider key or paid request is used in tests
 Native Safari, accessibility certification and live-provider smoke testing remain
 release checks; see #48. Live-provider testing requires deployment-specific keys.
 
-To reproduce the deterministic browser suite, migrate and seed a disposable test
+To reproduce the deterministic browser suite, provide a disposable test
 PostgreSQL database, install Playwright Chromium, then run:
 
 ```sh
 V1_TEST_DATABASE_URL=postgresql://... npm run test:e2e:coach
 ```
 
-The dedicated config starts `e2e/scripts/coach-provider.mjs` and the app with local
+The dedicated config provisions a disposable test-only account and starts `e2e/scripts/coach-provider.mjs` and the app with local
 fixture credentials; the general E2E config skips provider-specific assertions.
-Fixture tests reset only their signed-in test account's rate counter, not its data.
+The shared fixture snapshots/restores the disposable database around each test;
+Coach tests also reset only the fixture account's rate counter before chat.
 Use this config only with the explicit disposable test database.

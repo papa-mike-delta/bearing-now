@@ -1,50 +1,39 @@
-# Atomic backup restore
+# V1 backup, clear and restore
 
-`BackupDomain.restore(userId, payload, actor)` owns validation and replacement.
-The HTTP route supplies the verified account and actor and serializes the result.
-The v1 backup shape and success response remain unchanged; omitted/null
-collections are treated as empty, as in older backups.
+Use Settings → Backup and restore. Export downloads a private JSON `bearing-v1`
+version-1 envelope, bound to the signed-in account ID. Keep it secure: it contains
+personal data and saved Coach messages. Server export is a repeatable-read snapshot.
 
-The clear, ancillary creates, Item/Link domain writes and their operation ledger
-receipts use one PostgreSQL transaction. Existing domain functions accept a
-transaction client for composition and still acquire the same transaction-scoped
-advisory lock and enforce their normal guards. The restore holds that lock from
-cap preflight through commit, so another worker cannot consume the allowance
-between preflight and replacement. The transaction allows 10 seconds to acquire
-a pool connection and 60 seconds to finish; a timeout rolls back the replacement.
+The audited manifest in `src/lib/v1/backup-contract.ts` covers Items/Me content,
+Projects, Tags/Areas, ItemTag/ProjectTag joins, typed Links, Activity, Journal moments
+and references, Reviews and references, recurrence rules and occurrences,
+Conversations, Messages, Proposals, Preferences and audit receipts.
+Authentication secrets, invitations, editor leases, legacy tables and local-only
+browser drafts/outbox are excluded. Me identity is recorded in the envelope.
+Temporary Coach text is not stored, so cannot appear in an export.
 
-Authenticated-user restores retain `item.restore` / `link.restore` receipts and
-the existing create-cap exemption. Agent restores remain capped and cannot
-replace a dataset with active open Item leases. Every imported owner field is
-ignored; parent and endpoint references must belong to the destination account.
-Ancillary creates accept only scalar fields, preventing nested relation writes.
-Existing replacement semantics (including removal of account settings) remain.
+Sync pending captures first and close editors in other tabs. The UI blocks clear or
+restore when this browser has unsynced entries. Export before clearing. Type
+`RESET V1 DATA` to enable clear; it retains account/auth identity, canonical Me ID
+and append-only audit while clearing V1 content. Type `RESTORE V1 DATA`, select your
+same-account JSON backup and restore. The browser accepts files up to 10 MB; the API
+has a 20 MB request ceiling. Larger backups require a separately reviewed operator
+procedure, not deleting data or raising limits blindly.
 
-A domain refusal is thrown inside the transaction so earlier accepted writes
-and receipts roll back. It is returned as a structured refusal after rollback,
-without a `receiptId`: no new refusal or success receipts from that attempt
-survive. Existing ledger history remains. Database exceptions also roll back
-and retain the route's existing HTTP 500 error response.
+Restore validates all records, typed metadata, IDs and the relationship graph
+before mutation. Foreign-owned/colliding IDs are refused. A late insertion failure
+rolls back the entire clear and restore. Receipt identity is deduplicated and
+conflicting existing receipts cannot be overwritten. Restored IDs may be remapped
+where the restore contract requires it; relationships remain intact. Cross-account
+migration is not supported automatically. Saved pending Coach proposals may require
+a fresh preview and approval; restore never executes them.
 
-## PostgreSQL regression tests
+Per-account demo removal is separate from clear. It removes only marked unedited
+examples and refuses personal dependencies. It never repairs access by resetting a
+database. Full operator PostgreSQL backups are additionally required for disaster
+recovery, authentication and legacy data; test restoring those to an isolated DB.
 
-```sh
-npm ci
-npx prisma generate
-RESTORE_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/bearing_restore_test npm run test:integration
-npm test
-npx tsc --noEmit
-```
-
-Use a disposable PostgreSQL database with permission to create/drop schemas.
-The integration config creates a random schema, deploys the existing migrations,
-and drops only that schema afterward. It refuses to run without the explicit
-test database variable. The production database URL is not used as a fallback.
-
-The tests call the production restore interface against PostgreSQL, including
-late Item/Link refusals, a late database constraint failure, complete data and
-receipt preservation, account isolation, exported data/tag roundtrips,
-authenticated-user exemptions and concurrent agent Item/Link allowance use.
-Route unit tests cover authentication, early validation and response formatting;
-mocked transaction callbacks are not used as evidence of database rollback.
-The `restore-integration` CI job runs these tests with PostgreSQL 16.
+Verified domain cases live in `integration/v1/foundations.test.ts`: full-table round
+trip, ownership collision, late-write rollback, append-only history and demo data
+preservation. Browser release tests exercise the actual Settings download/clear/
+restore controls. Historical legacy backup behavior is not the V1 format.
