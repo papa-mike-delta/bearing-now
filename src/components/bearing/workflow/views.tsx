@@ -39,6 +39,7 @@ import {
   localDate as validLocalDate,
   type CanonicalItem,
 } from "@/lib/v1/contracts";
+import { ReviewComposer } from "./review-composer";
 import { TagSelector, ItemEditor } from "./item-editor";
 
 export function ItemCard({
@@ -219,6 +220,7 @@ export function Today({ date }: { date: string }) {
         >
           Write in your Journal
         </Link>
+        <Link className="rounded-xl border border-border px-4 py-3" href="/app/reviews">Write a reflection</Link>
       </div>
       <SectionCard title="Overdue">
         <div className="space-y-3">
@@ -1070,7 +1072,8 @@ export function Reviews({ recordId }: { recordId?: string }) {
   const reviews = data.reviews.filter((r) => !recordId || r.id === recordId);
   return (
     <div className="space-y-5">
-      <PageHeader title="Reviews" />
+      <PageHeader title="Reviews" subtitle="Pause and reflect. Separate from your daily log and check-ins." />
+      {recordId ? <Link className="inline-flex min-h-11 items-center underline" href="/app/reviews">All Reviews · write a reflection</Link> : <ReviewComposer />}
       {reviews.map((r) => (
         <SectionCard key={r.id} title={`${r.period} · ${r.localDate}`}>
           <dl className="space-y-3">

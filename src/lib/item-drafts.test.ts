@@ -151,3 +151,15 @@ it("keeps Journal drafts in their own namespace when record ids coincide", () =>
   expect(owner.get("item:shared")?.data.title).toBe("Item");
   expect(owner.get("moment:shared")?.data.content).toBe("Edited moment");
 });
+it("transient create completion retains concurrent edits and ignores stale account responses", () => {
+  const owner = createItemDraftOwner();
+  owner.receive("review:new", { wins: "" }); owner.receive("other", { content: "Unrelated" });
+  owner.change("review:new", { wins: "First reflection" });
+  const ticket = owner.beginSave("review:new")!;
+  owner.change("review:new", { wins: "An edit while saving" });
+  owner.completeTransient(ticket, { wins: "" });
+  expect(owner.get("review:new")?.data.wins).toBe("An edit while saving");
+  expect(owner.get("other")?.data.content).toBe("Unrelated");
+  const next = owner.beginSave("review:new")!; owner.clear(); owner.completeTransient(next, { wins: "" });
+  expect(owner.get("review:new")).toBeUndefined();
+});

@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   Zap,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import styles from "./landing.module.css";
 import {
   SmoothHashScroller,
   SmoothScrollLink,
@@ -22,7 +22,7 @@ const features = [
   {
     icon: Zap,
     title: "Capture now. Organize later.",
-    text: "Keep a thought in Inbox or the Daily Journal without choosing a Project or type. After a prior signed-in visit, text capture can queue offline and sync on reconnection.",
+    text: "Catch a thought without choosing a type or a folder. Keep it in Inbox or your Journal; text can queue offline after a prior signed-in visit.",
   },
   {
     icon: BookOpen,
@@ -42,12 +42,12 @@ const features = [
   {
     icon: Compass,
     title: "Coach, with your approval",
-    text: "Ask about your saved information and inspect linked evidence. Review and edit proposed changes before approving a batch. Requires an operator-configured external AI provider; provider use is disclosed before chat.",
+    text: "Ask about your saved information and follow the sources. Review proposed changes before approving them. External provider use is disclosed before chat.",
   },
   {
     icon: ShieldCheck,
     title: "Private accounts. Portable records.",
-    text: "Invitation-only accounts own separate data. Add and remove optional examples in Settings. Export a full V1 JSON backup, including relationships and histories, and restore it to the same account.",
+    text: "Keep your information in your own account. Export records, relationships and histories; restore them to the same account. Optional examples are yours to add or remove.",
   },
 ];
 const software = {
@@ -71,227 +71,27 @@ const software = {
   screenshot: siteConfig.screenshotUrls,
 };
 export default function LandingPage() {
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(software) }}
-      />
-      <SmoothHashScroller />
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:z-50 focus:bg-background focus:p-4"
-      >
-        Skip to content
-      </a>
-      <nav
-        data-public-nav
-        aria-label="Public navigation"
-        className="border-b border-border"
-      >
-        <div className="mx-auto flex min-h-20 max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-3">
-          <Link href="/" className="flex min-h-11 items-center gap-2 font-bold">
-            <Brain className="text-primary" />
-            bearing.now
-          </Link>
-          <div className="flex flex-wrap items-center gap-4 text-sm">
-            <SmoothScrollLink
-              href="#features"
-              className="inline-flex min-h-11 items-center"
-            >
-              Features
-            </SmoothScrollLink>
-            <SmoothScrollLink
-              href="#connections"
-              className="inline-flex min-h-11 items-center"
-            >
-              Connections
-            </SmoothScrollLink>
-            <SmoothScrollLink
-              href="#philosophy"
-              className="inline-flex min-h-11 items-center"
-            >
-              Philosophy
-            </SmoothScrollLink>
-            <Button variant="outline" asChild>
-              <a
-                href={siteConfig.repositoryUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Github />
-                GitHub
-              </a>
-            </Button>
-            <Button asChild>
-              <Link href="/app">
-                Open app <ArrowRight />
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </nav>
-      <main id="main">
-        <section className="mx-auto max-w-6xl px-6 py-20 sm:py-28">
-          <p className="mb-6 text-sm font-medium text-primary">
-            Open source · Self-hostable · Personal knowledge
-          </p>
-          <h1 className="max-w-4xl text-5xl font-bold leading-tight tracking-tight sm:text-7xl">
-            Capture your life.
-            <br />
-            <span className="text-primary">Find the connections.</span>
-          </h1>
-          <p className="mt-7 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            A place for the thought you need to catch, the day you want to
-            remember, and the people and ideas that give it context.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button size="lg" asChild>
-              <Link href="/app">
-                Open app <ArrowRight />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <SmoothScrollLink href="#features">
-                Explore features
-              </SmoothScrollLink>
-            </Button>
-            <Button size="lg" variant="ghost" asChild>
-              <a
-                href={siteConfig.repositoryUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                View source
-              </a>
-            </Button>
-          </div>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Sign-in required. New accounts need an invitation. Optional demo
-            examples are available after sign-in.
-          </p>
-          <figure className="mt-14 overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
-            <Image
-              src="/screenshots/v1-journal.png"
-              width={1440}
-              height={1000}
-              alt="The actual V1 Daily Journal with timestamped sample moments and referenced Items"
-              priority
-              className="h-auto w-full"
-            />
-            <figcaption className="border-t border-border p-4 text-sm text-muted-foreground">
-              Daily Journal in V1, using fictional sample data. This is the app,
-              captured in a test account.
-            </figcaption>
-          </figure>
-        </section>
-        <section
-          id="features"
-          className="scroll-mt-6 border-y border-border bg-muted/20 py-20"
-        >
-          <div className="mx-auto max-w-6xl px-6">
-            <h2 className="text-3xl font-bold">
-              From a quick thought to useful context.
-            </h2>
-            <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {features.map((f) => (
-                <article
-                  key={f.title}
-                  className="rounded-xl border border-border bg-card p-6"
-                >
-                  <f.icon aria-hidden="true" className="mb-4 text-primary" />
-                  <h3 className="text-xl font-semibold">{f.title}</h3>
-                  <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                    {f.text}
-                  </p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-        <section
-          id="connections"
-          className="mx-auto max-w-6xl scroll-mt-6 px-6 py-20"
-        >
-          <h2 className="text-3xl font-bold">
-            One record, several perspectives.
-          </h2>
-          <p className="mt-5 max-w-3xl text-lg leading-relaxed text-muted-foreground">
-            A Task can appear in Today, its Project, Search and Calendar without
-            becoming four Tasks. Links connect meaningful records. Areas
-            describe enduring responsibilities; Tags describe topics. Graph lets
-            you explore those connections.
-          </p>
-          <p className="mt-4 max-w-3xl text-muted-foreground">
-            Habits can contain simple Routine checklists. Focus sessions become
-            Activity. Multiple daily mood check-ins stay separate from your
-            Journal and structured Reviews.
-          </p>
-        </section>
-        <section
-          id="philosophy"
-          className="border-y border-border bg-muted/20 py-20"
-        >
-          <div className="mx-auto max-w-6xl px-6">
-            <h2 className="text-3xl font-bold">A memory aid for your life.</h2>
-            <p className="mt-5 max-w-3xl text-lg leading-relaxed text-muted-foreground">
-              Capture, organize, connect and recall personal information. Keep
-              specialized work in the tools that suit it: a Bookmark can point
-              to a file, book or place without building another specialized
-              tracker.
-            </p>
-            <p className="mt-4 max-w-3xl text-muted-foreground">
-              Offline support covers text capture after a prior authenticated
-              visit. AI chat needs connectivity and server configuration. Files
-              are external references. Your records remain the authority, and
-              Coach writes require approval.
-            </p>
-            <Link
-              href="/help"
-              className="mt-5 inline-flex min-h-11 items-center underline"
-            >
-              Read the help and privacy notes
-            </Link>
-          </div>
-        </section>
-        <section className="mx-auto max-w-6xl px-6 py-20">
-          <h2 className="text-3xl font-bold">
-            Start with what is on your mind.
-          </h2>
-          <p className="my-5 text-muted-foreground">
-            Sign in to your private workspace, or self-host and invite your own
-            accounts.
-          </p>
-          <Button size="lg" asChild>
-            <Link href="/app">
-              Open bearing.now <ArrowRight />
-            </Link>
-          </Button>
-        </section>
-      </main>
-      <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-6 px-6 py-10 text-sm">
-          <span className="font-semibold">bearing.now</span>
-          <Link
-            className="inline-flex min-h-11 items-center underline"
-            href="/help"
-          >
-            Help
-          </Link>
-          <a
-            className="inline-flex min-h-11 items-center underline"
-            href={siteConfig.repositoryUrl}
-          >
-            GitHub
-          </a>
-          <Link
-            className="inline-flex min-h-11 items-center underline"
-            href="/app"
-          >
-            Open app
-          </Link>
-        </div>
-      </footer>
-    </div>
-  );
+  return <div className={styles.page}>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(software) }} /><SmoothHashScroller />
+    <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:z-50 focus:bg-black focus:p-4">Skip to content</a>
+    <nav data-public-nav aria-label="Public navigation" className={styles.nav}><div className={`${styles.wrap} flex min-h-20 flex-wrap items-center justify-between gap-3 py-4`}>
+      <Link href="/" className={styles.logo}><Brain aria-hidden="true" />bearing.now</Link>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">{[["features","Features"],["connections","Connections"],["philosophy","Philosophy"]].map(([id,name]) => <SmoothScrollLink key={id} href={`#${id}`} className="inline-flex min-h-11 items-center">{name}</SmoothScrollLink>)}<a href={siteConfig.repositoryUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2"><Github className="h-4 w-4" aria-hidden="true" />GitHub</a><Link href="/app" className={styles.primary}>Open app <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link></div>
+    </div></nav>
+    <main id="main" tabIndex={-1}>
+      <section className={styles.hero}><div className={`${styles.wrap} ${styles.heroGrid}`}>
+        <div><p className={styles.eyebrow}>A little space for a full life</p><h1>Capture your life.<br /><em>Find the connections.</em></h1><p className={styles.intro}>The thought on your walk. The book a friend mentioned. The thing you meant to do. Give them a place to land—and a way back to each other.</p><div className={styles.actions}><Link href="/app" className={styles.primary}>Open app <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link><SmoothScrollLink href="#features" className={styles.secondary}>Take a look around</SmoothScrollLink></div><p className={styles.fine}>Sign-in required · Invitation-only accounts.<br />Optional examples help you find your feet after sign-in.</p></div>
+        <figure className={styles.product}><div className={styles.window}><div className={styles.windowBar} aria-hidden="true"><span className={styles.dot}/><span className={styles.dot}/><span className={styles.dot}/><span className="ml-auto">Your day, with a little more context</span></div><Image src="/screenshots/v1-journal.png" width={1440} height={1000} alt="The actual V1 Daily Journal with timestamped sample moments and referenced Items" priority /></div><figcaption className={styles.caption}>A real Daily Journal, with fictional sample data. Thoughts, plans and completed work each have their place.</figcaption></figure>
+      </div><div className={`${styles.wrap} ${styles.ribbon}`}><span><Github size={16} aria-hidden="true" />Open source</span><span><ShieldCheck size={16} aria-hidden="true" />Private accounts</span><span><Compass size={16} aria-hidden="true" />Self-hostable</span><span><BookOpen size={16} aria-hidden="true" />Your records, exportable</span></div></section>
+      <section id="features" className={styles.light}><div className={styles.wrap}><p className={styles.eyebrow}>Less filing. More living.</p><h2 className={styles.heading}>From a quick thought<br />to useful context.</h2><p className={styles.lead}>Start with a sentence. Add structure when it helps. Bearing brings the pieces of your day together without making every thought a project.</p><div className={styles.features}>{features.map(f => <article key={f.title} className={styles.feature}><f.icon aria-hidden="true"/><h3>{f.title}</h3><p>{f.text}</p></article>)}</div></div></section>
+      <section id="connections" className={`${styles.wrap} ${styles.story}`}><p className={styles.eyebrow}>Small moments. A connected life.</p><h2 className={styles.heading}>One record,<br />several perspectives.</h2><div className={styles.steps}>{[
+        ["01","Catch the thought.","“Ask Alex about that book.” Save it in the Journal, just as it came to you. You can organize it later in Inbox."],
+        ["02","Give it context.","Turn it into a Task. Connect Alex’s Person profile and the book Bookmark. A mention stays a mention until you record an actual interaction."],
+        ["03","Pick up the thread.","Find it in Search, revisit it from a Project or explore its links in Graph. Ask Coach about saved information, then inspect the supporting sources."]
+      ].map(([number,title,body]) => <article key={number} className={styles.step}><span className={styles.number}>{number}</span><h3>{title}</h3><p>{body}</p></article>)}</div><div className={styles.connectionNote}><Network aria-hidden="true"/><p>A Task in Today, Journal and Calendar is still <strong className="text-white">one Task</strong>. Complete it once. See the change wherever you meet it.</p></div></section>
+      <section id="philosophy" className={styles.philosophy}><div className={`${styles.wrap} ${styles.philosophyGrid}`}><h2 className={styles.heading}>A memory aid.<br />A little breathing room.</h2><div><p>Bearing helps you capture, organize, connect and recall. Keep specialized work in the tools you already love; bring the useful references here.</p><p className="mt-4">Your records stay the authority. Coach proposes changes for your approval. Offline text capture works after a prior signed-in visit; AI needs connectivity and a configured external provider.</p><Link href="/help">Read the help and privacy notes <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true"/></Link></div></div></section>
+      <section className={`${styles.wrap} ${styles.closing}`}><p className={styles.eyebrow}>Make a little room</p><h2 className={styles.heading}>Start with what’s<br />on your mind.</h2><p>Sign in to your workspace, or self-host and invite your own accounts.</p><div className={`${styles.actions} justify-center`}><Link href="/app" className={styles.primary}>Open bearing.now <ArrowRight className="h-4 w-4" aria-hidden="true"/></Link><a href={siteConfig.repositoryUrl} className={styles.secondary}>View source</a></div></section>
+    </main>
+    <footer className={styles.footer}><div className={`${styles.wrap} flex flex-wrap items-center gap-6 py-8`}><span className="mr-auto font-semibold">bearing.now</span><Link href="/help" className="inline-flex min-h-11 items-center">Help</Link><a href={siteConfig.repositoryUrl} className="inline-flex min-h-11 items-center">GitHub</a><Link href="/app" className="inline-flex min-h-11 items-center">Open app</Link></div></footer>
+  </div>;
 }

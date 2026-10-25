@@ -44,6 +44,8 @@ const nav = [
   ["library", "Library", "Library"],
   ["calendar", "Calendar", "CalendarDays"],
   ["focus", "Focus", "Timer"],
+  ["reviews", "Reviews", "ClipboardList"],
+  ["graph", "Graph", "Network"],
   ["coach", "Coach", "Sparkles"],
   ["settings", "Settings", "Settings"],
 ];
@@ -340,6 +342,7 @@ function Content({
       throw error;
     }
   };
+  const me = data.items.find(item => item.selfProfile?.userId === userId);
   const navigation = (
     <nav aria-label="Main navigation" className="flex flex-col gap-1">
       {nav.map(([route, name, icon]) => (
@@ -354,6 +357,7 @@ function Content({
           {name}
         </Link>
       ))}
+      {me && <Link href={`/app/library/${me.id}`} onClick={() => setMenu(false)} aria-current={recordId === me.id ? "page" : undefined} className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm ${recordId === me.id ? "bg-muted font-semibold" : "hover:bg-muted/60"}`}><Icon name="User" className="h-4 w-4" /> Me</Link>}
     </nav>
   );
   return (
@@ -362,7 +366,8 @@ function Content({
     >
       <div className="bearing-app flex min-h-dvh min-w-0 bg-background text-foreground">
         <StoredThemeOverride />
-        <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 space-y-6 border-r border-border p-4 md:block">
+        <a href="#workspace-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-background focus:p-4">Skip to workspace</a>
+        <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 space-y-6 overflow-y-auto border-r border-border p-4 md:block">
           <Link
             href="/app/today"
             className="flex min-h-11 items-center gap-2 font-bold"
@@ -412,7 +417,7 @@ function Content({
             </Button>
             <Button onClick={openCapture}>Quick Capture</Button>
           </header>
-          <main className="mx-auto w-full max-w-5xl space-y-5 px-4 py-6 sm:px-6">
+          <main id="workspace-content" tabIndex={-1} className="mx-auto w-full max-w-5xl space-y-5 px-4 py-6 sm:px-6">
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
               <span role="status">{syncStatus || "Connected"}</span>
               <span>
