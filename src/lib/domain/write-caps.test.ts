@@ -9,5 +9,5 @@ it.each(["item.create", "link.create"] as const)("exempts only user restores fro
   expect(count).not.toHaveBeenCalled();
   expect(await WriteCaps.create(tx, "agent:internal", "alice", operation, 100, "restore")).toMatchObject({ ok: false, rateLimited: true });
   expect(await WriteCaps.create(tx, "user:alice", "alice", operation)).toMatchObject({ ok: false, rateLimited: true });
-  expect(count).toHaveBeenCalledWith({ where: expect.objectContaining({ userId: "alice", actor: "user:alice", operation }) });
+  expect(count).toHaveBeenCalledWith({ where: expect.objectContaining({ userId: "alice", actor: "user:alice", operation: { in: [operation, `v1.${operation}`] } }) });
 });

@@ -1,3 +1,4 @@
+import { sessionCookie } from "@/lib/session";
 import { db } from "@/lib/db";
 import { ok, bad, parseBody, verifyTOTP, verifySession, createSession } from "@/lib/auth-utils";
 import type { NextRequest } from "next/server";
@@ -30,6 +31,6 @@ export async function POST(req: NextRequest) {
   // Upgrade session to verified
   const newSession = createSession(user.id, user.email, true);
   const res = ok({ authenticated: true, email: user.email });
-  res.headers.set("Set-Cookie", `lifeos-session=${newSession}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`);
+  res.headers.set("Set-Cookie", sessionCookie(newSession, 604800));
   return res;
 }

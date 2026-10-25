@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_os
-      SESSION_SECRET: github-actions-ci-secret
+      SESSION_SECRET: github-actions-ci-secret-at-least-32-characters
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v1
@@ -37,6 +37,7 @@ jobs:
           --health-retries 10
     env:
       RESTORE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/bearing_restore_test
+      V1_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/bearing_restore_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -44,6 +45,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx prisma generate
+      - run: npm run db:generate
       - run: npm test
       - run: npm run test:integration
+      - run: npm run test:v1

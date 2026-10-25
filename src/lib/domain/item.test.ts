@@ -167,7 +167,7 @@ it("allows the 20th Item create and counts only this actor's successful creates 
   db.item.create.mockResolvedValue({ id: "twentieth", revision: 0 });
   expect(await ItemDomain.create("alice", { title: "Twentieth", type: "note" }, [], "agent:coach")).toMatchObject({ ok: true });
   expect(db.operationLedger.count).toHaveBeenCalledWith({ where: {
-    userId: "alice", actor: "agent:coach", operation: "item.create", status: "success",
+    userId: "alice", actor: "agent:coach", operation: { in: ["item.create", "v1.item.create"] }, status: "success",
     createdAt: { gt: new Date("2026-10-23T11:00:00Z") },
   } });
 });

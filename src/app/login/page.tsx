@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [invitation, setInvitation] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [verifyCode, setVerifyCode] = useState("");
@@ -24,16 +25,18 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/session").then(r => r.json()).then(d => {
-      if (d.authenticated) window.location.href = "/app";
-    });
-
     const params = new URLSearchParams(window.location.search);
     const qrToken = params.get("qr");
-    if (qrToken) {
-      setQrConfirmToken(qrToken);
-      setStep("qr-confirm");
-    }
+    if (qrToken) setQrConfirmToken(qrToken);
+    const invite = params.get("invite");
+    if (invite) { setInvitation(invite); setMode("register"); }
+    fetch("/api/auth/session").then(r => r.json()).then(d => {
+      if (d.authenticated && d.twoFactorVerified) {
+        setEmail(d.email);
+        if (qrToken) setStep("qr-confirm");
+        else window.location.href = "/app";
+      } else if (d.authenticated) setStep("verify");
+    });
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -45,11 +48,12 @@ export default function LoginPage() {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({ email, password, ...(mode === "register" ? { name: name.trim() || undefined, token: invitation } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Authentication failed"); return; }
       if (data.requiresVerification) { setStep("verify"); }
+      else if (data.authenticated && qrConfirmToken) setStep("qr-confirm");
       else if (data.authenticated) { setStep("done"); setTimeout(() => { window.location.href = "/app"; }, 800); }
     } catch { setError("Network error. Please try again."); }
     finally { setLoading(false); }
@@ -67,6 +71,7 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Verification failed"); return; }
+      if (qrConfirmToken) { setStep("qr-confirm"); return; }
       setStep("done");
       setTimeout(() => { window.location.href = "/app"; }, 800);
     } catch { setError("Network error"); }
@@ -145,6 +150,7 @@ export default function LoginPage() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {mode === "register" && <div><Label htmlFor="invitation" className="mb-1.5 block text-xs font-semibold text-muted-foreground">Invitation code</Label><Input id="invitation" required value={invitation} onChange={(e) => setInvitation(e.target.value)} autoComplete="off" className="h-11" /><p className="mt-1 text-xs text-muted-foreground">Registration is invitation-only.</p></div>}
                   {mode === "register" && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}>
                       <Label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Name</Label>
@@ -280,7 +286,7 @@ export default function LoginPage() {
                     <QrCode className="h-7 w-7 text-violet-500" />
                   </div>
                   <h2 className="text-xl font-bold">Confirm login</h2>
-                  <p className="mt-1.5 text-sm text-muted-foreground">Enter your credentials to sign in on this device</p>
+                  <p className="mt-1.5 text-sm text-muted-foreground">Confirm using your signed-in account after two-factor verification</p>
                 </div>
                 <form onSubmit={async (e) => {
                   e.preventDefault();
@@ -290,7 +296,7 @@ export default function LoginPage() {
                     const res = await fetch("/api/auth/qr-login", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "confirm", token: qrConfirmToken, email, password }),
+                      body: JSON.stringify({ action: "confirm", token: qrConfirmToken }),
                     });
                     const data = await res.json();
                     if (!res.ok) { setError(data.error || "Failed to confirm"); return; }
@@ -299,14 +305,7 @@ export default function LoginPage() {
                   } catch { setError("Network error"); }
                   finally { setLoading(false); }
                 }} className="space-y-4">
-                  <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
-                    <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="h-11 pl-10" />
-                  </div>
-                  <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
-                    <Input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="h-11 pl-10" />
-                  </div>
+                  <p className="text-sm">Signed in as {email}</p>
                   {error && <p className="text-sm text-rose-500">{error}</p>}
                   <Button type="submit" disabled={loading} className="h-11 w-full gap-2 bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white">
                     {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Confirm login <ArrowRight className="h-5 w-5" /></>}

@@ -113,7 +113,7 @@ it("creates a Link through Coach caps and increments its source revision", async
     where: { id: "item", userId: "alice", revision: 4 }, data: { revision: { increment: 1 } },
   });
   expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({ actor: "agent:coach", operation: "link.create" }) });
-  expect(db.operationLedger.count).toHaveBeenCalledWith({ where: expect.objectContaining({ actor: "agent:coach", operation: "link.create" }) });
+  expect(db.operationLedger.count).toHaveBeenCalledWith({ where: expect.objectContaining({ actor: "agent:coach", operation: { in: ["link.create", "v1.link.create"] } }) });
 });
 
 it("deletes a Link through the revision-checked domain as Coach", async () => {

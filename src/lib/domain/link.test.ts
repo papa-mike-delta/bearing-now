@@ -99,7 +99,7 @@ it("allows the 50th Link create and records a successful Link receipt", async ()
   db.link.upsert.mockResolvedValue({ id: "fiftieth", type: "related_to" });
   expect(await LinkDomain.create("alice", { fromId: "from", toId: "to" }, 4, "agent:coach")).toMatchObject({ ok: true });
   expect(db.operationLedger.count).toHaveBeenCalledWith({ where: {
-    userId: "alice", actor: "agent:coach", operation: "link.create", status: "success", createdAt: { gt: expect.any(Date) },
+    userId: "alice", actor: "agent:coach", operation: { in: ["link.create", "v1.link.create"] }, status: "success", createdAt: { gt: expect.any(Date) },
   } });
   expect(db.operationLedger.create).toHaveBeenCalledWith({ data: expect.objectContaining({
     actor: "agent:coach", operation: "link.create", status: "success",

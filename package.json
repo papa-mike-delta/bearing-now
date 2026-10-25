@@ -38,18 +38,20 @@
   "homepage": "https://github.com/karim-coder/bearing-now#readme",
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "prisma generate && next build",
-    "build:vercel": "prisma generate && prisma migrate deploy && next build",
+    "build": "npm run db:generate && next build",
+    "build:vercel": "npm run db:generate && prisma migrate deploy && next build",
     "start": "next start -p 3000",
     "lint": "eslint .",
     "test": "vitest run",
     "theme:generate": "tsx scripts/generate-theme.ts",
     "db:push": "prisma db push",
-    "db:generate": "prisma generate",
+    "db:generate": "prisma generate && prisma generate --schema prisma/v1/schema.prisma",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
     "test:e2e": "playwright test",
-    "test:integration": "vitest run --config vitest.integration.config.mts"
+    "test:integration": "vitest run --config vitest.integration.config.mts",
+    "db:v1:deploy": "tsx scripts/deploy-v1.ts",
+    "test:v1": "vitest run --config vitest.v1.config.mts"
   },
   "dependencies": {
     "@mdxeditor/editor": "^3.39.1",
@@ -88,6 +90,7 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "z-ai-web-dev-sdk": "^0.0.18",
+    "zod": "^4.6.7",
     "zustand": "^5.0.6"
   },
   "devDependencies": {

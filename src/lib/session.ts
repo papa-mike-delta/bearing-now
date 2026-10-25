@@ -1,8 +1,20 @@
-// Signed session tokens. Kept free of database imports so the proxy can verify them.
-import crypto from "crypto";
+// Database-free signed sessions, shared by the proxy and server handlers.
+import crypto from "node:crypto";
 
-const SESSION_SECRET = process.env.SESSION_SECRET || "lifeos-dev-secret-change-in-production";
-
+function secret() {
+  const value = process.env.SESSION_SECRET;
+  if (
+    (process.env.NODE_ENV === "production" ||
+      process.env.VERCEL_ENV === "production") &&
+    (!value ||
+      value.length < 32 ||
+      value === "lifeos-dev-secret-change-in-production")
+  )
+    throw new Error(
+      "Production requires a unique SESSION_SECRET of at least 32 characters",
+    );
+  return value || "lifeos-dev-secret-change-in-production";
+}
 export interface SessionData {
   userId: string;
   email: string;
@@ -10,35 +22,57 @@ export interface SessionData {
   createdAt: number;
   expiresAt: number;
 }
-
-export function createSession(userId: string, email: string, twoFactorVerified: boolean): string {
-  const data: SessionData = {
+export function sessionCookie(token: string, maxAge = 604800) {
+  return `lifeos-session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${process.env.NODE_ENV === "production" ? "; Secure" : ""}`;
+}
+export function createSession(
+  userId: string,
+  email: string,
+  twoFactorVerified: boolean,
+): string {
+  const createdAt = Date.now();
+  const payload = JSON.stringify({
     userId,
     email,
     twoFactorVerified,
-    createdAt: Date.now(),
-    expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
-  };
-  const payload = JSON.stringify(data);
-  const signature = crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("hex");
-  return Buffer.from(`${payload}.${signature}`).toString("base64url");
+    createdAt,
+    expiresAt: createdAt + (twoFactorVerified ? 7 * 86400_000 : 600_000),
+  } satisfies SessionData);
+  return Buffer.from(
+    `${payload}.${crypto.createHmac("sha256", secret()).update(payload).digest("hex")}`,
+  ).toString("base64url");
 }
-
 export function verifySession(token: string): SessionData | null {
   try {
-    const decoded = Buffer.from(token, "base64url").toString();
-    const lastDot = decoded.lastIndexOf(".");
-    if (lastDot === -1) return null;
-
-    const payload = decoded.substring(0, lastDot);
-    const signature = decoded.substring(lastDot + 1);
-
-    const expectedSig = crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("hex");
-    if (signature !== expectedSig) return null;
-
-    const data: SessionData = JSON.parse(payload);
-    if (Date.now() > data.expiresAt) return null;
-
+    if (token.length > 4096 || !/^[A-Za-z0-9_-]+$/.test(token)) return null;
+    const bytes = Buffer.from(token, "base64url");
+    if (bytes.toString("base64url") !== token) return null;
+    const decoded = bytes.toString(),
+      dot = decoded.lastIndexOf(".");
+    if (dot === -1) return null;
+    const payload = decoded.slice(0, dot),
+      signature = decoded.slice(dot + 1);
+    if (!/^[a-f0-9]{64}$/.test(signature)) return null;
+    const expected = crypto
+      .createHmac("sha256", secret())
+      .update(payload)
+      .digest();
+    if (!crypto.timingSafeEqual(Buffer.from(signature, "hex"), expected))
+      return null;
+    const data = JSON.parse(payload) as SessionData;
+    if (
+      typeof data.userId !== "string" ||
+      !data.userId ||
+      typeof data.email !== "string" ||
+      typeof data.twoFactorVerified !== "boolean" ||
+      !Number.isSafeInteger(data.createdAt) ||
+      !Number.isSafeInteger(data.expiresAt) ||
+      data.createdAt > Date.now() ||
+      data.expiresAt <= Date.now() ||
+      data.expiresAt <= data.createdAt ||
+      data.expiresAt - data.createdAt > 7 * 86400_000
+    )
+      return null;
     return data;
   } catch {
     return null;
