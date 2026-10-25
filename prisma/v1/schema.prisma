@@ -185,6 +185,8 @@ model Activity {
 }
 
 model JournalMoment {
+  capturedAt        DateTime     @default(now()) @db.Timestamptz(3)
+  ingestHash        String?
   id                String       @id @default(cuid())
   userId            String
   clientId          String

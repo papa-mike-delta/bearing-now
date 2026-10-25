@@ -39,32 +39,32 @@ export async function write<T>(
   operation: string,
   payload: unknown,
   work: (tx: Tx) => Promise<T>,
+  transaction?: Tx,
 ) {
   const { userId, actor } = principal;
   if (actor.startsWith("user:") && actor !== `user:${userId}`)
     throw new Fault(403, "Actor does not own this account");
-  try {
-    return await v1db.$transaction(
-      async (tx) => {
-        // Shared with the existing domain: caps, leases and maintenance cannot race.
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(731909)::text`;
-        if (actor.startsWith("agent:") && !principal.approved)
-          throw new Fault(403, "An approved change set is required");
-        const value = await work(tx);
-        const receipt = await tx.ledger.create({
-          data: {
-            userId,
-            actor,
-            operation,
-            payload: JSON.stringify(payload ?? null),
-            status: "success",
-            receipt: JSON.stringify({ ok: true, value }),
-          },
-        });
-        return { ok: true as const, value, receiptId: receipt.id };
+  const run = async (tx: Tx) => {
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(731909)::text`;
+    if (actor.startsWith("agent:") && !principal.approved)
+      throw new Fault(403, "An approved change set is required");
+    const value = await work(tx);
+    const receipt = await tx.ledger.create({
+      data: {
+        userId,
+        actor,
+        operation,
+        payload: JSON.stringify(payload ?? null),
+        status: "success",
+        receipt: JSON.stringify({ ok: true, value }),
       },
-      { timeout: 30_000 },
-    );
+    });
+    return { ok: true as const, value, receiptId: receipt.id };
+  };
+  // Composition shares writes and receipts; only the outer transaction records refusal.
+  if (transaction) return run(transaction);
+  try {
+    return await v1db.$transaction(run, { timeout: 30_000 });
   } catch (error) {
     const fault =
       error instanceof Fault
@@ -255,24 +255,36 @@ export class V1 {
     if (!row) throw new Fault(404, "Not found");
     return withAreas(row);
   }
-  static createItem(p: Principal, raw: unknown) {
-    return write(p, "v1.item.create", raw, async (tx) => {
-      const value = parse(schema.itemInput, raw),
-        tagIds = await itemRelations(tx, p.userId, value);
-      await cap(tx, p, "item");
-      const row = await tx.item.create({
-        data: {
-          ...scalars(value),
-          userId: p.userId,
-          completedAt: value.status === "done" ? new Date() : null,
-          tags: { create: tagIds.map((tagId) => ({ tagId })) },
-        },
-        include: itemInclude,
-      });
-      return withAreas(row);
-    });
+  static createItem(p: Principal, raw: unknown, transaction?: Tx) {
+    return write(
+      p,
+      "v1.item.create",
+      raw,
+      async (tx) => {
+        const value = parse(schema.itemInput, raw),
+          tagIds = await itemRelations(tx, p.userId, value);
+        await cap(tx, p, "item");
+        const row = await tx.item.create({
+          data: {
+            ...scalars(value),
+            userId: p.userId,
+            completedAt: value.status === "done" ? new Date() : null,
+            tags: { create: tagIds.map((tagId) => ({ tagId })) },
+          },
+          include: itemInclude,
+        });
+        return withAreas(row);
+      },
+      transaction,
+    );
   }
-  static updateItem(p: Principal, id: string, revision: number, raw: unknown) {
+  static updateItem(
+    p: Principal,
+    id: string,
+    revision: number,
+    raw: unknown,
+    transaction?: Tx,
+  ) {
     return write(
       p,
       "v1.item.update",
@@ -391,6 +403,7 @@ export class V1 {
         }
         return withAreas(row);
       },
+      transaction,
     );
   }
   static async me(userId: string) {
@@ -477,84 +490,99 @@ export class V1 {
       return { deleted: true };
     });
   }
-  static createMoment(p: Principal, raw: unknown) {
-    return write(p, "v1.moment.create", raw, async (tx) => {
-      const value = parse(schema.momentInput, raw),
-        existing = await tx.journalMoment.findUnique({
-          where: {
-            userId_clientId: { userId: p.userId, clientId: value.clientId },
+  static createMoment(p: Principal, raw: unknown, transaction?: Tx) {
+    return write(
+      p,
+      "v1.moment.create",
+      raw,
+      async (tx) => {
+        const value = parse(schema.momentInput, raw),
+          existing = await tx.journalMoment.findUnique({
+            where: {
+              userId_clientId: { userId: p.userId, clientId: value.clientId },
+            },
+          });
+        if (existing) {
+          if (
+            existing.text !== value.text ||
+            +existing.occurredAt !== Date.parse(value.occurredAt) ||
+            existing.timezone !== value.timezone
+          )
+            throw new Fault(
+              409,
+              "Idempotency key already used for different capture",
+            );
+          return existing;
+        }
+        for (const ref of value.items)
+          await owned(tx, p.userId, "item", ref.itemId);
+        const { items, ...data } = value;
+        return tx.journalMoment.create({
+          data: {
+            ...data,
+            userId: p.userId,
+            occurredAt: new Date(value.occurredAt),
+            localDate: dateInZone(value.occurredAt, value.timezone),
+            items: { create: items.map((ref) => ({ ...ref })) },
           },
         });
-      if (existing) {
-        if (
-          existing.text !== value.text ||
-          +existing.occurredAt !== Date.parse(value.occurredAt) ||
-          existing.timezone !== value.timezone
-        )
-          throw new Fault(
-            409,
-            "Idempotency key already used for different capture",
-          );
-        return existing;
-      }
-      for (const ref of value.items)
-        await owned(tx, p.userId, "item", ref.itemId);
-      const { items, ...data } = value;
-      return tx.journalMoment.create({
-        data: {
-          ...data,
-          userId: p.userId,
-          occurredAt: new Date(value.occurredAt),
-          localDate: dateInZone(value.occurredAt, value.timezone),
-          items: { create: items.map((ref) => ({ ...ref })) },
-        },
-      });
-    });
+      },
+      transaction,
+    );
   }
-  static createActivity(p: Principal, raw: unknown) {
-    return write(p, "v1.activity.create", raw, async (tx) => {
-      const value = parse(schema.activityInput, raw),
-        existing = await tx.activity.findUnique({
-          where: {
-            userId_clientId: { userId: p.userId, clientId: value.clientId },
+  static createActivity(p: Principal, raw: unknown, transaction?: Tx) {
+    return write(
+      p,
+      "v1.activity.create",
+      raw,
+      async (tx) => {
+        const value = parse(schema.activityInput, raw),
+          existing = await tx.activity.findUnique({
+            where: {
+              userId_clientId: { userId: p.userId, clientId: value.clientId },
+            },
+          });
+        if (existing) {
+          if (
+            existing.kind !== value.kind ||
+            +existing.occurredAt !== Date.parse(value.occurredAt) ||
+            existing.itemId !== value.itemId ||
+            existing.timezone !== value.timezone ||
+            JSON.stringify(existing.data) !== JSON.stringify(value.data)
+          )
+            throw new Fault(
+              409,
+              "Idempotency key already used for different Activity",
+            );
+          return existing;
+        }
+        if (value.kind === "task_completion")
+          throw new Fault(
+            400,
+            "Task completion is recorded by saving the Task",
+          );
+        if (value.itemId) {
+          const item = await owned(tx, p.userId, "item", value.itemId);
+          const required = {
+            habit_completion: "habit",
+            task_completion: "task",
+            interaction: "person",
+          }[value.kind as string];
+          if (required && item.type !== required)
+            throw new Fault(400, "Activity has incompatible Item type");
+        }
+        return tx.activity.create({
+          data: {
+            ...value,
+            data: json(value.data),
+            userId: p.userId,
+            occurredAt: new Date(value.occurredAt),
+            localDate: dateInZone(value.occurredAt, value.timezone),
           },
         });
-      if (existing) {
-        if (
-          existing.kind !== value.kind ||
-          +existing.occurredAt !== Date.parse(value.occurredAt) ||
-          existing.itemId !== value.itemId ||
-          existing.timezone !== value.timezone ||
-          JSON.stringify(existing.data) !== JSON.stringify(value.data)
-        )
-          throw new Fault(
-            409,
-            "Idempotency key already used for different Activity",
-          );
-        return existing;
-      }
-      if (value.kind === "task_completion")
-        throw new Fault(400, "Task completion is recorded by saving the Task");
-      if (value.itemId) {
-        const item = await owned(tx, p.userId, "item", value.itemId);
-        const required = {
-          habit_completion: "habit",
-          task_completion: "task",
-          interaction: "person",
-        }[value.kind as string];
-        if (required && item.type !== required)
-          throw new Fault(400, "Activity has incompatible Item type");
-      }
-      return tx.activity.create({
-        data: {
-          ...value,
-          data: json(value.data),
-          userId: p.userId,
-          occurredAt: new Date(value.occurredAt),
-          localDate: dateInZone(value.occurredAt, value.timezone),
-        },
-      });
-    });
+      },
+      transaction,
+    );
   }
   static createReview(p: Principal, raw: unknown) {
     return write(p, "v1.review.create", raw, async (tx) => {

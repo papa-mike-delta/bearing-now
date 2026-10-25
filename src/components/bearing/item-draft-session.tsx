@@ -28,11 +28,11 @@ export function useItemDraft(key: string | null, seed?: ItemSnapshot | null) {
   return { owner, draft, data: draft?.data ?? normalizeItem(seed ?? {}) };
 }
 
-export function DraftNotice({ draft, onDiscard }: { draft?: Draft; onDiscard: () => void }) {
+export function DraftNotice({ draft, onDiscard, noun = "Item" }: { draft?: Draft; onDiscard: () => void; noun?: string }) {
   if (!draft?.dirtyFields.length && !draft?.error) return null;
   return <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2 text-xs">
     <span role={draft.error ? "alert" : "status"}>
-      {draft.conflict ? "This Item changed. Your edits are retained. Discard changes to load the latest Item." : draft.error ?? "Unsaved changes retained for this session."}
+      {draft.conflict ? `This ${noun} changed. Your edits are retained. Discard changes to load the latest version.` : draft.error ?? "Unsaved changes retained for this session."}
     </span>
     {draft.failure?.receiptId && <a className="underline" href={operationReceiptHref(draft.failure.receiptId, draft.failure.source)} target="_blank" rel="noreferrer">View receipt</a>}
     <button type="button" className="underline" disabled={!!draft.pending} onClick={onDiscard}>Discard changes</button>

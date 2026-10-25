@@ -74,6 +74,8 @@ export const tableSchemas = {
     ...stamp,
   }),
   moments: z.strictObject({
+    capturedAt: instant.optional(),
+    ingestHash: z.string().nullable().optional(),
     id,
     clientId: id,
     revision,
