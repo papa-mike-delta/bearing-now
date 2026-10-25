@@ -38,8 +38,8 @@
   "homepage": "https://github.com/karim-coder/bearing-now#readme",
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "npm run db:generate && next build",
-    "build:vercel": "npm run db:generate && prisma migrate deploy && next build",
+    "build": "node scripts/prepare-offline.mjs && npm run db:generate && next build",
+    "build:vercel": "node scripts/prepare-offline.mjs && npm run db:generate && prisma migrate deploy && next build",
     "start": "next start -p 3000",
     "lint": "eslint .",
     "test": "vitest run",
@@ -102,6 +102,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^16.1.1",
+    "fake-indexeddb": "^6.2.6",
     "prisma": "6.11.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",

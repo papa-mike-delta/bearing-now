@@ -96,6 +96,7 @@ export async function clearData(tx: Tx, userId: string) {
   });
 }
 const dateFields = new Set([
+  "capturedAt",
   "createdAt",
   "updatedAt",
   "dueAt",
@@ -116,7 +117,7 @@ const jsonFields = new Set([
 ]);
 function rehydrate(row: Row, userId: string) {
   return Object.fromEntries(
-    Object.entries({ ...row, userId }).map(([key, value]) => [
+    Object.entries({ ...row, ...(typeof row.text === "string" && typeof row.clientId === "string" && !row.capturedAt ? { capturedAt: row.createdAt } : {}), userId }).map(([key, value]) => [
       key,
       dateFields.has(key) && typeof value === "string"
         ? new Date(value)

@@ -84,7 +84,7 @@ export function createItemDraftOwner() {
       put(key, { ...draft, pending: ticket.request, error: undefined, conflict: false, failure: undefined });
       return ticket;
     },
-    complete(ticket: SaveTicket, saved: ItemSnapshot) {
+    complete(ticket: SaveTicket, saved: ItemSnapshot, namespace = "item") {
       const current = get(ticket.key);
       if (ticket.epoch !== epoch || current?.pending !== ticket.request) return null;
       if (!saved.id || !Number.isSafeInteger(saved.revision) || (ticket.data.id && saved.id !== ticket.data.id)) {
@@ -99,7 +99,7 @@ export function createItemDraftOwner() {
         if (!equal(current.data[field], ticket.data[field]) ||
           (!ticket.fields.includes(field) && current.dirtyFields.includes(field))) data[field] = current.data[field];
       }
-      const key = itemDraftKey(saved.id);
+      const key = namespace === "item" ? itemDraftKey(saved.id) : `${namespace}:${saved.id}`;
       const latest = current.latest.id === saved.id && current.latest.revision > saved.revision ? current.latest : baseline;
       const dirtyFields = dirty(data, baseline);
       const draft: Draft = dirtyFields.length

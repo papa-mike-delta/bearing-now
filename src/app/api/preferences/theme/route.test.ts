@@ -81,3 +81,12 @@ it("refuses unsafe stored data, including data restored from a backup", async ()
   expect(response.status).toBe(400);
   expect(await response.json()).toEqual({ error: "Stored theme is invalid. Import a new theme or reset it." });
 });
+
+it("rejects a theme action when the signed-in cookie changed accounts", async () => {
+  for (const [method, handler] of [["GET", GET], ["POST", POST], ["DELETE", DELETE]] as const) {
+    const req = request(method, method === "POST" ? { input: fixture("theme.css") } : undefined, "user-2");
+    req.headers.set("X-Bearing-Account", "user-1");
+    expect((await handler(req)).status).toBe(409);
+  }
+  expect(settings.size).toBe(0);
+});

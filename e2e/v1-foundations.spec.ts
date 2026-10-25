@@ -34,7 +34,7 @@ test("invitation-only registration creates an isolated account and one canonical
     await page.locator('input[type="email"]').fill(email);
     await page.locator('input[type="password"]').fill("Password123");
     await page.locator('form button[type="submit"]').click();
-    await expect(page).toHaveURL(/\/app$/);
+    await expect(page).toHaveURL(/\/app\/today$/);
     const me = await (await page.request.get("/api/v1/me")).json();
     expect(me).toMatchObject({ type: "person", title: "Me" });
     const items = await (await page.request.get("/api/v1/items")).json();
@@ -96,7 +96,7 @@ test("pending 2FA stays on verification after reload and cannot read either data
       .getByPlaceholder("000000", { exact: true })
       .fill(generateTOTPCode(secret));
     await page.getByRole("button", { name: "Verify", exact: true }).click();
-    await expect(page).toHaveURL(/\/app$/);
+    await expect(page).toHaveURL(/\/app\/today$/);
     expect((await page.request.get("/api/v1/me")).status()).toBe(200);
   } finally {
     await db.$disconnect();

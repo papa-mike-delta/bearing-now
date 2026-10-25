@@ -5,6 +5,7 @@ import { v1db } from "@/lib/v1/db";
 import { V1, Fault, parse, type Principal } from "@/lib/v1/service";
 import { V1Backup } from "@/lib/v1/backup";
 import { V1Demo } from "@/lib/v1/demo";
+import { Workflow } from "@/lib/v1/workflow";
 import { id, revision } from "@/lib/v1/contracts";
 export const dynamic = "force-dynamic";
 const edit = z.strictObject({ revision, data: z.unknown() });
@@ -18,6 +19,9 @@ async function handle(
   if (!session?.twoFactorVerified)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
+    const expected = req.headers.get("X-Bearing-Account");
+    if (expected && expected !== session.userId)
+      throw new Fault(409, "Account changed; your capture has been retained");
     if (!(await v1db.account.findUnique({ where: { id: session.userId } })))
       throw new Fault(401, "Unauthorized");
     const p: Principal = {
@@ -41,7 +45,43 @@ async function handle(
       }
     }
     let result: unknown;
-    if (resource === "items" && !action) {
+    if (resource === "identity" && !recordId && method === "GET")
+      result = {
+        userId: p.userId,
+        email: session.email,
+        expiresAt: session.expiresAt,
+        timezone: (await Workflow.preferences(p.userId)).timezone ?? null,
+      };
+    else if (resource === "workspace" && !recordId && method === "GET")
+      result = await Workflow.workspace(p.userId);
+    else if (resource === "search" && !recordId && method === "GET")
+      result = await Workflow.search(
+        p.userId,
+        Object.fromEntries(new URL(req.url).searchParams),
+      );
+    else if (resource === "capture" && !recordId && method === "POST") {
+      if (expected !== session.userId)
+        throw new Fault(409, "Confirm the signed-in account before syncing");
+      result = await Workflow.capture(p, body);
+    } else if (
+      resource === "items" &&
+      recordId &&
+      action === "promote" &&
+      method === "POST"
+    )
+      result = await Workflow.promoteTask(p, recordId, body);
+    else if (resource === "preferences" && !recordId && method === "PUT")
+      result = await Workflow.setPreferences(p, body);
+    else if (
+      resource === "journal" &&
+      recordId &&
+      action === "organize" &&
+      method === "POST"
+    )
+      result = await Workflow.organize(p, recordId, body);
+    else if (resource === "journal" && recordId && !action && method === "PUT")
+      result = await Workflow.editMoment(p, recordId, body);
+    else if (resource === "items" && !action) {
       if (method === "GET") {
         if (recordId) result = await V1.item(p.userId, recordId);
         else {
