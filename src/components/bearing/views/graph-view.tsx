@@ -1,6 +1,6 @@
 "use client";
 
-import { colorWithAlpha } from "@/lib/product-colors";
+import { colorWithAlpha, itemColor } from "@/lib/product-colors";
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useGraph } from "@/lib/hooks";
@@ -34,6 +34,9 @@ interface SimEdge {
 export function GraphView() {
   const { openItemDetail, openProject } = useBearing();
   const { data, isLoading } = useGraph({ limit: "120" });
+  return <GraphExplorer data={data} isLoading={isLoading} openItemDetail={openItemDetail} openProject={openProject}/>;
+}
+export function GraphExplorer({data,isLoading=false,openItemDetail,openProject}:{data:any;isLoading?:boolean;openItemDetail(id:string):void;openProject(id:string):void}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ w: 800, h: 560 });
   const [hovered, setHovered] = useState<string | null>(null);
@@ -102,7 +105,8 @@ export function GraphView() {
     // emit initial positions
     const pos: Record<string, { x: number; y: number }> = {};
     for (const [id, n] of map) pos[id] = { x: n.x, y: n.y };
-    setPositions(pos);
+    const frame=requestAnimationFrame(()=>setPositions(pos));
+    return ()=>cancelAnimationFrame(frame);
   }, [data, dims.w, dims.h]);
 
   // physics simulation loop
@@ -171,7 +175,8 @@ export function GraphView() {
       if (frame % 2 === 0) {
         const pos: Record<string, { x: number; y: number }> = {};
         for (const [id, n] of nodes) pos[id] = { x: n.x, y: n.y };
-        setPositions(pos);
+        const frame=requestAnimationFrame(()=>setPositions(pos));
+    return ()=>cancelAnimationFrame(frame);
       }
       raf = requestAnimationFrame(step);
     }
@@ -232,7 +237,7 @@ export function GraphView() {
   const presentTypes = useMemo(() => {
     if (!data) return [];
     const set = new Set(data.nodes.filter((n: any) => n.kind === "item").map((n: any) => n.type));
-    return ITEM_TYPES.filter((t) => set.has(t.type));
+    return [...set].map(type=>ITEM_TYPES.find(t=>t.type===type) || {type:type as string,name:(type as string).charAt(0).toUpperCase()+(type as string).slice(1),icon:type==='person'?'User':type==='bookmark'?'Bookmark':'Circle',color:itemColor(type==='person'?'contact':type as string)});
   }, [data]);
 
   return (
@@ -337,6 +342,10 @@ export function GraphView() {
                     return (
                       <g
                         key={n.id}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Open ${n.title}`}
+                        onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();handleClick(n)}}}
                         transform={`translate(${n.x}, ${n.y})`}
                         className="cursor-pointer transition-opacity"
                         style={{ opacity: dimmed ? 0.2 : 1 }}
@@ -480,6 +489,7 @@ export function GraphView() {
                   return (
                     <button
                       key={t.type}
+                      aria-pressed={on}
                       onClick={() => {
                         setFilterKinds((s) => {
                           const n = new Set(s);
@@ -489,7 +499,7 @@ export function GraphView() {
                         });
                       }}
                       className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-all",
+                        "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-all",
                         on ? "border-transparent text-white" : "border-border/60 text-muted-foreground hover:bg-muted",
                       )}
                       style={on ? { background: colorWithAlpha(t.color, 16), color: "var(--foreground)" } : {}}

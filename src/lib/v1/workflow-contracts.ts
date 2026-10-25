@@ -18,6 +18,13 @@ export const captureInput = z.strictObject({
   occurredAt: instant,
   timezone,
   intendedType: z.enum(CORE_ITEM_TYPES).optional(),
+  mentionIds: z.array(id).max(100).optional(),
+  place: z
+    .strictObject({
+      latitude: z.number().min(-90).max(90),
+      longitude: z.number().min(-180).max(180),
+    })
+    .optional(),
 });
 export type CaptureInput = z.infer<typeof captureInput>;
 export const organizeInput = z.strictObject({
@@ -89,6 +96,8 @@ export function captureIntent(
   return { kind: "raw" as const };
 }
 export const workflowViews = [
+  "focus",
+  "graph",
   "today",
   "journal",
   "inbox",

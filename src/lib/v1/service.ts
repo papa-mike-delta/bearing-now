@@ -1,3 +1,4 @@
+import { canonicalJson } from "./json";
 import { Prisma, type Item } from "@bearing/v1-client";
 import { z } from "zod";
 import { v1db } from "./db";
@@ -548,7 +549,7 @@ export class V1 {
             +existing.occurredAt !== Date.parse(value.occurredAt) ||
             existing.itemId !== value.itemId ||
             existing.timezone !== value.timezone ||
-            JSON.stringify(existing.data) !== JSON.stringify(value.data)
+            canonicalJson(existing.data) !== canonicalJson(value.data)
           )
             throw new Fault(
               409,
@@ -563,6 +564,8 @@ export class V1 {
           );
         if (value.itemId) {
           const item = await owned(tx, p.userId, "item", value.itemId);
+          if (value.kind === "focus" && !["task", "habit"].includes(item.type))
+            throw new Fault(400, "Focus can reference a Task or Habit");
           const required = {
             habit_completion: "habit",
             task_completion: "task",

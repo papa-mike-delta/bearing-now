@@ -46,7 +46,28 @@ export class Workflow {
           );
         return previous;
       }
-      const intent = captureIntent(value.text, value.intendedType);
+      const intent = value.place
+        ? {
+            kind: "item" as const,
+            item: {
+              type: "bookmark" as const,
+              template: "place",
+              title:
+                value.text
+                  .trim()
+                  .replace(/^\/place\s*/i, "")
+                  .split("\n")[0]
+                  .slice(0, 300) || "Captured place",
+              content: value.text,
+              status: "inbox" as const,
+              metadata: {
+                version: 1 as const,
+                category: "place" as const,
+                ...value.place,
+              },
+            },
+          }
+        : captureIntent(value.text, value.intendedType);
       const { value: moment } = await V1.createMoment(
         p,
         {
@@ -55,6 +76,10 @@ export class Workflow {
           occurredAt: value.occurredAt,
           timezone: value.timezone,
           intendedType: value.intendedType,
+          items: (value.mentionIds || []).map((itemId) => ({
+            itemId,
+            relation: "mention",
+          })),
         },
         tx,
       );
@@ -267,27 +292,51 @@ export class Workflow {
     return Object.fromEntries(rows.map((r) => [r.key.slice(9), r.value]));
   }
   static async workspace(userId: string) {
-    const [items, projects, tags, moments, activities, reviews, preferences] =
-      await Promise.all([
-        V1.items(userId),
-        v1db.project.findMany({
-          where: { userId },
-          include: { tags: { include: { tag: true } } },
-        }),
-        v1db.tag.findMany({ where: { userId } }),
-        v1db.journalMoment.findMany({
-          where: { userId },
-          include: includeMoment,
-          orderBy: { occurredAt: "desc" },
-        }),
-        v1db.activity.findMany({
-          where: { userId },
-          orderBy: { occurredAt: "desc" },
-        }),
-        v1db.review.findMany({ where: { userId } }),
-        Workflow.preferences(userId),
-      ]);
-    return { items, projects, tags, moments, activities, reviews, preferences };
+    const [
+      items,
+      projects,
+      tags,
+      moments,
+      activities,
+      reviews,
+      preferences,
+      links,
+      habitOccurrences,
+    ] = await Promise.all([
+      V1.items(userId),
+      v1db.project.findMany({
+        where: { userId },
+        include: { tags: { include: { tag: true } } },
+      }),
+      v1db.tag.findMany({ where: { userId } }),
+      v1db.journalMoment.findMany({
+        where: { userId },
+        include: includeMoment,
+        orderBy: { occurredAt: "desc" },
+      }),
+      v1db.activity.findMany({
+        where: { userId },
+        orderBy: { occurredAt: "desc" },
+      }),
+      v1db.review.findMany({ where: { userId } }),
+      Workflow.preferences(userId),
+      v1db.link.findMany({ where: { userId } }),
+      v1db.preference.findMany({
+        where: { userId, key: { startsWith: "habit." } },
+        select: { key: true, value: true },
+      }),
+    ]);
+    return {
+      items,
+      projects,
+      tags,
+      moments,
+      activities,
+      reviews,
+      preferences,
+      links,
+      habitOccurrences,
+    };
   }
   static async search(userId: string, raw: unknown) {
     const value = parse(searchInput, raw),

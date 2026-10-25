@@ -5,7 +5,7 @@ import { colorWithAlpha } from "@/lib/product-colors";
 import { format } from "date-fns";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useBearing } from "@/store/bearing";
-import { useItems, useUpdateItem, useToggleHabit } from "@/lib/hooks";
+import { useItems, useToggleHabit } from "@/lib/hooks";
 import { Icon } from "../icon";
 import { PageHeader, SectionCard } from "../layout";
 import { Button } from "@/components/ui/button";
@@ -51,12 +51,16 @@ export function FocusView() {
   const { openItemEditor } = useBearing();
   const { data: tasksData, isLoading: tasksLoading } = useItems({ type: "task", status: "active" });
   const { data: habitsData, isLoading: habitsLoading } = useItems({ type: "habit", status: "active" });
-  const update = useUpdateItem();
   const toggleHabit = useToggleHabit();
-
-  const tasks = (tasksData?.items || []).filter((t) => t.dueDate || t.priority >= 2).slice(0, 8);
-  const habits = (habitsData?.items || []).slice(0, 6);
-
+  return <FocusTimer tasks={(tasksData?.items || []).filter(t=>t.dueDate || t.priority>=2).slice(0,8)} habits={(habitsData?.items || []).slice(0,6)} loading={tasksLoading || habitsLoading} onNewTask={()=>openItemEditor({type:"task"})} onLegacyHabit={id=>toggleHabit.mutate({id,date:format(new Date(),"yyyy-MM-dd")})}/>;
+}
+export type FocusCompletion = {clientId:string;occurredAt:string;minutes:number;itemId:string|null};
+export function FocusTimer({tasks,habits,loading=false,onNewTask,onLegacyHabit,onComplete,stats}:{
+  tasks:{id:string;title:string}[];habits:{id:string;title:string}[];loading?:boolean;
+  onNewTask():void;onLegacyHabit?(id:string):void;
+  onComplete?(session:FocusCompletion):void;
+  stats?:{sessions:number;minutes:number};
+}) {
   const [mode, setMode] = useState<Mode>("focus");
   const [customMins, setCustomMins] = useState(20);
   const [duration, setDuration] = useState(PRESETS.focus.mins * 60);
@@ -67,8 +71,10 @@ export function FocusView() {
   const [completedSessions, setCompletedSessions] = useState(0);
   const [todayMinutes, setTodayMinutes] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const sessionKey = useRef<string | null>(null);
+  const completed = useRef(false);
+  const deadline = useRef<number | null>(null);
 
   // load today's stats + sound pref from localStorage (once)
   if (!loaded) {
@@ -76,7 +82,7 @@ export function FocusView() {
     try {
       const today = new Date().toISOString().slice(0, 10);
       const stored = localStorage.getItem(`lifeos-focus-${today}`);
-      if (stored) {
+      if (stored && !onComplete) {
         const { sessions, minutes } = JSON.parse(stored);
         setCompletedSessions(sessions || 0);
         setTodayMinutes(minutes || 0);
@@ -99,6 +105,7 @@ export function FocusView() {
   }
 
   const switchMode = useCallback((m: Mode) => {
+    sessionKey.current=null;completed.current=false;deadline.current=null;
     setMode(m);
     const mins = m === "custom" ? customMins : PRESETS[m].mins;
     setDuration(mins * 60);
@@ -111,63 +118,38 @@ export function FocusView() {
     const clamped = Math.max(1, Math.min(180, val));
     setCustomMins(clamped);
     if (mode === "custom") {
+      sessionKey.current=null;completed.current=false;deadline.current=null;
       setDuration(clamped * 60);
       setRemaining(clamped * 60);
       setRunning(false);
     }
   }
 
-  // tick
+  // Wall-clock deadline handles suspended/background tabs; completion is outside a state updater.
   useEffect(() => {
-    if (!running) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      return;
-    }
-    intervalRef.current = setInterval(() => {
-      setRemaining((r) => {
-        if (r <= 1) {
-          // session complete
-          setRunning(false);
-          if (soundEnabled) playChime();
-
-          if (mode === "focus" || mode === "custom") {
-            const elapsedMins = Math.round(duration / 60);
-            const newSessions = completedSessions + 1;
-            const newMinutes = todayMinutes + elapsedMins;
-            setCompletedSessions(newSessions);
-            setTodayMinutes(newMinutes);
-            persist(newSessions, newMinutes);
-
-            // Log habit if a habit was selected
-            if (selectedItemType === "habit" && selectedItemId) {
-              const todayKey = format(new Date(), "yyyy-MM-dd");
-              toggleHabit.mutate({ id: selectedItemId, date: todayKey });
-              const habitName = habits.find((h) => h.id === selectedItemId)?.title;
-              notify.success(
-                `Focus complete! ${elapsedMins} min`,
-                `✓ ${habitName} logged for today. Take a break!`,
-              );
-            } else if (selectedItemType === "task" && selectedItemId) {
-              notify.success(`Focus complete! ${elapsedMins} min`, "Great work. Take a short break.");
-            } else {
-              notify.success(`Focus complete! ${elapsedMins} min`, "Take a short break.");
-            }
-
-            // auto-suggest break
-            setTimeout(() => switchMode(newSessions % 4 === 0 ? "long" : "short"), 800);
-          } else {
-            notify.success("Break over — back to focus!", "You've got this.");
-            setTimeout(() => switchMode("focus"), 800);
-          }
-          return 0;
+    if (!running) { deadline.current=null;return; }
+    deadline.current=Date.now()+remaining*1000;
+    if(!sessionKey.current) sessionKey.current=crypto.randomUUID();
+    const timer=setInterval(()=>{
+      const left=Math.max(0,Math.ceil((deadline.current!-Date.now())/1000));
+      setRemaining(left);
+      if(left>0 || completed.current)return;
+      completed.current=true;setRunning(false);
+      if(soundEnabled)playChime();
+      if(mode==='focus'||mode==='custom'){
+        const minutes=Math.round(duration/60);
+        if(onComplete) onComplete({clientId:sessionKey.current!,occurredAt:new Date().toISOString(),minutes,itemId:selectedItemId || null});
+        else {
+          setCompletedSessions(completedSessions+1);setTodayMinutes(todayMinutes+minutes);
+          persist(completedSessions+1,todayMinutes+minutes);
+          if(selectedItemType==='habit'&&selectedItemId)onLegacyHabit?.(selectedItemId);
         }
-        return r - 1;
-      });
-    }, 1000);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [running, mode, duration, completedSessions, todayMinutes, selectedItemId, selectedItemType, soundEnabled, switchMode, habits, toggleHabit]);
+        notify.success(`Focus complete! ${minutes} min`, 'Take a short break.');
+      }else notify.success('Break over — back to focus!');
+    },250);
+    return ()=>clearInterval(timer);
+    // A running session keeps its original selection, callback and deadline until paused/reset.
+  },[running]);
 
   function selectItem(id: string, type: "task" | "habit") {
     if (id === "none") {
@@ -195,7 +177,7 @@ export function FocusView() {
   const C = 2 * Math.PI * R;
   const dash = C * (progress / 100);
 
-  if (tasksLoading || habitsLoading) {
+  if (loading) {
     return (
       <div className="space-y-6">
         <PageHeader
@@ -278,7 +260,7 @@ export function FocusView() {
             {(Object.keys(PRESETS) as Mode[]).map((m) => (
               <button
                 key={m}
-                onClick={() => switchMode(m)}
+                disabled={running} onClick={() => switchMode(m)}
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
                   mode === m ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
@@ -293,12 +275,13 @@ export function FocusView() {
 
           {/* Custom duration input */}
           {mode === "custom" && (
-            <div className="mb-4 flex items-center justify-center gap-2">
+            <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
               <Input
                 type="number"
                 min={1}
                 max={180}
                 value={customMins}
+                aria-label="Custom focus minutes" disabled={running}
                 onChange={(e) => applyCustomMins(Number(e.target.value) || 1)}
                 className="h-9 w-20 text-center text-lg font-bold"
               />
@@ -306,7 +289,7 @@ export function FocusView() {
               {[10, 20, 30, 45, 60].map((m) => (
                 <button
                   key={m}
-                  onClick={() => applyCustomMins(m)}
+                  disabled={running} onClick={() => applyCustomMins(m)}
                   className={cn(
                     "rounded-md border px-2 py-1 text-xs transition-all",
                     customMins === m ? "border-type-journal bg-type-journal/10 text-type-journal" : "border-border/60 text-muted-foreground hover:bg-muted",
@@ -319,7 +302,7 @@ export function FocusView() {
           )}
 
           {/* circular timer */}
-          <div className="relative mx-auto flex h-[320px] w-[320px] items-center justify-center">
+          <div className="relative mx-auto flex aspect-square w-full max-w-[320px] items-center justify-center">
             <svg className="absolute inset-0 -rotate-90" viewBox="0 0 300 300">
               <circle cx="150" cy="150" r={R} fill="none" stroke="var(--muted)" strokeWidth="10" />
               <motion.circle
@@ -369,7 +352,7 @@ export function FocusView() {
               size="lg"
               variant="outline"
               className="h-12 w-12 p-0"
-              onClick={() => { setRunning(false); setRemaining(duration); }}
+              onClick={() => { completed.current=false;sessionKey.current=null;deadline.current=null;setRunning(false); setRemaining(duration); }}
               title="Reset"
             >
               <Icon name="RotateCcw" className="h-5 w-5" />
@@ -392,11 +375,11 @@ export function FocusView() {
           <SectionCard title="Today" icon="Flame">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-priority-high/10 p-4 text-center">
-                <div className="text-3xl font-bold text-priority-high">{completedSessions}</div>
+                <div className="text-3xl font-bold text-priority-high">{stats?.sessions ?? completedSessions}</div>
                 <div className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">sessions</div>
               </div>
               <div className="rounded-xl bg-success/10 p-4 text-center">
-                <div className="text-3xl font-bold text-success">{todayMinutes}</div>
+                <div className="text-3xl font-bold text-success">{stats?.minutes ?? todayMinutes}</div>
                 <div className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">focus minutes</div>
               </div>
             </div>
@@ -423,7 +406,7 @@ export function FocusView() {
             {tasks.length > 0 && (
               <div className="mb-3">
                 <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-priority-high">Tasks</p>
-                <Select value={selectedItemType === "task" ? selectedItemId : "none"} onValueChange={(v) => selectItem(v, "task")}>
+                <Select value={selectedItemType === "task" ? selectedItemId : "none"} disabled={running} onValueChange={(v) => selectItem(v, "task")}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Pick a task…" /></SelectTrigger>
                   <SelectContent className="max-h-60">
                     <SelectItem value="none">No task</SelectItem>
@@ -440,7 +423,7 @@ export function FocusView() {
             {habits.length > 0 && (
               <div className="mb-3">
                 <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-success">Habits</p>
-                <Select value={selectedItemType === "habit" ? selectedItemId : "none"} onValueChange={(v) => selectItem(v, "habit")}>
+                <Select value={selectedItemType === "habit" ? selectedItemId : "none"} disabled={running} onValueChange={(v) => selectItem(v, "habit")}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Pick a habit…" /></SelectTrigger>
                   <SelectContent className="max-h-60">
                     <SelectItem value="none">No habit</SelectItem>
@@ -454,11 +437,11 @@ export function FocusView() {
               </div>
             )}
 
-            <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => openItemEditor({ type: "task" })}>
+            <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={onNewTask}>
               <Icon name="Plus" className="h-3.5 w-3.5" /> New task
             </Button>
             <p className="mt-3 text-xs text-muted-foreground">
-              {selectedItemType === "habit"
+              {onComplete ? "Completed focus sessions are saved as Activity. Task/Habit completion is a separate action." : selectedItemType === "habit"
                 ? "When the timer ends, this habit will be automatically logged for today. 🌿"
                 : "Pick a habit to auto-log it when the timer completes. Pick a task to anchor your focus."}
             </p>

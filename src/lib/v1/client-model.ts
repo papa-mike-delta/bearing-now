@@ -9,6 +9,7 @@ export type ProjectRecord = {
   tags: { tagId: string; tag: TagRecord }[];
 };
 export type ItemRecord = Omit<CanonicalItem, "tagIds"> & {
+  selfProfile?: { userId: string } | null;
   id: string;
   revision: number;
   completedAt: string | null;
@@ -54,6 +55,14 @@ export type Workspace = {
   moments: MomentRecord[];
   activities: ActivityRecord[];
   reviews: ReviewRecord[];
+  links: {
+    id: string;
+    fromId: string;
+    toId: string;
+    type: string;
+    note: string;
+  }[];
+  habitOccurrences: { key: string; value: HabitOccurrence }[];
   preferences: {
     startup?: string;
     timezone?: string;
@@ -121,3 +130,12 @@ export function activitySummary(activity: ActivityRecord) {
   if (activity.kind === "task_completion") return "Completed";
   return data.text || data.note || "Recorded";
 }
+
+export type HabitOccurrence = {
+  revision: number;
+  period: string;
+  checklist: boolean[];
+  content: string;
+  value: number;
+  completed: boolean;
+};

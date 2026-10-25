@@ -234,6 +234,8 @@ export const activityInput = z.discriminatedUnion("kind", [
     data: z.strictObject({
       value: z.number().finite().nonnegative().default(1),
       checklist: z.array(z.boolean()).max(500).default([]),
+      content: text.optional(),
+      period: z.string().max(10).optional(),
     }),
   }),
   z.strictObject({

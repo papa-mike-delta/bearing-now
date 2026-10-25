@@ -1,5 +1,5 @@
 import { lockAccount } from "/bearing-outbox.js";
-const CACHE = "bearing-offline-8d4a1eae790f";
+const CACHE = "bearing-offline-ef6b78fe4eb3";
 const ASSETS = [
   "/offline.html",
   "/bearing-offline.css",

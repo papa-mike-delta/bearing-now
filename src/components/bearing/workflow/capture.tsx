@@ -25,6 +25,8 @@ const captureSeed = {
   status: "todo",
   metadata: {},
   occurredInput: "",
+  mentionIds: [] as string[],
+  place: null as { latitude: number; longitude: number } | null,
 };
 export function CaptureComposer({
   inline,
@@ -39,7 +41,7 @@ export function CaptureComposer({
   date: string;
   sync(): Promise<void>;
 }) {
-  const { userId, timezone } = useWorkspace();
+  const { userId, timezone, data: workspace } = useWorkspace();
   const { owner, data } = useItemDraft("capture:journal", captureSeed);
   const text = data.content,
     occurred = data.occurredInput;
@@ -64,10 +66,17 @@ export function CaptureComposer({
         capturedAt: new Date().toISOString(),
         occurredAt: instantFromInput(occurred || defaultTime, timezone),
         timezone,
+        ...(data.place ? { place: data.place } : {}),
+        ...(data.mentionIds?.length ? { mentionIds: data.mentionIds } : {}),
       });
       await outbox.enqueue(userId, value);
       const current = owner.get("capture:journal")?.data;
-      if (current?.content === text && current.occurredInput === occurred)
+      if (
+        current?.content === text &&
+        current.occurredInput === occurred &&
+        JSON.stringify(current.place) === JSON.stringify(data.place) &&
+        JSON.stringify(current.mentionIds) === JSON.stringify(data.mentionIds)
+      )
         owner.discard("capture:journal");
       setSaved(true);
       await sync();
@@ -133,6 +142,88 @@ export function CaptureComposer({
         /task Title · /mood 4 energy 3 · /place Name · no classification
         required
       </p>
+      <div className="space-y-2">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={busy}
+          onClick={() => {
+            if (!navigator.geolocation) {
+              setError(
+                "This browser does not support location. You can still capture your text.",
+              );
+              return;
+            }
+            setBusy(true);
+            setError("");
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                owner.change("capture:journal", {
+                  place: {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                  },
+                });
+                setBusy(false);
+              },
+              (err) => {
+                setError(
+                  `Location unavailable: ${err.message}. Your text is retained.`,
+                );
+                setBusy(false);
+              },
+              { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 },
+            );
+          }}
+        >
+          Use my location for a Place
+        </Button>
+        {data.place && (
+          <p className="text-xs">
+            Coordinates ready: {data.place.latitude}, {data.place.longitude}.
+            Saved as a Place when you capture.{" "}
+            <button
+              type="button"
+              className="min-h-11 underline"
+              onClick={() => owner.change("capture:journal", { place: null })}
+            >
+              Remove location
+            </button>
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Location is requested only when you press the button. No venue lookup
+          or visit tracking.
+        </p>
+        <fieldset>
+          <legend className="text-xs">Mention People (optional)</legend>
+          <div className="flex flex-wrap gap-2">
+            {workspace.items
+              .filter((i) => i.type === "person" && i.status !== "archived")
+              .map((i) => (
+                <label
+                  key={i.id}
+                  className="inline-flex min-h-11 items-center gap-2 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    checked={(data.mentionIds || []).includes(i.id)}
+                    onChange={(e) =>
+                      owner.change("capture:journal", {
+                        mentionIds: e.target.checked
+                          ? [...(data.mentionIds || []), i.id]
+                          : (data.mentionIds || []).filter(
+                              (id: string) => id !== i.id,
+                            ),
+                      })
+                    }
+                  />
+                  {i.title}
+                </label>
+              ))}
+          </div>
+        </fieldset>
+      </div>
       <label className="block text-xs font-medium">
         Occurred at · {timezone}
         <input

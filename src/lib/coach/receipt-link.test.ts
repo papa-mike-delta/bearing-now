@@ -8,7 +8,7 @@ it("builds a receipt href", () => {
 });
 
 it("renders one truncated receipt link", () => {
-  const html = renderToStaticMarkup(createElement(CoachReceiptLink, { receiptId: "receipt 1", className: "max-w-full", children: "Created Read" }));
+  const html = renderToStaticMarkup(createElement(CoachReceiptLink, { receiptId: "receipt 1", className: "max-w-full" }, "Created Read"));
   expect(html).toContain('href="/api/coach?receipt=receipt%201"');
   expect(html).toContain("Created Read");
   expect(html).toContain("truncate");

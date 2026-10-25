@@ -29,7 +29,8 @@ Plain text requires no title, Project, Area or Tag. Original whitespace is kept.
 Complete explicit shortcuts create a referenced Item or Activity in the same
 transaction: `/task Title`, `/note Title`, `/place Name`, `/mood 4 energy 3`.
 Incomplete or unknown commands remain raw Journal/Inbox entries for clarification.
-Place navigation/geolocation and richer connected-life forms remain #46.
+Place navigation/geolocation and connected-life forms are documented in
+[CONNECTED_LIFE.md](CONNECTED_LIFE.md) (#46).
 
 Inbox preserves original text while allowing Task/Note promotion or keeping a
 Journal-only entry. Repeating promotion cannot create another Item. Every view

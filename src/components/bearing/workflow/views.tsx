@@ -25,6 +25,20 @@ import {
   plannedForDay,
 } from "@/lib/v1/workflow-dates";
 import { useWorkspace, request, fieldClass } from "./context";
+import {
+  Connections,
+  PersonProfile,
+  BookmarkReference,
+  HabitOccurrence,
+  RelationshipReminders,
+  CheckIn,
+  HabitsToday,
+} from "./connections";
+import { typeNames } from "./structured-fields";
+import {
+  localDate as validLocalDate,
+  type CanonicalItem,
+} from "@/lib/v1/contracts";
 import { TagSelector, ItemEditor } from "./item-editor";
 
 export function ItemCard({
@@ -228,6 +242,9 @@ export function Today({ date }: { date: string }) {
           )}
         </div>
       </SectionCard>
+      <RelationshipReminders date={date} />
+      <CheckIn />
+      <HabitsToday date={date} />
       <SectionCard title="On the calendar">
         <div className="space-y-3">
           {planned.map((i) => (
@@ -552,9 +569,9 @@ export function Journal({ date }: { date: string }) {
                 {entry.activity.itemId &&
                   data.items.find((i) => i.id === entry.activity.itemId) && (
                     <ItemCard
-                      item={
-                        data.items.find((i) => i.id === entry.activity.itemId)!
-                      }
+                      item={data.items.find(
+                        (i) => i.id === entry.activity.itemId,
+                      )!}
                     />
                   )}
               </article>
@@ -616,12 +633,16 @@ export function Library({ recordId }: { recordId?: string }) {
     return (
       <div className="space-y-4">
         <PageHeader
-          title={`New ${params.get("type") === "note" ? "Note" : "Task"}`}
+          title={`New ${typeNames[(params.get("type") || "task") as CanonicalItem["type"]] || "Task"}`}
         />
         {params.get("draft") ? (
           <ItemEditor
             draftKey={`new:${params.get("draft")}`}
-            type={params.get("type") === "note" ? "note" : "task"}
+            type={
+              (Object.keys(typeNames).includes(params.get("type") || "")
+                ? params.get("type")
+                : "task") as CanonicalItem["type"]
+            }
           />
         ) : (
           <p>Preparing editor…</p>
@@ -637,7 +658,20 @@ export function Library({ recordId }: { recordId?: string }) {
           subtitle={`${item.type} · ${statusNames[item.status]}`}
           icon={typeIcons[item.type]}
         />
+        {item.type === "person" && <PersonProfile item={item} />}
+        {item.type === "bookmark" && <BookmarkReference item={item} />}
         <ItemEditor key={item.id} item={item} />
+        {item.type === "habit" && (
+          <HabitOccurrence
+            item={item}
+            date={
+              validLocalDate.safeParse(params.get("date")).success
+                ? params.get("date")!
+                : dateInZone(new Date(), item.timezone)
+            }
+          />
+        )}
+        <Connections item={item} />
       </div>
     ) : (
       <Empty>This Item is not available in this account.</Empty>
@@ -672,16 +706,27 @@ export function Library({ recordId }: { recordId?: string }) {
             >
               New Task
             </Button>
-            <Button
-              variant="outline"
-              onClick={() =>
-                router.push(
-                  `/app/library/new?type=note&draft=${crypto.randomUUID()}`,
-                )
-              }
+            {Object.entries(typeNames)
+              .filter(([t]) => t !== "task")
+              .map(([t, name]) => (
+                <Button
+                  key={t}
+                  variant="outline"
+                  onClick={() =>
+                    router.push(
+                      `/app/library/new?type=${t}&draft=${crypto.randomUUID()}`,
+                    )
+                  }
+                >
+                  New {name}
+                </Button>
+              ))}
+            <Link
+              className="inline-flex min-h-11 items-center underline text-sm"
+              href="/app/graph"
             >
-              New Note
-            </Button>
+              Explore Graph
+            </Link>
           </>
         }
       />

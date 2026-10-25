@@ -9,6 +9,15 @@ async function open(page: Page, path = "today") {
   ).toBeVisible();
 }
 async function navigate(page: Page, name: string) {
+  // Route transitions briefly replace the shell with loading UI. Wait before
+  // choosing mobile versus desktop navigation rather than treating that gap as desktop.
+  await expect(
+    page
+      .getByRole("button", { name: "Open navigation", exact: true })
+      .or(
+        page.getByRole("navigation", { name: "Main navigation", exact: true }),
+      ),
+  ).toBeVisible();
   if (
     await page
       .getByRole("button", { name: "Open navigation", exact: true })

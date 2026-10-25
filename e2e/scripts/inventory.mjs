@@ -1,13 +1,13 @@
 // Regenerate the source-level inventory without requiring a running server.
-const fs = require("node:fs");
-const path = require("node:path");
-const ts = require("typescript");
+import * as fs from "node:fs";
+import * as path from "node:path";
+import ts from "typescript";
 class Inventory {
   files(dir) { return fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? this.files(path.join(dir, e.name)) : [path.join(dir, e.name)]); }
   run() {
     const files = this.files("src");
     const routes = files.filter(f => /\/(page|route)\.tsx?$/.test(f));
-    let out = "# Source inventory\n\nGenerated with `node e2e/scripts/inventory.cjs`. Every JSX button/link/form (including reusable primitives and dynamic templates) is listed with source location and attributes. Dynamic maps represent all rendered variants. Inputs/selects and custom action components are included.\n\n## Routes\n\n| File | URL | Methods |\n| --- | --- | --- |\n";
+    let out = "# Source inventory\n\nGenerated with `node e2e/scripts/inventory.mjs`. Every JSX button/link/form (including reusable primitives and dynamic templates) is listed with source location and attributes. Dynamic maps represent all rendered variants. Inputs/selects and custom action components are included.\n\n## Routes\n\n| File | URL | Methods |\n| --- | --- | --- |\n";
     for (const f of routes) {
       const source = fs.readFileSync(f, "utf8");
       const url = f.replace(/^src\/app/, "").replace(/\/(page|route)\.tsx?$/, "") || "/";
