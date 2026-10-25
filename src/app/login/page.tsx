@@ -1,17 +1,17 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Brain, ArrowRight, Shield, Check, Loader2, QrCode, X, Lock, Mail, PlayCircle, Zap } from "lucide-react";
+import { Brain, ArrowRight, Shield, Check, Loader2, QrCode, X, Lock, Mail, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Step = "auth" | "verify" | "qr-confirm" | "done";
-const DEMO_EMAIL = "demo@gmail.com";
-const DEMO_PASSWORD = "Password123";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [step, setStep] = useState<Step>("auth");
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -25,19 +25,21 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const qrToken = params.get("qr");
-    if (qrToken) setQrConfirmToken(qrToken);
-    const invite = params.get("invite");
-    if (invite) { setInvitation(invite); setMode("register"); }
+    const qrToken = new URLSearchParams(window.location.search).get("qr");
+    Promise.resolve().then(() => {
+      const params = new URLSearchParams(window.location.search);
+      if (qrToken) setQrConfirmToken(qrToken);
+      const invite = params.get("invite");
+      if (invite) { setInvitation(invite); setMode("register"); }
+    });
     fetch("/api/auth/session").then(r => r.json()).then(d => {
       if (d.authenticated && d.twoFactorVerified) {
         setEmail(d.email);
         if (qrToken) setStep("qr-confirm");
-        else window.location.href = "/app";
+        else router.replace("/app");
       } else if (d.authenticated) setStep("verify");
-    });
-  }, []);
+    }).catch(() => setError("Could not check your session. You can still try signing in."));
+  }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -54,7 +56,7 @@ export default function LoginPage() {
       if (!res.ok) { setError(data.error || "Authentication failed"); return; }
       if (data.requiresVerification) { setStep("verify"); }
       else if (data.authenticated && qrConfirmToken) setStep("qr-confirm");
-      else if (data.authenticated) { setStep("done"); setTimeout(() => { window.location.href = "/app"; }, 800); }
+      else if (data.authenticated) { setStep("done"); setTimeout(() => { router.replace("/app"); }, 800); }
     } catch { setError("Network error. Please try again."); }
     finally { setLoading(false); }
   }
@@ -73,17 +75,11 @@ export default function LoginPage() {
       if (!res.ok) { setError(data.error || "Verification failed"); return; }
       if (qrConfirmToken) { setStep("qr-confirm"); return; }
       setStep("done");
-      setTimeout(() => { window.location.href = "/app"; }, 800);
+      setTimeout(() => { router.replace("/app"); }, 800);
     } catch { setError("Network error"); }
     finally { setLoading(false); }
   }
 
-  function fillDemoCredentials() {
-    setMode("login");
-    setEmail(DEMO_EMAIL);
-    setPassword(DEMO_PASSWORD);
-    setError("");
-  }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background">
@@ -153,27 +149,28 @@ export default function LoginPage() {
                   {mode === "register" && <div><Label htmlFor="invitation" className="mb-1.5 block text-xs font-semibold text-muted-foreground">Invitation code</Label><Input id="invitation" required value={invitation} onChange={(e) => setInvitation(e.target.value)} autoComplete="off" className="h-11" /><p className="mt-1 text-xs text-muted-foreground">Registration is invitation-only.</p></div>}
                   {mode === "register" && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}>
-                      <Label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Name</Label>
+                      <Label htmlFor="name" className="mb-1.5 block text-xs font-semibold text-muted-foreground">Name</Label>
                       <div className="relative">
                         <Brain className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
-                        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="h-11 pl-10" />
+                        <Input id="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="h-11 pl-10" />
                       </div>
                     </motion.div>
                   )}
 
                   <div>
-                    <Label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Email</Label>
+                    <Label htmlFor="email" className="mb-1.5 block text-xs font-semibold text-muted-foreground">Email</Label>
                     <div className="relative">
                       <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
-                      <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="h-11 pl-10" />
+                      <Input id="email" autoComplete="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="h-11 pl-10" />
                     </div>
                   </div>
 
                   <div>
-                    <Label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Password</Label>
+                    <Label htmlFor="password" className="mb-1.5 block text-xs font-semibold text-muted-foreground">Password</Label>
                     <div className="relative">
                       <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
                       <Input
+                        id="password" autoComplete={mode === "login" ? "current-password" : "new-password"}
                         type={showPassword ? "text" : "password"}
                         required
                         value={password}
@@ -181,11 +178,11 @@ export default function LoginPage() {
                         placeholder="••••••••"
                         className="h-11 pl-10 pr-10"
                       />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      <button aria-label={showPassword ? "Hide password" : "Show password"} type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground">
                         {showPassword ? <X className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
                       </button>
                     </div>
-                    {mode === "register" && <p className="mt-1 text-[10px] text-muted-foreground">Minimum 8 characters</p>}
+                    {mode === "register" && <p className="mt-1 text-xs text-muted-foreground">Minimum 8 characters</p>}
                   </div>
 
                   {error && (
@@ -206,31 +203,15 @@ export default function LoginPage() {
                       </>
                     )}
                   </Button>
-                  {mode === "login" && (
-                    <div className="space-y-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={loading}
-                        onClick={fillDemoCredentials}
-                        className="h-11 w-full gap-2"
-                      >
-                        <PlayCircle className="h-4 w-4" />
-                        Fill demo credentials
-                      </Button>
-                      <p className="text-center text-[10px] text-muted-foreground">
-                        Uses demo@gmail.com with Password123
-                      </p>
-                    </div>
-                  )}
+                  {mode === "login" && <p className="text-sm text-muted-foreground">Sign in with your own account. New accounts need an invitation from the operator. After signing in, open Settings → Optional demo data to explicitly add examples to your account. No shared demo credentials are enabled by this page.</p>}
                 </form>
 
                 {/* Features list */}
                 <div className="mt-6 space-y-2 border-t border-border/40 pt-4">
                   {[
-                    { icon: Lock, color: "#10b981", text: "Your data stays on your server" },
+                    { icon: Lock, color: "#10b981", text: "Private account data; Coach discloses external provider use" },
                     { icon: Brain, color: "#a78bfa", text: "Bi-directional linking — everything connects" },
-                    { icon: Zap, color: "#f59e0b", text: "Quick capture with ⌘K anywhere" },
+                    { icon: Zap, color: "#f59e0b", text: "Quick capture in your workspace" },
                   ].map((f, i) => (
                     <motion.div
                       key={i}
@@ -301,7 +282,7 @@ export default function LoginPage() {
                     const data = await res.json();
                     if (!res.ok) { setError(data.error || "Failed to confirm"); return; }
                     setStep("done");
-                    setTimeout(() => { window.location.href = "/app"; }, 800);
+                    setTimeout(() => { router.replace("/app"); }, 800);
                   } catch { setError("Network error"); }
                   finally { setLoading(false); }
                 }} className="space-y-4">
@@ -337,7 +318,7 @@ export default function LoginPage() {
         </motion.div>
 
         {/* Footer */}
-        <p className="mt-6 text-center text-[11px] text-muted-foreground">
+        <p className="mt-6 text-center text-xs text-muted-foreground">
           <Shield className="mr-1 inline h-3 w-3" />
           Open-source · Self-hosted · Your data, your brain
         </p>

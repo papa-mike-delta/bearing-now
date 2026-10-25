@@ -1,5 +1,6 @@
 import { PrismaClient } from "@bearing/v1-client";
-import { test, expect, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { test, expect } from "./fixtures";
 test.skip(
   process.env.BEARING_COACH_MODEL !== "fixture",
   "Use the dedicated local-provider Coach test config",

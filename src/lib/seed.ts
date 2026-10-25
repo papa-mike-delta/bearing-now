@@ -18,6 +18,7 @@ function daysFromNow(n: number, h = 9, m = 0) {
 }
 
 async function main() {
+  if (process.env.BEARING_V1_ENABLED === "true") throw new Error("Use per-account demo setup in V1 Settings; shared legacy seeding is disabled.");
   console.log("🌱 Seeding bearing.now…");
 
   // Demo user

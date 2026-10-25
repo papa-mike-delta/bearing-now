@@ -25,6 +25,8 @@ class SeedRefusal {
 }
 
 export async function POST(_req: NextRequest) {
+  if (process.env.BEARING_V1_ENABLED === "true")
+    return bad("Shared demo setup is retired for V1. Sign in with an invited account, then add optional examples in Settings.", 410);
   try {
     return await seed();
   } catch (error) {

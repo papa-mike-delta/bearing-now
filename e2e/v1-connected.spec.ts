@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 const suffix = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 async function open(page: any, path: string) {
   await page.goto(`/app/${path}`);

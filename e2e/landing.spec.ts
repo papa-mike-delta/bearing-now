@@ -4,7 +4,7 @@ test.use({ storageState: { cookies: [], origins: [] } });
 
 test("landing sections and app CTA resolve", async ({ page }) => {
   await page.goto("/");
-  for (const name of ["Features", "Domains", "Philosophy"]) {
+  for (const name of ["Features", "Connections", "Philosophy"]) {
     const link = page.getByRole("link", { name, exact: true }).first();
     const target = await link.getAttribute("href");
     await link.click();

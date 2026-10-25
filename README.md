@@ -1,237 +1,119 @@
-# Bearing — Your Digital Brain
+# Bearing — capture, connect and recall
 
-A comprehensive, open-source personal operating system that brings harmony, focus, and connection to every aspect of your life. Built with Next.js 16, TypeScript, Tailwind CSS, and Prisma.
+An open-source, self-hostable personal knowledge workspace built with Next.js 16,
+React 19, TypeScript, Prisma and PostgreSQL. V1 reuses the existing auth, editors,
+audit and draft protections while introducing a connected information model.
 
-Bearing is for people looking for an open-source second brain, self-hosted productivity app, personal knowledge management system, digital brain, habit tracker app, journal app, task manager, daily planner, goal tracker, focus timer, calendar planner, finance tracker, and connected life dashboard.
+## What works in V1
 
-## Live Demo
+- Quick Capture, Inbox and a chronological Daily Journal with references to real Items.
+- Seven Item kinds: Task, Note, Habit, Event, Goal, Person and Bookmark. Routine is
+  a Habit template with a simple Markdown checklist; Me is one canonical Person.
+- Optional Projects, Areas/Tags, typed Links, keyword Search, Calendar/Agenda and Graph.
+- Task recurrence, independent Habit occurrence checklists, multiple mood check-ins,
+  guided Reviews and Focus sessions persisted as Activity.
+- Per-account offline text capture after a prior authenticated visit, with an IndexedDB
+  outbox, automatic reconnect sync, retry states and server idempotency.
+- Conversational Coach using a server-configured OpenRouter or Vercel AI Gateway
+  model: owned-record evidence, clarification, editable approved atomic change batches,
+  saved/temporary conversations and explicit editable memory.
+- Invitation-only accounts, revision checks, editor leases, audited writes, per-account
+  optional demo examples and full V1 JSON export/clear/restore in Settings.
 
-Try Bearing at [bearing-now-me.vercel.app](https://bearing-now-me.vercel.app/).
+![Actual V1 Daily Journal with fictional sample data](public/screenshots/v1-journal.png)
 
-Demo account:
-- Email: `demo@gmail.com`
-- Password: `Password123`
+There is no public shared-demo login. A hosted deployment must be provisioned by its
+operator. Sign in with your own account; a new account requires an invitation.
+After sign-in, Settings → Add demo data explicitly creates examples in your account.
+Repeat setup is idempotent. Remove demo data preserves real/other-account data and
+refuses removal when edited examples or personal references need reconciliation.
 
-## Screenshots
+## Local setup
 
-| Public landing page                                                              | Dashboard                                                                 |
-| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| <img src="./public/screenshots/landing.jpg" alt="Bearing public landing page" /> | <img src="./public/screenshots/dashboard.jpeg" alt="Bearing dashboard" /> |
-
-| Digital Brain graph                                                                   | Insights                                                                    |
-| ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| <img src="./public/screenshots/brain-graph.jpeg" alt="Bearing digital brain graph" /> | <img src="./public/screenshots/insight.jpeg" alt="Bearing insights view" /> |
-
-## ✨ Features
-
-### The Digital Brain
-
-Everything is an interconnected "node" — tasks, notes, journals, habits, finances, contacts, ideas, goals, and more. Bi-directional linking means your data comes alive.
-
-- **17 item types** with type-aware UI (tasks, journals, habits, finances, contacts, books, movies, etc.)
-- **Bi-directional linking** — connect any item to any other item
-- **Brain Graph** — visual force-directed network of your interconnected life
-- **8 life domains** — Mind & Soul, Time & Action, Health, Wealth, Network, Growth, Creativity, Admin
-
-### Master Calendar
-
-One calendar that auto-aggregates anything with a date — tasks, bills, appointments, birthdays. Toggle layers to view your life through different lenses.
-
-### Quick Capture (⌘K)
-
-Capture a thought instantly without deciding where it belongs. Process your inbox later with bulk actions or AI-powered Smart Inbox Processing.
-
-### Focus Timer
-
-Pomodoro timer with custom durations, sound on completion, and automatic habit logging. Connect a focus session to a habit like "Read 20 pages" and it auto-logs when the timer ends.
-
-### Rich Journal Editor
-
-Full-page WYSIWYG editor with formatting toolbar, live word count, mood tracking, and auto-save drafts. Your thoughts deserve more than a text box.
-
-### Reviews & Reflections
-
-Daily and weekly guided reflections with mood/energy tracking, wins, challenges, gratitude, and priorities. The dashboard gently prompts you when it's time to reflect.
-
-### Insights Dashboard
-
-Mood trends, habit consistency heatmaps, 30-day activity flow, financial health, and project progress — all visualized.
-
-### Sanctuary
-
-A calm space for guided breathing exercises, daily affirmations, and life visions.
-
-### Authentication
-
-- Email/password registration and login
-- Optional 2FA (TOTP) — off by default, toggle in Settings
-- QR code login — sign in on another device by scanning a QR code from Settings
-- Protected routes via middleware
-
-### AI Features (Optional)
-
-- **Smart Inbox Processing** — AI suggests type, domain, and project for inbox items
-- Configurable AI provider: Z.AI SDK (default, free), OpenAI-compatible (OpenAI, Groq, Together, etc.), or custom endpoint
-- Can be turned on/off in Settings
-
-### PWA Support
-
-Installable on desktop and mobile. Works as a standalone app.
-
-### More
-
-- Keyboard shortcuts (⌘K capture, ⌘P command palette, g+key Vim navigation, ? for help)
-- Browser notifications for overdue tasks
-- Onboarding flow for new users
-- Full data backup/restore (JSON export/import)
-- CSV export for finances, reviews, and all items
-- Recurring task automation (advances due dates, resets stale streaks)
-- Dark mode with system theme detection
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Node.js 18+ or Bun
-- A database (SQLite by default, PostgreSQL optional)
-
-### Installation
+Requires **Node.js 22+**, npm and PostgreSQL 16 (external PostgreSQL for Vercel).
+Use a disposable local database first. This repository has two additive migration
+histories; V1 deployment is deliberately separate from the ordinary build.
 
 ```bash
-# Clone the repository
-git clone https://github.com/karim-coder/bearing-now.git
+git clone https://github.com/papa-mike-delta/bearing-now.git
 cd bearing-now
-
-# Install dependencies
-bun install
-
-# Set up the database
+npm ci
 cp .env.example .env
-bun run db:push
-
-# Optional: add sample data
-bun run src/lib/seed.ts
-
-# Start the development server
-bun run dev
+# Edit DATABASE_URL and set SESSION_SECRET to a unique random value (32+ characters).
+# Generate a secret with: openssl rand -hex 32
+npm run db:generate
+npx prisma migrate deploy
+# Review prisma/v1/migrations before explicitly applying V1 tables:
+BEARING_V1_SCHEMA_REVIEWED=yes npm run db:v1:deploy
+# Set BEARING_V1_ENABLED=true in .env, then:
+npm run db:invite -- you@example.com
+npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and create an account.
+Open `/login`, choose Create account and use the email-bound invitation. No seed
+runs at boot or failed login. The new account contains only Me. Use Settings for
+optional fictional examples. The old `/api/seed` and legacy CLI seed are disabled
+when V1 is enabled; never reset the database to repair demo access.
 
-### Using a Cloud Database (Neon / Supabase)
+## Configuration and deployment
 
-1. Create a free PostgreSQL database on [Neon](https://neon.tech) or [Supabase](https://supabase.com)
-2. Update your `.env` file:
-   ```env
-   DATABASE_URL=postgresql://user:pass@host/dbname
-   ```
-3. Update `prisma/schema.prisma` — change the provider from `sqlite` to `postgresql`:
-   ```prisma
-   datasource db {
-     provider = "postgresql"
-     url      = env("DATABASE_URL")
-   }
-   ```
-4. Run `bun run db:push`
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Private PostgreSQL connection; use TLS as required by your provider |
+| `SESSION_SECRET` | Unique server signing key, minimum 32 characters in production |
+| `BEARING_V1_ENABLED=true` | Enable V1 routes after both migration sets are applied |
+| `BEARING_COACH_PROVIDER` | `openrouter` or `gateway`; optional Coach configuration |
+| `BEARING_COACH_MODEL` | Model identifier supported by the selected provider |
+| `OPENROUTER_API_KEY` / `AI_GATEWAY_API_KEY` | Server-only provider key |
 
-## 📖 Documentation
+Coach is unavailable until configured. No free built-in model is implied. The
+client discloses provider/model use before sending chat. Read [Coach configuration
+and privacy](docs/redesign/CONVERSATIONAL_COACH.md) before enabling it. Never expose
+keys through `NEXT_PUBLIC_*` or browser settings.
 
-### Architecture
+For Vercel Hobby, use external PostgreSQL, Node 22+, a production session secret
+and isolated preview environment variables/database. `npm run build:vercel` applies
+**legacy migrations only**; an operator must explicitly apply reviewed V1 migrations
+before enabling V1. See the [deploy/rollback runbook](docs/RELEASE.md). A production
+migration or deployment is a separate, explicitly approved action after preview QA.
+Do not use `db:push`, `migrate dev`, `db:reset` or database drops against live data.
 
-- **Framework**: Next.js 16 with App Router
-- **Language**: TypeScript 5
-- **Styling**: Tailwind CSS 4 + shadcn/ui
-- **Database**: Prisma ORM (SQLite or PostgreSQL)
-- **State**: Zustand (client) + TanStack Query (server)
-- **Auth**: Custom session-based with optional TOTP 2FA
-- **AI**: Z.AI SDK (default) or any OpenAI-compatible API
+## Privacy, offline and portability
 
-### Project Structure
+In-app help is at `/help`; its source is [here](src/app/help/page.tsx).
+Offline support covers text capture, not full editing or AI. A prior authenticated
+visit is required. Browser data can be evicted: do not clear storage with pending
+entries. Logout locks the account queue; sign back into that same account to sync.
 
-```
-src/
-├── app/                    # Next.js App Router
-│   ├── api/                # API routes (items, projects, auth, ai, etc.)
-│   ├── app/                # Authenticated Bearing interface
-│   ├── login/              # Authentication page
-│   └── page.tsx            # Public landing page
-├── components/
-│   ├── bearing-now/            # Core app components
-│   │   ├── views/          # Dashboard, Inbox, Calendar, Focus, etc.
-│   │   ├── item-card.tsx   # Universal item card
-│   │   ├── item-editor.tsx # Create/edit dialog
-│   │   └── ...
-│   └── ui/                 # shadcn/ui components
-├── lib/                    # Utilities, hooks, auth, constants
-├── store/                  # Zustand store
-└── prisma/                 # Database schema
-```
+Settings exports a private `bearing-v1` JSON backup of all V1 records, associations,
+histories, saved conversations/preferences and audit receipts. Restore validates and
+atomically replaces data in the **same account**. Audit remains append-only. Identity,
+passwords, 2FA secrets, invitation tokens, leases, browser drafts/outbox and legacy
+records are excluded. Sync first and keep a verified backup before clearing.
+[Backup details](docs/backup-restore.md).
 
-### Keyboard Shortcuts
+QR sign-in uses ephemeral, in-memory challenges: it fails closed on restart or a
+worker mismatch and is not a reliable multi-worker login transport. Email/password
+and verified TOTP remain the normal sign-in path. Notification delivery, uploads,
+external AI research, cross-user collaboration and full offline editing are outside V1.
 
-| Shortcut     | Action          |
-| ------------ | --------------- |
-| `⌘K`         | Quick Capture   |
-| `⌘P`         | Command Palette |
-| `/`          | Focus search    |
-| `?`          | Show shortcuts  |
-| `g` then `d` | Dashboard       |
-| `g` then `i` | Inbox           |
-| `g` then `c` | Calendar        |
-| `g` then `f` | Focus           |
-| `g` then `p` | Projects        |
-| `g` then `g` | Brain Graph     |
-| `g` then `r` | Reviews         |
-| `g` then `s` | Insights        |
-| `g` then `n` | Sanctuary       |
-
-## 🐳 Docker
+## Verification and contribution
 
 ```bash
-# Build and run
-docker-compose up -d
-
-# Or build manually
-docker build -t bearing-now .
-docker run -p 3000:3000 -v $(pwd)/db:/app/db bearing-now
+npm run lint
+npx tsc --noEmit --incremental false
+npm test
+V1_TEST_DATABASE_URL=postgresql://... npm run test:v1
+RESTORE_TEST_DATABASE_URL=postgresql://... npm run test:integration
+npm run build
+# Browser release suite; disposable DB only, see e2e/README.md:
+V1_TEST_DATABASE_URL=postgresql://... npm run test:e2e:release
 ```
 
-## 🔧 Configuration
+Database suites create and drop randomly named isolated schemas. Browser suites use
+a separately provisioned disposable database and may mutate/reset test accounts.
+Never supply live credentials to test commands. See [CONTRIBUTING](CONTRIBUTING.md),
+[architecture](docs/ARCHITECTURE.md), [release matrix](docs/RELEASE.md), and the
+[approved V1 specification](docs/redesign/BEARING_V1_SPEC.md).
 
-### Environment Variables
-
-See [`.env.example`](.env.example) for all available options.
-
-### AI Provider Setup
-
-1. Go to Settings → AI Features
-2. Choose your provider:
-   - **Z.AI SDK** — free, no config needed
-   - **OpenAI-compatible** — enter API key, base URL, and model
-   - **Custom** — enter custom endpoint details
-3. Toggle individual AI features on/off
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) and follow the [Code of Conduct](CODE_OF_CONDUCT.md).
-
-## 🔎 GitHub Discoverability
-
-Recommended repository topics: `bearing-now`, `second-brain`, `digital-brain`, `personal-knowledge-management`, `productivity`, `self-hosted`, `habit-tracker`, `journal-app`, `task-manager`, `calendar-planner`, `finance-tracker`, `goal-tracker`, `focus-timer`, `knowledge-graph`, `nextjs`, `prisma`, `pwa`.
-
-## 📄 License
-
-This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
-
-## 🙏 Acknowledgments
-
-- [Next.js](https://nextjs.org) — React framework
-- [shadcn/ui](https://ui.shadcn.com) — UI components
-- [Prisma](https://prisma.io) — Database ORM
-- [MDXEditor](https://mdxeditor.dev) — WYSIWYG editor
-- [Framer Motion](https://framer.com/motion) — Animations
-- [Z.AI](https://z.ai) — AI SDK
-
----
-
-Made with 💚 for people who want to live with intention.
+MIT licensed. Original project by karim-coder; developed by Bearing contributors.
