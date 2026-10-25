@@ -120,62 +120,73 @@ export class Workflow {
       });
     });
   }
-  static organize(p: Principal, id: string, raw: unknown) {
-    return write(p, "v1.moment.organize", { id, data: raw }, async (tx) => {
-      const value = parse(organizeInput, raw);
-      await owned(tx, p.userId, "journalMoment", id);
-      const moment = await tx.journalMoment.findUniqueOrThrow({
-        where: { id },
-        include: includeMoment,
-      });
-      // A repeated promotion returns its canonical reference, never a duplicate Task.
-      if (value.item && moment.items.some((r) => r.relation === "reference"))
-        return moment;
-      if (moment.revision !== value.revision)
-        throw new Fault(409, "Journal entry changed", {
-          currentRevision: moment.revision,
+  static organize(
+    p: Principal,
+    id: string,
+    raw: unknown,
+    transaction?: import("./service").Tx,
+  ) {
+    return write(
+      p,
+      "v1.moment.organize",
+      { id, data: raw },
+      async (tx) => {
+        const value = parse(organizeInput, raw);
+        await owned(tx, p.userId, "journalMoment", id);
+        const moment = await tx.journalMoment.findUniqueOrThrow({
+          where: { id },
+          include: includeMoment,
         });
-      if (value.item) {
-        const { value: item } = await V1.createItem(p, value.item, tx);
-        await tx.momentItem.create({
-          data: {
-            userId: p.userId,
-            momentId: id,
-            itemId: item.id,
-            relation: "reference",
-          },
-        });
-      }
-      if (!value.item && value.resolved) {
-        for (const ref of moment.items.filter(
-          (r) => r.relation === "reference" && r.item.status === "inbox",
-        )) {
-          const tags = await tx.itemTag.findMany({
-            where: { userId: p.userId, itemId: ref.itemId },
+        // A repeated promotion returns its canonical reference, never a duplicate Task.
+        if (value.item && moment.items.some((r) => r.relation === "reference"))
+          return moment;
+        if (moment.revision !== value.revision)
+          throw new Fault(409, "Journal entry changed", {
+            currentRevision: moment.revision,
           });
-          const dto = itemDto({
-            ...JSON.parse(JSON.stringify(ref.item)),
-            tagIds: tags.map((t) => t.tagId),
+        if (value.item) {
+          const { value: item } = await V1.createItem(p, value.item, tx);
+          await tx.momentItem.create({
+            data: {
+              userId: p.userId,
+              momentId: id,
+              itemId: item.id,
+              relation: "reference",
+            },
           });
-          await V1.updateItem(
-            p,
-            ref.itemId,
-            ref.item.revision,
-            { ...dto, status: "todo" },
-            tx,
-          );
         }
-      }
-      return tx.journalMoment.update({
-        where: { id },
-        data: {
-          needsOrganization: !value.resolved,
-          revision: { increment: 1 },
-          demoBatchId: null,
-        },
-        include: includeMoment,
-      });
-    });
+        if (!value.item && value.resolved) {
+          for (const ref of moment.items.filter(
+            (r) => r.relation === "reference" && r.item.status === "inbox",
+          )) {
+            const tags = await tx.itemTag.findMany({
+              where: { userId: p.userId, itemId: ref.itemId },
+            });
+            const dto = itemDto({
+              ...JSON.parse(JSON.stringify(ref.item)),
+              tagIds: tags.map((t) => t.tagId),
+            });
+            await V1.updateItem(
+              p,
+              ref.itemId,
+              ref.item.revision,
+              { ...dto, status: "todo" },
+              tx,
+            );
+          }
+        }
+        return tx.journalMoment.update({
+          where: { id },
+          data: {
+            needsOrganization: !value.resolved,
+            revision: { increment: 1 },
+            demoBatchId: null,
+          },
+          include: includeMoment,
+        });
+      },
+      transaction,
+    );
   }
   static promoteTask(p: Principal, id: string, raw: unknown) {
     return write(p, "v1.checklist.promote", { id, data: raw }, async (tx) => {
