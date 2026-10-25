@@ -1,9 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 const url = process.env.V1_TEST_DATABASE_URL;
 if (!url)
-  throw new Error(
-    "V1_TEST_DATABASE_URL must identify a disposable database",
-  );
+  throw new Error("V1_TEST_DATABASE_URL must identify a disposable database");
 process.env.DATABASE_URL = url;
 const secret =
   process.env.SESSION_SECRET ||
@@ -32,12 +30,15 @@ export default defineConfig({
   ],
   webServer: [
     {
+      cwd: process.cwd(),
       command: "node e2e/scripts/coach-provider.mjs",
       port: 5555,
       reuseExistingServer: false,
     },
     {
-      command: "node --import tsx e2e/scripts/release-fixture.ts && npm run dev -- --hostname 127.0.0.1",
+      cwd: process.cwd(),
+      command:
+        "node --import tsx e2e/scripts/release-fixture.ts && npm run dev -- --hostname 127.0.0.1",
       url: "http://127.0.0.1:3000/login",
       reuseExistingServer: false,
       env: {

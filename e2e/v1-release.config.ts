@@ -49,8 +49,13 @@ export default defineConfig({
   ...(!process.env.RELEASE_BASE_URL
     ? {
         webServer: [
-          { command: "node e2e/scripts/coach-provider.mjs", port: 5555 },
           {
+            cwd: process.cwd(),
+            command: "node e2e/scripts/coach-provider.mjs",
+            port: 5555,
+          },
+          {
+            cwd: process.cwd(),
             command:
               "node --import tsx e2e/scripts/release-fixture.ts && npm run start -- --hostname 127.0.0.1",
             url: "http://127.0.0.1:3000/login",
