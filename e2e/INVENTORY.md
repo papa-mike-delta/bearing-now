@@ -1,6 +1,6 @@
 # Source inventory
 
-Generated with `node e2e/scripts/inventory.cjs`. Every JSX button/link/form (including reusable primitives and dynamic templates) is listed with source location and attributes. Dynamic maps represent all rendered variants. Inputs/selects and custom action components are included.
+Generated with `node e2e/scripts/inventory.mjs`. Every JSX button/link/form (including reusable primitives and dynamic templates) is listed with source location and attributes. Dynamic maps represent all rendered variants. Inputs/selects and custom action components are included.
 
 ## Routes
 

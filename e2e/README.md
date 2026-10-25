@@ -23,7 +23,7 @@ Page objects are classes under `pages/`; UI actions exercise real forms, buttons
 [INVENTORY.md](INVENTORY.md) records every `page.tsx` and `route.ts`, HTTP methods, source locations for every JSX button/link/form and related input/action component, and client fetch/navigation targets. Regenerate with:
 
 ```sh
-node e2e/scripts/inventory.cjs
+node e2e/scripts/inventory.mjs
 ```
 
 There are three page routes: `/`, `/login`, `/app`. Sidebar and command palette navigation switches Zustand views inside `/app`; these are not separate Next.js routes. Every literal internal link/fetch target resolves to an existing route. Dynamic IDs can still refer to nonexistent records. External links and user-provided bookmark URLs are external targets. The inventory includes reusable components and dynamic templates rather than treating one mapped button as one static rendered instance.
