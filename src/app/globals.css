@@ -563,3 +563,8 @@
     min-height: 44px !important;
   }
 }
+
+@media (max-width: 767px), (pointer: coarse) {
+  .bearing-app [data-slot="slider"] { min-height: 44px; }
+  .bearing-app [data-slot="slider-thumb"] { min-width: 44px; min-height: 44px; }
+}

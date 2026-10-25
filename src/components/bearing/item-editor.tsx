@@ -261,17 +261,17 @@ export function ItemEditor() {
               <SectionLabel icon="SlidersHorizontal">Status & Priority</SectionLabel>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <Select value={form.status} onValueChange={(v) => set("status", v)}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Status" className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="inbox">📥 Inbox</SelectItem>
-                    <SelectItem value="active">✓ Active</SelectItem>
-                    <SelectItem value="done">✓ Done</SelectItem>
-                    <SelectItem value="snoozed">⏰ Snoozed</SelectItem>
-                    <SelectItem value="archived">📦 Archived</SelectItem>
+                    <SelectItem value="inbox">Inbox</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="done">Done</SelectItem>
+                    <SelectItem value="snoozed">Snoozed</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={String(form.priority)} onValueChange={(v) => set("priority", v)}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Priority" className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {PRIORITY_META.map((p) => (
                       <SelectItem key={p.value} value={String(p.value)}>
@@ -504,7 +504,7 @@ export function ItemEditor() {
                 {form.tagNames?.map((t: string) => (
                   <span key={t} className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
                     #{t}
-                    <button onClick={() => set("tagNames", form.tagNames.filter((x: string) => x !== t))} className="text-muted-foreground transition-colors hover:text-expense">
+                    <button aria-label={`Remove tag ${t}`} onClick={() => set("tagNames", form.tagNames.filter((x: string) => x !== t))} className="text-muted-foreground transition-colors hover:text-expense">
                       <Icon name="X" className="h-3 w-3" />
                     </button>
                   </span>

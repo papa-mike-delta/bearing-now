@@ -2,29 +2,13 @@
 
 import { colorWithAlpha } from "@/lib/product-colors";
 
+import { MOOD_OPTIONS as MOODS, CHECK_IN_ENERGY_OPTIONS as ENERGY } from "@/lib/semantic-state";
+import { ScaleChoices } from "./semantic-state";
 import { useState } from "react";
 import { useCreateReview, useReviews } from "@/lib/hooks";
 import { Icon } from "./icon";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { notify } from "@/lib/toast";
-import { cn } from "@/lib/utils";
-import { fmtDate } from "@/lib/dates";
-
-const MOODS = [
-  { value: 1, icon: "Frown", label: "Low", color: "var(--mood-1)" },
-  { value: 2, icon: "Meh", label: "Meh", color: "var(--mood-2)" },
-  { value: 3, icon: "Smile", label: "Okay", color: "var(--mood-3)" },
-  { value: 4, icon: "SmilePlus", label: "Good", color: "var(--mood-4)" },
-  { value: 5, icon: "Laugh", label: "Great", color: "var(--mood-5)" },
-];
-
-const ENERGY = [
-  { value: 1, label: "Drained", color: "var(--checkin-energy-1)" },
-  { value: 2, label: "Low", color: "var(--checkin-energy-2)" },
-  { value: 3, label: "Steady", color: "var(--checkin-energy-3)" },
-  { value: 4, label: "Strong", color: "var(--checkin-energy-4)" },
-  { value: 5, label: "Charged", color: "var(--checkin-energy-5)" },
-];
 
 export function MoodCheckIn() {
   const create = useCreateReview();
@@ -103,51 +87,8 @@ export function MoodCheckIn() {
         <h3 className="text-sm font-semibold">How are you feeling?</h3>
       </div>
 
-      {/* Mood selector */}
-      <div className="mb-3">
-        <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Mood</p>
-        <div className="flex flex-wrap justify-between gap-1">
-          {MOODS.map((m) => (
-            <motion.button
-              key={m.value}
-              whileHover={{ scale: 1.15 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setMood(m.value)}
-              className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 rounded-lg py-1.5 transition-all",
-                mood === m.value ? "bg-type-journal/15 ring-1 ring-type-journal/40" : "hover:bg-muted/50",
-              )}
-            >
-              <Icon name={m.icon} className="h-5 w-5" />
-              <span className={cn("text-xs", mood === m.value ? "font-semibold text-type-journal" : "text-muted-foreground")}>
-                {m.label}
-              </span>
-            </motion.button>
-          ))}
-        </div>
-      </div>
-
-      {/* Energy selector */}
-      <div className="mb-4">
-        <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Energy</p>
-        <div className="flex gap-1">
-          {ENERGY.map((e) => (
-            <motion.button
-              key={e.value}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setEnergy(e.value)}
-              className={cn(
-                "flex-1 rounded-md py-1.5 text-xs font-medium transition-all",
-                energy === e.value ? "text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted",
-              )}
-              style={energy === e.value ? { background: colorWithAlpha(e.color, 16), color: "var(--foreground)" } : {}}
-            >
-              {e.label}
-            </motion.button>
-          ))}
-        </div>
-      </div>
+      <div className="mb-3"><p className="mb-1.5 text-xs font-medium">Mood</p><ScaleChoices scale="Mood" value={mood} onChange={setMood} /></div>
+      <div className="mb-4"><p className="mb-1.5 text-xs font-medium">Energy</p><ScaleChoices scale="Energy" value={energy} onChange={setEnergy} /></div>
 
       <button
         onClick={save}
