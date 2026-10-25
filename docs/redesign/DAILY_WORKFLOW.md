@@ -47,8 +47,8 @@ The existing theme importer, reset and light/dark/system controls remain availab
 Search is literal keyword lookup over Item text/typed metadata, Projects, Journal,
 Reviews, Activity and Tags/Areas, with kind, Area and Project filters. Authorization
 is applied before results are returned. There are up to 50 matches per category;
-there is no embedding/model call. `/app/coach` currently exposes this working lookup;
-conversational Coach and approval proposals remain #47, not a claimed feature here.
+there is no embedding/model call. `/app/search` exposes keyword lookup. Conversational Coach, grounded tools and
+approval proposals are documented in [CONVERSATIONAL_COACH.md](CONVERSATIONAL_COACH.md) (#47).
 
 ## Offline shell and account boundary
 

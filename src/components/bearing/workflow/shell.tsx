@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { ConnectedFocus, ConnectedGraph } from "./perspectives";
+import { ConversationalCoach } from "./coach";
 import { Appearance } from "./appearance";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -485,11 +486,10 @@ function Content({
               <ConnectedFocus />
             ) : view === "graph" ? (
               <ConnectedGraph />
-            ) : view === "coach" || view === "search" ? (
-              <Search
-                key={`${view}:${params.toString()}`}
-                coach={view === "coach"}
-              />
+            ) : view === "coach" ? (
+              <ConversationalCoach />
+            ) : view === "search" ? (
+              <Search key={`${view}:${params.toString()}`} />
             ) : view === "reviews" ? (
               <Reviews recordId={recordId} />
             ) : (

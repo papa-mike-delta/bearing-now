@@ -209,6 +209,7 @@ export class V1 {
       status?: string;
       projectId?: string;
       type?: string;
+      limit?: number;
     } = {},
   ) {
     const rows = await v1db.item.findMany({
@@ -243,6 +244,9 @@ export class V1 {
             }
           : {}),
       },
+      ...(filters.limit
+        ? { take: Math.max(1, Math.min(50, filters.limit)) }
+        : {}),
       include: itemInclude,
       orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
     });
@@ -413,26 +417,33 @@ export class V1 {
     });
     return V1.item(userId, self.itemId);
   }
-  static createProject(p: Principal, raw: unknown) {
-    return write(p, "v1.project.create", raw, async (tx) => {
-      const value = parse(schema.projectInput, raw),
-        tagIds = await validTags(tx, p.userId, value.tagIds);
-      const { tagIds: _, ...data } = value;
-      return tx.project.create({
-        data: {
-          ...data,
-          userId: p.userId,
-          tags: { create: tagIds.map((tagId) => ({ tagId })) },
-        },
-        include: { tags: { include: { tag: true } } },
-      });
-    });
+  static createProject(p: Principal, raw: unknown, transaction?: Tx) {
+    return write(
+      p,
+      "v1.project.create",
+      raw,
+      async (tx) => {
+        const value = parse(schema.projectInput, raw),
+          tagIds = await validTags(tx, p.userId, value.tagIds);
+        const { tagIds: _, ...data } = value;
+        return tx.project.create({
+          data: {
+            ...data,
+            userId: p.userId,
+            tags: { create: tagIds.map((tagId) => ({ tagId })) },
+          },
+          include: { tags: { include: { tag: true } } },
+        });
+      },
+      transaction,
+    );
   }
   static updateProject(
     p: Principal,
     id: string,
     revision: number,
     raw: unknown,
+    transaction?: Tx,
   ) {
     return write(
       p,
@@ -445,6 +456,16 @@ export class V1 {
           throw new Fault(409, "Project changed", {
             currentRevision: previous.revision,
           });
+        await guardOpen(
+          tx,
+          p,
+          (
+            await tx.item.findMany({
+              where: { userId: p.userId, projectId: id },
+              select: { id: true },
+            })
+          ).map((i) => i.id),
+        );
         const value = parse(schema.projectInput, raw),
           tagIds = await validTags(tx, p.userId, value.tagIds);
         const { tagIds: _, ...data } = value;
@@ -461,35 +482,55 @@ export class V1 {
           },
         });
       },
+      transaction,
     );
   }
-  static createTag(p: Principal, raw: unknown) {
-    return write(p, "v1.tag.create", raw, async (tx) =>
-      tx.tag.create({
-        data: { ...parse(schema.tagInput, raw), userId: p.userId },
-      }),
+  static createTag(p: Principal, raw: unknown, transaction?: Tx) {
+    return write(
+      p,
+      "v1.tag.create",
+      raw,
+      async (tx) =>
+        tx.tag.create({
+          data: { ...parse(schema.tagInput, raw), userId: p.userId },
+        }),
+      transaction,
     );
   }
-  static createLink(p: Principal, raw: unknown) {
-    return write(p, "v1.link.create", raw, async (tx) => {
-      const value = parse(schema.linkInput, raw),
-        from = await owned(tx, p.userId, "item", value.fromId),
-        to = await owned(tx, p.userId, "item", value.toId);
-      await guardOpen(tx, p, [value.fromId, value.toId]);
-      await cap(tx, p, "link");
-      if (!validLinkEndpoints(value.type, from, to))
-        throw new Fault(400, "Invalid semantic Link endpoints");
-      return tx.link.create({ data: { ...value, userId: p.userId } });
-    });
+  static createLink(p: Principal, raw: unknown, transaction?: Tx) {
+    return write(
+      p,
+      "v1.link.create",
+      raw,
+      async (tx) => {
+        const value = parse(schema.linkInput, raw),
+          from = await owned(tx, p.userId, "item", value.fromId),
+          to = await owned(tx, p.userId, "item", value.toId);
+        await guardOpen(tx, p, [value.fromId, value.toId]);
+        await cap(tx, p, "link");
+        if (!validLinkEndpoints(value.type, from, to))
+          throw new Fault(400, "Invalid semantic Link endpoints");
+        return tx.link.create({ data: { ...value, userId: p.userId } });
+      },
+      transaction,
+    );
   }
-  static deleteLink(p: Principal, id: string) {
-    return write(p, "v1.link.delete", { id }, async (tx) => {
-      const row = await tx.link.findFirst({ where: { id, userId: p.userId } });
-      if (!row) throw new Fault(404, "Not found");
-      await guardOpen(tx, p, [row.fromId, row.toId]);
-      await tx.link.delete({ where: { id } });
-      return { deleted: true };
-    });
+  static deleteLink(p: Principal, id: string, transaction?: Tx) {
+    return write(
+      p,
+      "v1.link.delete",
+      { id },
+      async (tx) => {
+        const row = await tx.link.findFirst({
+          where: { id, userId: p.userId },
+        });
+        if (!row) throw new Fault(404, "Not found");
+        await guardOpen(tx, p, [row.fromId, row.toId]);
+        await tx.link.delete({ where: { id } });
+        return { deleted: true };
+      },
+      transaction,
+    );
   }
   static createMoment(p: Principal, raw: unknown, transaction?: Tx) {
     return write(
