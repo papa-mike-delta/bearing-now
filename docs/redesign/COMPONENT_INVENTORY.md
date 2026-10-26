@@ -1,8 +1,8 @@
 # Original component inventory for V1
 
 The existing implementation is a source of working mechanics, not the target ontology.
-This table records the keep/rewrite/remove decisions for #44. Removal here refers to
-V1 surfaces; the legacy UI remains operational until the replacement slices ship.
+This table records the keep/rewrite/remove decisions for #44. The pre-V1 UI and
+domain modules were removed on 2026-10-26 ([ADR 0005](../adr/0005-sunset-legacy-domain-and-coach.md)). Do not restore them.
 
 | Existing source | Decision | Target / owner |
 |---|---|---|

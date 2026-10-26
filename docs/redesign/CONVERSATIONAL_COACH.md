@@ -4,7 +4,7 @@ The opt-in V1 `/app/coach` view now uses conversation, sources and editable appr
 cards. It extends the existing Next.js app, V1 data services, audit ledger, draft UI
 primitives and canonical views. It does not use a separate vector database, infer
 memory from chat, turn chats into Journal moments, or add external research tools.
-The legacy app remains available when V1 is disabled.
+The pre-V1 Coach tool API is removed ([ADR 0005](../adr/0005-sunset-legacy-domain-and-coach.md)). Disabled V1 shows setup guidance.
 
 ## Server configuration and disclosure
 

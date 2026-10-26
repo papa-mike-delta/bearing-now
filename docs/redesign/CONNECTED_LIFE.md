@@ -2,8 +2,9 @@
 
 This slice extends the opt-in V1 workflow from #44/#45. It reuses the existing
 Next.js app, rich editor, draft owner, expected-account request boundary, audited
-write transactions, Focus Timer UI and force-directed Graph explorer. The legacy
-shell and legacy Focus/Graph adapters remain available when V1 is disabled.
+write transactions, Focus Timer UI and force-directed Graph explorer. The pre-V1
+shell and its Focus/Graph data adapters are removed ([ADR 0005](../adr/0005-sunset-legacy-domain-and-coach.md)).
+V1 passes workspace data into the shared timer and explorer.
 No production migration, database reset or deployment is part of this change.
 
 ## People, Me and references
@@ -64,9 +65,9 @@ adds optional snapshot content/period fields; old Activity remains valid.
 
 ## Focus, check-ins and Graph
 
-The existing Focus component is now a reusable timer with legacy and V1 adapters.
-Presets, custom duration, pause/reset/skip, sound, ring and optional Task/Habit
-selection remain. A wall-clock deadline handles background/suspended tabs and
+The Focus component is a reusable timer. V1 supplies tasks, habits and an Activity
+completion callback. Presets, custom duration, pause/reset/skip, sound, ring and
+optional Task/Habit selection remain. A wall-clock deadline handles background/suspended tabs and
 completion occurs outside React state updaters, guarded by a stable session id.
 Breaks, reset, skipping and unfinished timers never create completed Focus Activity.
 A completed V1 session creates one Focus Activity without silently completing its
@@ -78,7 +79,7 @@ storage and retried on opening Focus, reconnect, or an explicit Retry. Original
 session time/timezone/id survive retries; the expected-account header prevents
 upload into another account. Device storage is not an encrypted vault. Storage
 failure displays a warning and retains the session in memory while the view stays
-open. Legacy sound preferences and legacy statistics remain backward compatible.
+open. Sound preference and today's counters stay on this device.
 
 Mood/energy 1–5 check-ins can be recorded repeatedly in Today and are timestamped
 Activity. They do not replace Journal text, guided Reviews or prior check-ins.

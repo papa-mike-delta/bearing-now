@@ -100,8 +100,9 @@ a stable Activity client key so retries produce one session.
 
 V1 HTTP handlers are under `/api/v1/*` and return 404 until enabled. Every handler
 requires a signed, fully 2FA-verified session and an existing account. Ownership and
-actor come from that session, never request JSON. Pending 2FA sessions also cannot
-access legacy data APIs, rotate 2FA secrets or confirm QR login. QR challenges require
+actor come from that session, never request JSON. Pending 2FA sessions cannot
+read `/api/v1`, rotate 2FA secrets or confirm QR login. Pre-V1 content routes
+return 410 (`LegacyApi`) and are not a data path. QR challenges require
 verified same-account confirmation and are one use; the existing ephemeral store
 fails closed on expiry/restart and is not a durable multi-worker transport.
 

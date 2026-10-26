@@ -1,5 +1,9 @@
 // Life OS — Digital Brain schema
-// Everything is an interconnected "Item" node that can be linked to Projects and to each other.
+// SUNSET 2026-10-26 (ADR 0005): Domain, Item, Project, Link, Tag, TagOnItem,
+// HabitLog, Review, ReviewItem and Reminder are unused by the V1 product path.
+// Do not add queries or migrations that extend them. A later PR may DROP these
+// tables on or after 2027-01-26. User, Setting and OperationLedger stay.
+// There is no Item to V1Item conversion.
 
 generator client {
   provider = "prisma-client-js"

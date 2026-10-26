@@ -52,8 +52,8 @@ npm run dev
 
 Open `/login`, choose Create account and use the email-bound invitation. No seed
 runs at boot or failed login. The new account contains only Me. Use Settings for
-optional fictional examples. The old `/api/seed` and legacy CLI seed are disabled
-when V1 is enabled; never reset the database to repair demo access.
+optional fictional examples. `/api/seed` always returns 410. Never reset the
+database to repair demo access, and do not convert legacy Item rows into V1.
 
 ## Configuration and deployment
 

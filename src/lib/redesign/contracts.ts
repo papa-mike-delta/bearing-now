@@ -1,7 +1,7 @@
 /**
- * Bearing V1 vocabulary and validation shared by upcoming UI, API and Coach.
- * This module is additive: legacy Item types remain in place until the
- * vertical-slice migration replaces them.
+ * Bearing V1 vocabulary and validation shared by UI, API and Coach.
+ * These seven kinds are the product model. Do not add legacy Item types here
+ * or convert stored Item rows into V1Item. See ADR 0005.
  *
  * Product authority: docs/redesign/BEARING_V1_SPEC.md
  */

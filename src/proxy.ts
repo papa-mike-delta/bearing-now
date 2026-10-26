@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { coachToolsEnabled } from "@/lib/coach/feature-flag";
 import { appDestination, loginDestination } from "@/lib/app-destination";
+import { LegacyApi } from "@/lib/legacy-api";
 import { verifySession } from "@/lib/session";
 
 // Routes that don't require authentication
-const PUBLIC_ROUTES = ["/", "/login", "/help", "/api/auth", "/api/public-prefs"];
+const PUBLIC_ROUTES = ["/", "/login", "/help", "/api/auth"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -21,9 +21,7 @@ export function proxy(req: NextRequest) {
     res.headers.set("Cache-Control", "no-store");
     return res;
   }
-  if (pathname === "/api/coach" && !coachToolsEnabled()) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+  if (LegacyApi.matches(pathname)) return LegacyApi.response();
 
   // Allow public routes
   if (PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(route + "/"))) {

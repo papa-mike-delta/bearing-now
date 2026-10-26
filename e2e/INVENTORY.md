@@ -1,5 +1,9 @@
 # Source inventory
 
+> Historical snapshot from before the 2026-10-26 legacy sunset. Do not treat the
+> pre-V1 routes or shells listed below as live. See
+> [ADR 0005](../docs/adr/0005-sunset-legacy-domain-and-coach.md).
+
 Generated with `node e2e/scripts/inventory.mjs`. Every JSX button/link/form (including reusable primitives and dynamic templates) is listed with source location and attributes. Dynamic maps represent all rendered variants. Inputs/selects and custom action components are included.
 
 ## Routes

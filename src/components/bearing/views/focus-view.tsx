@@ -2,10 +2,7 @@
 
 import { colorWithAlpha } from "@/lib/product-colors";
 
-import { format } from "date-fns";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useBearing } from "@/store/bearing";
-import { useItems, useToggleHabit } from "@/lib/hooks";
 import { Icon } from "../icon";
 import { PageHeader, SectionCard } from "../layout";
 import { Button } from "@/components/ui/button";
@@ -47,17 +44,10 @@ function playChime() {
   }
 }
 
-export function FocusView() {
-  const { openItemEditor } = useBearing();
-  const { data: tasksData, isLoading: tasksLoading } = useItems({ type: "task", status: "active" });
-  const { data: habitsData, isLoading: habitsLoading } = useItems({ type: "habit", status: "active" });
-  const toggleHabit = useToggleHabit();
-  return <FocusTimer tasks={(tasksData?.items || []).filter(t=>t.dueDate || t.priority>=2).slice(0,8)} habits={(habitsData?.items || []).slice(0,6)} loading={tasksLoading || habitsLoading} onNewTask={()=>openItemEditor({type:"task"})} onLegacyHabit={id=>toggleHabit.mutate({id,date:format(new Date(),"yyyy-MM-dd")})}/>;
-}
 export type FocusCompletion = {clientId:string;occurredAt:string;minutes:number;itemId:string|null};
-export function FocusTimer({tasks,habits,loading=false,onNewTask,onLegacyHabit,onComplete,stats}:{
+export function FocusTimer({tasks,habits,loading=false,onNewTask,onComplete,stats}:{
   tasks:{id:string;title:string}[];habits:{id:string;title:string}[];loading?:boolean;
-  onNewTask():void;onLegacyHabit?(id:string):void;
+  onNewTask():void;
   onComplete?(session:FocusCompletion):void;
   stats?:{sessions:number;minutes:number};
 }) {
@@ -142,7 +132,6 @@ export function FocusTimer({tasks,habits,loading=false,onNewTask,onLegacyHabit,o
         else {
           setCompletedSessions(completedSessions+1);setTodayMinutes(todayMinutes+minutes);
           persist(completedSessions+1,todayMinutes+minutes);
-          if(selectedItemType==='habit'&&selectedItemId)onLegacyHabit?.(selectedItemId);
         }
         notify.success(`Focus complete! ${minutes} min`, 'Take a short break.');
       }else notify.success('Break over — back to focus!');

@@ -1,5 +1,5 @@
+import { randomUUID } from "node:crypto";
 import { test, expect } from "./fixtures";
-import { AppPage } from "./pages/AppPage";
 import { LoginPage } from "./pages/LoginPage";
 
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -21,7 +21,7 @@ test("login rejects an incorrect password", async ({ page }) => {
 });
 
 test("register a unique account through the real form", async ({ page }) => {
-  const name = AppPage.unique("registration");
+  const name = `E2E registration ${randomUUID()}`;
   await page.goto("/login");
   await page.addInitScript(() => localStorage.setItem("lifeos-onboarded", "true"));
   // Use only the account provisioned in the disposable test fixture.

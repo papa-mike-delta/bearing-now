@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import { createSession } from "@/lib/session";
+import { LegacyApi } from "@/lib/legacy-api";
 import { proxy } from "./proxy";
 
 const request = (path: string, token?: string) => new NextRequest(`http://localhost${path}`, {
@@ -11,6 +12,28 @@ it.each(["/", "/login"])("redirects a signed-in visit to %s to /app", (path) => 
   const response = proxy(request(path, createSession("u1", "a@example.com", true)));
   expect(response.status).toBe(307);
   expect(response.headers.get("location")).toBe("http://localhost/app");
+});
+
+it.each([
+  "/api/items",
+  "/api/items/abc/links",
+  "/api/coach",
+  "/api/seed",
+  "/api/preferences",
+])("returns 410 for retired %s before any session check", async (path) => {
+  const response = proxy(request(path, createSession("u1", "a@example.com", true)));
+  expect(response.status).toBe(410);
+  expect(await response.json()).toMatchObject({
+    error: expect.stringContaining(LegacyApi.dropTablesOn),
+  });
+});
+
+it("leaves theme, receipts and V1 on their own handlers", () => {
+  const token = createSession("u1", "a@example.com", true);
+  for (const path of ["/api/preferences/theme", "/api/receipts/r1", "/api/v1/workspace"]) {
+    expect(proxy(request(path, token)).status).not.toBe(410);
+  }
+  expect(proxy(request("/api/v1/items")).status).toBe(401);
 });
 
 it.each([
