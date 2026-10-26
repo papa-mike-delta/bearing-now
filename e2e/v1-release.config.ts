@@ -37,7 +37,7 @@ export default defineConfig({
     { name: "setup", testMatch: /v1-workflow.setup.ts/ },
     ...["desktop", "phone"].map((name) => ({
       name,
-      testMatch: /v1-(workflow|foundations|connected|coach|release)\.spec.ts/,
+      testMatch: /v1-(workflow|foundations|connected|coach|release|cleanup)\.spec.ts/,
       dependencies: ["setup"],
       use: {
         ...devices[name === "phone" ? "iPhone 13" : "Desktop Chrome"],
@@ -49,6 +49,16 @@ export default defineConfig({
   ...(!process.env.RELEASE_BASE_URL
     ? {
         webServer: [
+          {
+            cwd: process.cwd(),
+            command: "node node_modules/next/dist/bin/next start -p 3001 --hostname 127.0.0.1",
+            url: "http://127.0.0.1:3001/login",
+            timeout: 120000,
+            env: {
+              BEARING_V1_ENABLED: "false",
+              SESSION_SECRET: process.env.SESSION_SECRET!,
+            },
+          },
           {
             cwd: process.cwd(),
             command: "node e2e/scripts/coach-provider.mjs",

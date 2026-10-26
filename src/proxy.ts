@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { coachToolsEnabled } from "@/lib/coach/feature-flag";
+import { appDestination, loginDestination } from "@/lib/app-destination";
 import { verifySession } from "@/lib/session";
 
 // Routes that don't require authentication
@@ -13,7 +14,7 @@ export function proxy(req: NextRequest) {
   // Verify the signature so a stale cookie can't loop /login <-> /app.
   if (pathname === "/" || pathname === "/login") {
     const token = req.cookies.get("lifeos-session")?.value;
-    if (token && verifySession(token)?.twoFactorVerified && !req.nextUrl.searchParams.has("qr")) return NextResponse.redirect(new URL("/app", req.url));
+    if (token && verifySession(token)?.twoFactorVerified && !req.nextUrl.searchParams.has("qr")) return NextResponse.redirect(new URL(appDestination(req.nextUrl.searchParams.get("next")), req.url));
     // no-store keeps these pages out of the back/forward cache, so going back
     // after signing in re-requests them and hits the redirect above.
     const res = NextResponse.next();
@@ -35,14 +36,14 @@ export function proxy(req: NextRequest) {
   }
 
   // Check if session cookie exists (full verification happens server-side)
-  const cookie = req.headers.get("cookie") || "";
-  const hasSession = cookie.includes("lifeos-session=");
+  const token = req.cookies.get("lifeos-session")?.value;
+  const hasSession = token && verifySession(token)?.twoFactorVerified;
 
   if (!hasSession) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    return NextResponse.redirect(new URL("/login", req.url));
+    return NextResponse.redirect(new URL(loginDestination(pathname + req.nextUrl.search), req.url));
   }
 
   return NextResponse.next();

@@ -1,5 +1,6 @@
 "use client";
 
+import { appDestination } from "@/lib/app-destination";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,7 @@ export default function LoginPage() {
       if (d.authenticated && d.twoFactorVerified) {
         setEmail(d.email);
         if (qrToken) setStep("qr-confirm");
-        else router.replace("/app");
+        else router.replace(appDestination(new URLSearchParams(window.location.search).get("next")));
       } else if (d.authenticated) setStep("verify");
     }).catch(() => setError("Could not check your session. You can still try signing in."));
   }, [router]);
@@ -56,7 +57,7 @@ export default function LoginPage() {
       if (!res.ok) { setError(data.error || "Authentication failed"); return; }
       if (data.requiresVerification) { setStep("verify"); }
       else if (data.authenticated && qrConfirmToken) setStep("qr-confirm");
-      else if (data.authenticated) { setStep("done"); setTimeout(() => { router.replace("/app"); }, 800); }
+      else if (data.authenticated) { setStep("done"); setTimeout(() => { router.replace(appDestination(new URLSearchParams(window.location.search).get("next"))); }, 800); }
     } catch { setError("Network error. Please try again."); }
     finally { setLoading(false); }
   }
@@ -75,7 +76,7 @@ export default function LoginPage() {
       if (!res.ok) { setError(data.error || "Verification failed"); return; }
       if (qrConfirmToken) { setStep("qr-confirm"); return; }
       setStep("done");
-      setTimeout(() => { router.replace("/app"); }, 800);
+      setTimeout(() => { router.replace(appDestination(new URLSearchParams(window.location.search).get("next"))); }, 800);
     } catch { setError("Network error"); }
     finally { setLoading(false); }
   }
@@ -282,7 +283,7 @@ export default function LoginPage() {
                     const data = await res.json();
                     if (!res.ok) { setError(data.error || "Failed to confirm"); return; }
                     setStep("done");
-                    setTimeout(() => { router.replace("/app"); }, 800);
+                    setTimeout(() => { router.replace(appDestination(new URLSearchParams(window.location.search).get("next"))); }, 800);
                   } catch { setError("Network error"); }
                   finally { setLoading(false); }
                 }} className="space-y-4">

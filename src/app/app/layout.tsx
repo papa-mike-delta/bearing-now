@@ -8,7 +8,6 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  if (process.env.BEARING_V1_ENABLED !== "true") return children;
   const session = verifySession(
     (await cookies()).get("lifeos-session")?.value ?? "",
   );

@@ -113,6 +113,17 @@ export function createItemDraftOwner() {
       });
       return draft;
     },
+    /** Finish a non-Item create form without aliasing its next draft to a saved record. */
+    completeTransient(ticket: SaveTicket, seed: ItemSnapshot) {
+      const current = get(ticket.key);
+      if (ticket.epoch !== epoch || current?.pending !== ticket.request) return;
+      const baseline = normalizeItem(seed);
+      const data = { ...baseline };
+      for (const field of Object.keys(current.data)) {
+        if (!equal(current.data[field], ticket.data[field])) data[field] = current.data[field];
+      }
+      put(ticket.key, { data, baseline, latest: baseline, dirtyFields: dirty(data, baseline) });
+    },
     fail(ticket: SaveTicket, error: unknown) {
       const current = get(ticket.key);
       if (ticket.epoch !== epoch || current?.pending !== ticket.request) return;
