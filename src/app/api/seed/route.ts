@@ -1,3 +1,4 @@
+import { v1Enabled } from "@/lib/v1-enabled";
 import type { DomainResult } from "@/lib/domain/result";
 import { domainResponse } from "@/lib/api";
 import type { Prisma } from "@prisma/client";
@@ -25,7 +26,7 @@ class SeedRefusal {
 }
 
 export async function POST(_req: NextRequest) {
-  if (process.env.BEARING_V1_ENABLED === "true")
+  if (v1Enabled())
     return bad("Shared demo setup is retired for V1. Sign in with an invited account, then add optional examples in Settings.", 410);
   try {
     return await seed();

@@ -1,3 +1,4 @@
+import { v1Enabled } from "@/lib/v1-enabled";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { verifySession } from "@/lib/session";
@@ -33,7 +34,7 @@ export default async function WorkflowPage({
     (path[1] && !["library", "projects", "reviews"].includes(path[0]))
   )
     notFound();
-  if (process.env.BEARING_V1_ENABLED !== "true") return <SetupRequired />;
+  if (!v1Enabled()) return <SetupRequired />;
   return (
     <WorkflowShell
       key={session.userId}

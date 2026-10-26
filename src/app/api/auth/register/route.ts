@@ -1,3 +1,4 @@
+import { v1Enabled } from "@/lib/v1-enabled";
 import { ok, bad, parseBody, createSession } from "@/lib/auth-utils";
 import { sessionCookie } from "@/lib/session";
 import { registerInvited } from "@/lib/v1/invitations";
@@ -5,7 +6,7 @@ import { Fault } from "@/lib/v1/service";
 import type { NextRequest } from "next/server";
 export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
-  if (process.env.BEARING_V1_ENABLED !== "true")
+  if (!v1Enabled())
     return bad(
       "Registration requires an invitation and an enabled V1 deployment",
       403,

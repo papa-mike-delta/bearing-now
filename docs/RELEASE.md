@@ -1,3 +1,8 @@
+> Production cutover: Vercel production serves V1 automatically. The standard
+> `build:vercel` migration chain now includes the V1 tables after the legacy schema.
+> Existing login accounts remain valid; V1 starts with its own content tables.
+> The flag below applies to local and preview environments.
+
 # V1 release runbook and acceptance matrix
 
 V1 implementation spans #44–#48. #55 audits the actual UI transition and fills gaps, including the missing Review composer. Closed tickets and a passing local build do not establish verified production behavior. See the [acceptance report](qa/V1_ACCEPTANCE.md) and [requirements ledger](qa/V1_REQUIREMENTS.md).
