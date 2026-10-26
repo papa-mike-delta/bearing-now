@@ -1,3 +1,4 @@
+import { v1Enabled } from "@/lib/v1-enabled";
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { v1db } from "@/lib/v1/db";
@@ -14,7 +15,7 @@ async function handle(
   req: Request,
   context: { params: Promise<{ path: string[] }> },
 ) {
-  if (process.env.BEARING_V1_ENABLED !== "true")
+  if (!v1Enabled())
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   const session = await getUserFromRequest(req);
   if (!session?.twoFactorVerified)

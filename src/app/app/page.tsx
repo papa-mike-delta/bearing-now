@@ -1,3 +1,4 @@
+import { v1Enabled } from "@/lib/v1-enabled";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifySession } from "@/lib/session";
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
 export default async function AppPage() {
   const session = verifySession((await cookies()).get("lifeos-session")?.value ?? "");
   if (!session?.twoFactorVerified) redirect("/login");
-  if (process.env.BEARING_V1_ENABLED === "true") {
+  if (v1Enabled()) {
     let preferences;
     try { preferences = await Workflow.preferences(session.userId); }
     catch { return <SetupRequired unavailable />; }
