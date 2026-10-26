@@ -1,7 +1,6 @@
 # V1 release runbook and acceptance matrix
 
-V1 is implemented in #44–#47; #48 finishes setup, public copy, portability controls,
-docs and verification. Passing a local build is not production authorization.
+V1 implementation spans #44–#48. #55 audits the actual UI transition and fills gaps, including the missing Review composer. Closed tickets and a passing local build do not establish verified production behavior. See the [acceptance report](qa/V1_ACCEPTANCE.md) and [requirements ledger](qa/V1_REQUIREMENTS.md).
 
 ## Preview first
 
@@ -42,7 +41,7 @@ Do not run `db:reset`, `db:push`, `migrate dev`, table drops or demo CLI seeding
 Apply only reviewed additive migrations and enable the feature flag after success.
 Monitor auth, account isolation, API errors and outbox/Coach refusal behavior. To
 rollback, disable `BEARING_V1_ENABLED` and restore the previous application build;
-leave additive V1 tables intact. This exposes the legacy UI, not a conversion of V1
+leave additive V1 tables intact. The current build shows setup guidance when disabled; only restoring an earlier build re-exposes the legacy UI. Neither action converts V1
 records. Preserve V1 data for a forward fix. Database disaster recovery is separate,
 reviewed operator work; never silently restore over new live writes.
 
@@ -86,3 +85,13 @@ can be evicted; local outbox/drafts are not server backups. Restore is same-acco
 not migration to another identity. Coach has no external research and no autonomous
 writes. Keys and requests go through configured external providers; their retention
 rules apply. No uploaded-file hosting, notification delivery or collaboration.
+
+## Existing accounts and deployment mismatch
+
+`BEARING_V1_ENABLED=false` remains the safe initial setting. `/app` and recognized `/app/*` routes explain setup rather than mounting the retired Finance/Domain/17-type shell. Enabling the flag does not migrate legacy Items, Projects or Journal content. Shared identity does not imply shared content tables.
+
+Before a live cutover, inventory legacy and V1 records per account, back up both schemas, and agree whether to retain legacy content for reference or implement a separately reviewed conversion with explicit mappings. No automatic conversion/deletion is included in #55. Never present an empty V1 workspace as proof an existing account had no data.
+
+For an old-sidebar report, record deployment URL and Git SHA, confirm the hosting flag without copying secrets, confirm both migration histories, then use the landing CTA and normal login to open `/app`. Compare with a direct V1 route and fresh session. Test installed PWA/reload without deleting unsynced local data. This build never mounts legacy `Shell` from `/app`; a persistent old UI requires checking the deployed build and cached document.
+
+Hosted verification needs access through deployment protection and two invited test accounts in an isolated preview. An inaccessible deployment is blocked, not passed. Production flags, security protection and data must not be changed simply to obtain screenshots.

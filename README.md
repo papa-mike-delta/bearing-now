@@ -61,7 +61,7 @@ when V1 is enabled; never reset the database to repair demo access.
 | --- | --- |
 | `DATABASE_URL` | Private PostgreSQL connection; use TLS as required by your provider |
 | `SESSION_SECRET` | Unique server signing key, minimum 32 characters in production |
-| `BEARING_V1_ENABLED=true` | Enable V1 routes after both migration sets are applied |
+| `BEARING_V1_ENABLED=true` | Enable V1 after both migration sets are applied; otherwise the app shows setup guidance |
 | `BEARING_COACH_PROVIDER` | `openrouter` or `gateway`; optional Coach configuration |
 | `BEARING_COACH_MODEL` | Model identifier supported by the selected provider |
 | `OPENROUTER_API_KEY` / `AI_GATEWAY_API_KEY` | Server-only provider key |
@@ -117,3 +117,7 @@ Never supply live credentials to test commands. See [CONTRIBUTING](CONTRIBUTING.
 [approved V1 specification](docs/redesign/BEARING_V1_SPEC.md).
 
 MIT licensed. Original project by karim-coder; developed by Bearing contributors.
+
+### V1 UI acceptance
+
+The public page alone does not prove that V1 database setup is complete. Existing accounts are not automatically converted from the legacy schema. Follow the [release runbook](docs/RELEASE.md), then review the [browser acceptance report](docs/qa/V1_ACCEPTANCE.md) and [requirement ledger](docs/qa/V1_REQUIREMENTS.md).

@@ -18,9 +18,12 @@ test("real app entry opens V1, seven types and Me are discoverable without legac
   await expect(page.getByRole("button", { name: /New (Finance|Contact|Routine|Medication|Journal)/ })).toHaveCount(0);
   await page.screenshot({ path: info.outputPath("v1-library.png"), fullPage: true });
   await navigate(page, "Me"); await expect(page.getByText("Me · your personal reference profile", { exact: true })).toBeVisible();
+  await page.screenshot({ path: info.outputPath("v1-me.png"), fullPage: true });
   await navigate(page, "Reviews"); await expect(page.getByRole("heading", { name: "Reviews", exact: true })).toBeVisible();
   await navigate(page, "Graph"); await expect(page.getByRole("heading", { name: "Digital Brain", exact: true })).toBeVisible();
+  await page.screenshot({ path: info.outputPath("v1-graph.png"), fullPage: true });
   await navigate(page, "Focus"); await expect(page.getByRole("heading", { name: /Focus/ }).first()).toBeVisible();
+  await page.screenshot({ path: info.outputPath("v1-focus.png"), fullPage: true });
 });
 test("signed-out deep link returns to its exact V1 route after login", async ({ page, context }) => {
   await context.clearCookies(); await page.goto("/app/journal?date=2026-10-24"); await expect(page).toHaveURL(/\/login\?next=/);
@@ -33,7 +36,7 @@ test("daily weekly and monthly reflections are written through the UI and stay s
   await page.goto("/app/today"); await page.getByRole("button", { name: "Save check-in", exact: true }).click();
   await navigate(page, "Reviews");
   for (const period of ["daily", "weekly", "monthly"]) {
-    await page.getByLabel("Review period", { exact: true }).selectOption(period);
+    await page.getByRole("combobox", { name: "Review period", exact: true }).selectOption(period);
     await page.getByLabel("Review date", { exact: true }).fill("2026-10-24");
     await page.getByLabel("Wins", { exact: true }).fill(`A ${period} pause to notice progress.`);
     await page.getByLabel("Challenges", { exact: true }).fill("Making time to reflect.");
@@ -44,7 +47,7 @@ test("daily weekly and monthly reflections are written through the UI and stay s
     await page.reload(); await expect(page.getByText(`A ${period} pause to notice progress.`, { exact: true })).toBeVisible();
     await page.getByRole("link", { name: "All Reviews · write a reflection", exact: true }).click();
   }
-  await page.getByLabel("Review period", { exact: true }).selectOption("daily");
+  await page.getByRole("combobox", { name: "Review period", exact: true }).selectOption("daily");
   await page.getByLabel("Review date", { exact: true }).fill("2026-10-24");
   await expect(page.getByRole("button", { name: "Save reflection", exact: true })).toBeDisabled();
   await expect(page.getByRole("link", { name: "Read saved Review", exact: true })).toBeVisible();
@@ -53,4 +56,15 @@ test("daily weekly and monthly reflections are written through the UI and stay s
   const activity = await (await page.request.get("/api/v1/activities")).json();
   expect(activity.filter((a: {kind: string}) => a.kind === "check_in")).toHaveLength(1);
   await page.screenshot({ path: info.outputPath("v1-reviews.png"), fullPage: true });
+});
+
+test("disabled deployment explains setup instead of exposing the legacy app", async ({ page }, info) => {
+  test.skip(!!process.env.RELEASE_BASE_URL, "The flag-off server is a local fixture, not a hosted configuration change");
+  for (const path of ["/app", "/app/journal"]) {
+    await page.goto(`http://127.0.0.1:3001${path}`);
+    await expect(page.getByRole("heading", { name: "This workspace is waiting for V1 setup", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Open the deployment runbook/ })).toBeVisible();
+    await expect(page.locator("body")).not.toContainText(/Life Domains|New item|Income|Expenses/);
+  }
+  await page.screenshot({ path: info.outputPath("v1-setup-required.png"), fullPage: true });
 });

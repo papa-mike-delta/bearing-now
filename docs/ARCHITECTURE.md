@@ -2,7 +2,7 @@
 
 Next.js App Router serves the public `/`, `/help`, invitation-controlled `/login`
 and authenticated `/app/*`. `BEARING_V1_ENABLED` selects the V1 workflow; the legacy
-app remains available when disabled. V1 UI components are in
+app is no longer mounted by `/app`. Disabled V1 shows setup guidance without querying V1 data. Legacy code and tables remain for a reviewed rollback to an earlier build. V1 UI components are in
 `src/components/bearing/workflow`. Existing editor, rich-text, draft and theme
 components are reused. This is not a replacement repository.
 
