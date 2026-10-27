@@ -20,12 +20,16 @@ export function PageHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4">
+    <div data-slot="page-header" className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex items-center gap-3">
         {icon && (
           <span
+            data-slot="page-mark"
             className="flex h-11 w-11 items-center justify-center rounded-2xl shadow-sm"
-            style={{ background: color ? colorWithAlpha(color, 10) : "var(--muted)", color: color || "var(--muted-foreground)" }}
+            style={{
+              background: color ? colorWithAlpha(color, 10) : "var(--page-mark-bg, var(--muted))",
+              color: color || "var(--page-mark-fg, var(--muted-foreground))",
+            }}
           >
             <Icon name={icon} className="h-5 w-5" />
           </span>
@@ -56,7 +60,7 @@ export function SectionCard({
   bodyClassName?: string;
 }) {
   return (
-    <section className={cn("min-w-0 rounded-2xl border border-border/60 bg-card/50 p-4 backdrop-blur-sm", className)}>
+    <section data-slot="section-card" className={cn("min-w-0 rounded-2xl border border-border/60 bg-card/50 p-4 backdrop-blur-sm", className)}>
       {title && (
         <div className="mb-3 flex flex-wrap items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-semibold">

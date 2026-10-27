@@ -44,9 +44,7 @@ export function DataSettings() {
     <>
       <SectionCard title="Optional demo data">
         <p className="mb-3 text-sm text-muted-foreground">
-          Examples are added only after you request them, only to this account.
-          Repeating setup keeps the existing examples. Edited examples and
-          personal references are protected from removal.
+          Added only when you ask, and only in this account. Edited examples stay.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -90,12 +88,10 @@ export function DataSettings() {
       </SectionCard>
       <SectionCard title="Backup and restore">
         <p className="mb-3 text-sm text-muted-foreground">
-          Download a private JSON backup of this account's V1 records,
-          relationships, histories, saved Coach conversations, preferences and
-          audit receipts. It excludes passwords, 2FA secrets, invitations,
-          browser drafts/outbox and legacy data. Store it securely. Restore
-          replaces V1 data in this same account; authentication and append-only
-          audit remain.
+          A private JSON copy of this account's records, relationships, history,
+          Coach conversations, preferences, and audit receipts. Passwords, 2FA,
+          invitations, browser drafts, and legacy data stay out. Restore replaces
+          records in this account.
         </p>
         <div className="space-y-3">
           <Button
@@ -182,7 +178,7 @@ export function DataSettings() {
           {error}
         </p>
       )}
-      <a className="inline-flex min-h-11 items-center underline" href="/help">
+      <a className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline decoration-border underline-offset-4" href="/help">
         Help, privacy and offline limitations
       </a>
     </>

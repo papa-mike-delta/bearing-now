@@ -38,11 +38,11 @@ export function Appearance() {
   }
   return (
     <div className="space-y-3">
-      <label className="block text-sm">
+      <label className="block text-sm text-muted-foreground">
         Theme
         <select
           aria-label="Theme"
-          className={`${fieldClass} mt-1`}
+          className={`${fieldClass} mt-1 max-w-xs`}
           value={theme || "system"}
           onChange={(e) => setTheme(e.target.value)}
         >
@@ -51,15 +51,15 @@ export function Appearance() {
           <option value="dark">Dark</option>
         </select>
       </label>
-      <label className="block text-sm">
+      <label className="block text-sm text-muted-foreground">
         Import theme
         <textarea
           className={`${fieldClass} mt-1`}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          rows={4}
+          rows={2}
           maxLength={100000}
-          placeholder="Theme CSS, JSON, or a ui.shadcn.com/create URL"
+          placeholder="CSS, JSON, or a ui.shadcn.com/create URL"
         />
       </label>
       <div className="flex flex-wrap gap-2">

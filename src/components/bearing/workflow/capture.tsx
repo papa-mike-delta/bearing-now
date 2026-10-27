@@ -127,7 +127,7 @@ export function CaptureComposer({
         <textarea
           id="capture-text"
           className={`${fieldClass} min-h-28`}
-          rows={inline ? 4 : 7}
+          rows={inline ? 4 : 5}
           maxLength={200000}
           value={text}
           onChange={(e) => {
@@ -267,7 +267,7 @@ export function CaptureComposer({
     );
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[90dvh] gap-3 overflow-y-auto p-4 sm:max-w-xl sm:p-6">
         <DialogHeader>
           <DialogTitle>Quick Capture</DialogTitle>
           <DialogDescription>
