@@ -87,21 +87,35 @@ export async function answerStream(
   const started = await CoachStore.start(userId, input);
   const conversationId = started.conversationId;
   const encoder = new TextEncoder();
+  let closed = false;
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      let closed = false;
-      const emit = (event: unknown) => {
-        if (!closed)
-          try {
-            controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
-          } catch {
-            closed = true;
-          }
+      const close = () => {
+        if (closed) return;
+        closed = true;
+        try {
+          controller.close();
+        } catch {
+          // The consumer may have canceled the response between the check and close.
+        }
       };
+      const emit = (event: unknown) => {
+        if (closed) return;
+        try {
+          controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
+        } catch {
+          closed = true;
+        }
+      };
+      const onAbort = () => {
+        closed = true;
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
       emit({ type: "start", conversationId });
       if (started.replay) {
         emit({ type: "done", answer: started.replay });
-        controller.close();
+        close();
+        signal.removeEventListener("abort", onAbort);
         return;
       }
       const answer: Answer = { text: "", sources: [], drafts: [] },
@@ -380,7 +394,11 @@ export async function answerStream(
           "The response could not be saved. Keep this page open; do not assume this conversation was stored.";
       }
       emit({ type: "done", answer });
-      if (!closed) controller.close();
+      close();
+      signal.removeEventListener("abort", onAbort);
+    },
+    cancel() {
+      closed = true;
     },
   });
   return new Response(stream, {
