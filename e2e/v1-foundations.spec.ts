@@ -79,8 +79,8 @@ test("pending 2FA stays on verification after reload and cannot read either data
         exact: true,
       }),
     ).toBeVisible();
-    for (const url of ["/api/v1/items", "/api/items"])
-      expect((await page.request.get(url)).status()).toBe(401);
+    expect((await page.request.get("/api/v1/items")).status()).toBe(401);
+    expect((await page.request.get("/api/items")).status()).toBe(410);
     expect(
       (await page.request.post("/api/auth/setup-2fa", { data: {} })).status(),
     ).toBe(401);

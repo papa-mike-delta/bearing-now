@@ -2,22 +2,32 @@
 
 import { useEffect } from "react";
 
+/** Refresh the V1 editor lease for this account. No legacy open-item route. */
 export function useOpenItem(id: string | null | undefined, account?: string) {
   useEffect(() => {
-    if (!id) return;
-    const url = account ? `/api/v1/items/${encodeURIComponent(id)}/lease` : `/api/items/${encodeURIComponent(id)}/open`;
+    if (!id || !account) return;
+    const url = `/api/v1/items/${encodeURIComponent(id)}/lease`;
     const token = crypto.randomUUID();
-    const body = JSON.stringify({ lease: token });
-    const send = (method: string) => fetch(url, {
-      method: account ? "POST" : method, body: account ? JSON.stringify({ token, open: method !== "DELETE" }) : body, headers: { "Content-Type": "application/json", ...(account ? { "X-Bearing-Account": account } : {}) }, keepalive: true,
-    }).then(() => {}, () => {});
-    // Keep close after any pending refresh, so a slow request cannot reopen a
-    // closed lease. A new mount uses a separate lease (including React replay).
-    let pending = send("PUT");
-    const timer = setInterval(() => { pending = pending.then(() => send("PUT")); }, 30_000);
+    const send = (open: boolean) =>
+      fetch(url, {
+        method: "POST",
+        body: JSON.stringify({ token, open }),
+        headers: {
+          "Content-Type": "application/json",
+          "X-Bearing-Account": account,
+        },
+        keepalive: true,
+      }).then(
+        () => {},
+        () => {},
+      );
+    let pending = send(true);
+    const timer = setInterval(() => {
+      pending = pending.then(() => send(true));
+    }, 30_000);
     return () => {
       clearInterval(timer);
-      void pending.then(() => send("DELETE"));
+      void pending.then(() => send(false));
     };
   }, [id, account]);
 }

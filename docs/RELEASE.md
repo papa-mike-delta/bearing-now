@@ -1,6 +1,8 @@
 > Production cutover: Vercel production serves V1 automatically. The standard
 > `build:vercel` migration chain now includes the V1 tables after the legacy schema.
 > Existing login accounts remain valid; V1 starts with its own content tables.
+> There is no Item → V1Item conversion. Unused legacy content tables are scheduled
+> to drop on or after 2027-01-26 ([ADR 0005](adr/0005-sunset-legacy-domain-and-coach.md)).
 > The flag below applies to local and preview environments.
 
 # V1 release runbook and acceptance matrix
@@ -46,8 +48,9 @@ Do not run `db:reset`, `db:push`, `migrate dev`, table drops or demo CLI seeding
 Apply only reviewed additive migrations and enable the feature flag after success.
 Monitor auth, account isolation, API errors and outbox/Coach refusal behavior. To
 rollback, disable `BEARING_V1_ENABLED` and restore the previous application build;
-leave additive V1 tables intact. The current build shows setup guidance when disabled; only restoring an earlier build re-exposes the legacy UI. Neither action converts V1
-records. Preserve V1 data for a forward fix. Database disaster recovery is separate,
+leave additive V1 tables intact. The current build shows setup guidance when disabled.
+This tree does not contain the pre-V1 shell, so an older UI requires an older commit.
+Neither action converts records. Preserve V1 data for a forward fix. Database disaster recovery is separate,
 reviewed operator work; never silently restore over new live writes.
 
 ## Acceptance journeys and evidence owners
@@ -93,9 +96,15 @@ rules apply. No uploaded-file hosting, notification delivery or collaboration.
 
 ## Existing accounts and deployment mismatch
 
-`BEARING_V1_ENABLED=false` remains the safe initial setting. `/app` and recognized `/app/*` routes explain setup rather than mounting the retired Finance/Domain/17-type shell. Enabling the flag does not migrate legacy Items, Projects or Journal content. Shared identity does not imply shared content tables.
+`BEARING_V1_ENABLED=false` remains the safe initial setting for local and preview
+environments. `/app` explains setup. Enabling the flag does not migrate legacy
+Items, Projects or Journal content. Shared identity does not imply shared content
+tables.
 
-Before a live cutover, inventory legacy and V1 records per account, back up both schemas, and agree whether to retain legacy content for reference or implement a separately reviewed conversion with explicit mappings. No automatic conversion/deletion is included in #55. Never present an empty V1 workspace as proof an existing account had no data.
+Before a live cutover, inventory legacy and V1 records per account and back up
+both schemas. Keep the legacy content tables until the 2027-01-26 drop review.
+Do not convert Item rows into V1Item. Never present an empty V1 workspace as
+proof an existing account had no data.
 
 For an old-sidebar report, record deployment URL and Git SHA, confirm the hosting flag without copying secrets, confirm both migration histories, then use the landing CTA and normal login to open `/app`. Compare with a direct V1 route and fresh session. Test installed PWA/reload without deleting unsynced local data. This build never mounts legacy `Shell` from `/app`; a persistent old UI requires checking the deployed build and cached document.
 

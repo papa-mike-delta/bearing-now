@@ -16,8 +16,8 @@ import { POST as qrPost, GET as qrGet } from "@/app/api/auth/qr-login/route";
 import { POST as setup2fa } from "@/app/api/auth/setup-2fa/route";
 import { POST as verify2fa } from "@/app/api/auth/verify/route";
 import { POST as registerRoute } from "@/app/api/auth/register/route";
-import { GET as legacyItems } from "@/app/api/items/route";
 import { NextRequest } from "next/server";
+import { proxy } from "@/proxy";
 
 const owner = "v1-owner",
   other = "v1-other";
@@ -679,9 +679,8 @@ it("enforces invite email, expiry, single-use consumption and canonical Me creat
 it("pending 2FA cannot access V1/legacy data, replace a secret, disable 2FA or confirm QR", async () => {
   expect((await api("items", "GET", undefined, owner, false)).status).toBe(401);
   expect(
-    (await legacyItems(req("/api/items", "GET", undefined, owner, false)))
-      .status,
-  ).toBe(401);
+    proxy(new NextRequest("http://localhost/api/items")).status,
+  ).toBe(410);
   expect(
     (await setup2fa(req("/api/auth/setup-2fa", "POST", {}, owner, false)))
       .status,

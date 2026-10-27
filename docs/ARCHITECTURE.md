@@ -1,17 +1,28 @@
 # V1 architecture
 
 Next.js App Router serves the public `/`, `/help`, invitation-controlled `/login`
-and authenticated `/app/*`. `BEARING_V1_ENABLED` selects the V1 workflow; the legacy
-app is no longer mounted by `/app`. Disabled V1 shows setup guidance without querying V1 data. Legacy code and tables remain for a reviewed rollback to an earlier build. V1 UI components are in
-`src/components/bearing/workflow`. Existing editor, rich-text, draft and theme
-components are reused. This is not a replacement repository.
+and authenticated `/app/*`. Production and `BEARING_V1_ENABLED=true` serve the V1
+workflow. Disabled V1 shows setup guidance and does not mount another product.
+There is no legacy shell to fall back to.
+
+V1 UI components are in `src/components/bearing/workflow`. The Focus timer, Graph
+explorer, rich-text editor, draft owner, layout and theme components are shared
+with that workflow. Product code lives in `src/lib/v1/*`, `prisma/v1` and `/api/v1`.
+Do not add a third Prisma client or revive `src/lib/domain` / `src/lib/coach`.
 
 ## Storage and authorization
 
-PostgreSQL has legacy tables plus additive `V1*` tables declared in
-`prisma/v1/schema.prisma`. Both generated Prisma clients share User identity and
-OperationLedger. V1 creates exactly one canonical Me Person per account through a
-migration trigger. No legacy-data conversion or destructive reset is automatic.
+PostgreSQL keeps shared `User`, `Setting` and `OperationLedger` rows, plus additive
+`V1*` tables declared in `prisma/v1/schema.prisma`. The legacy Prisma client in
+`src/lib/db.ts` is for those shared tables only: sign-in, theme import and receipt
+reads. V1 services use `src/lib/v1/db.ts` and map `Account` to `User` and `Ledger`
+to `OperationLedger`. V1 creates exactly one canonical Me Person per account through
+a migration trigger.
+
+`Item`, `Project`, `Link`, `Domain`, `Tag`, `TagOnItem`, `HabitLog`, `Review`,
+`ReviewItem` and `Reminder` remain in the database until a reviewed drop on or
+after **2027-01-26** ([ADR 0005](adr/0005-sunset-legacy-domain-and-coach.md)).
+Do not query or extend them. There is no `Item` → `V1Item` conversion.
 
 `src/lib/v1/contracts.ts` validates canonical typed metadata. `service.ts`,
 `workflow.ts` and `connected-service.ts` implement owned operations;
@@ -29,6 +40,12 @@ completion-relative setup and occurrence-history links in their editor. A Routin
 snapshots, not child Tasks. See [data foundations](redesign/DATA_FOUNDATIONS.md),
 [daily workflow](redesign/DAILY_WORKFLOW.md) and [connected life](redesign/CONNECTED_LIFE.md).
 
+Pre-V1 content routes (`/api/items`, `/api/projects`, `/api/coach`, `/api/seed`, and
+the other routes listed in `LegacyApi`) return **410**. `/api/auth/*`,
+`/api/preferences/theme` and `/api/receipts/:id` stay.
+
+## Offline transport
+
 ## Offline transport
 
 `public/bearing-outbox.js` is shared by the online client and minimal offline shell.
@@ -39,12 +56,13 @@ unbounded private database. Browser eviction remains possible.
 
 ## Coach
 
-The AI SDK invokes a configured server provider with bounded owned-record tools.
-There is no arbitrary query/export/web tool. Saved conversations and explicit memory
-are separate from Journal. Proposal tokens are account-bound; the model never gets
-an apply tool. Preview/edit/approve runs shared domain validation in one transaction,
-with fresh revisions, leases, rate caps and replay receipts. See
-[Coach design and configuration](redesign/CONVERSATIONAL_COACH.md).
+The V1 Coach lives in `src/lib/v1/coach` and `/api/v1/coach`. The AI SDK invokes a
+configured server provider with bounded owned-record tools. There is no arbitrary
+query/export/web tool and no legacy `/api/coach` tool runner. Saved conversations
+and explicit memory are separate from Journal. Proposal tokens are account-bound;
+the model never gets an apply tool. Preview/edit/approve runs shared V1 validation
+in one transaction, with fresh revisions, leases, rate caps and replay receipts.
+See [Coach design and configuration](redesign/CONVERSATIONAL_COACH.md).
 
 ## Portability and operations
 
@@ -54,7 +72,6 @@ replaces content atomically for the same owner. Receipts remain append-only.
 Optional demo rows carry a batch marker; removal refuses personal dependencies.
 See [backup](backup-restore.md) and [release runbook](RELEASE.md).
 
-Legacy component/docs are retained as historical implementation references, not
-current product promises. No Finance ledger, fixed Domains or 17-type ontology is
-exposed in V1 navigation. Invitation-only registration, external-file references,
-provider disclosure and offline limits must remain consistent across public copy.
+ADR 0001, ADR 0002 and ADR 0004 describe the removed pre-V1 Item model and Coach
+tools. They are history. [ADR 0005](adr/0005-sunset-legacy-domain-and-coach.md) is
+the product rule: greenfield V1, no conversion, and a dated table drop.

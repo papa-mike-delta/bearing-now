@@ -22,11 +22,11 @@ matches that deployment and the fixture provider configuration. It is not a comm
 to reset a production deployment. Hosted live-provider smoke tests must be performed
 separately with fictional records and approval/refusal checks.
 
-`test:e2e:coach` runs only Coach browser journeys. `test:e2e` uses the older general
-config; with `BEARING_V1_ENABLED=true` it selects V1 tests, otherwise legacy tests.
-Legacy suites and the historical INVENTORY.md refer to old components, not current
-V1 feature claims. Regenerate inventory with `node e2e/scripts/inventory.mjs` only
-when auditing those controls.
+`test:e2e:coach` runs only Coach browser journeys. `test:e2e` uses the general
+config. With `BEARING_V1_ENABLED=true` it selects V1 workflow tests. Without the
+flag it runs landing and auth only. The pre-V1 shell suite is gone
+([ADR 0005](../docs/adr/0005-sunset-legacy-domain-and-coach.md)).
+`INVENTORY.md` is a historical snapshot of controls that have been removed.
 
 See [release matrix and preview checklist](../docs/RELEASE.md). Screenshot assets
 must come from actual V1 pages with fictional data; never publish private accounts.

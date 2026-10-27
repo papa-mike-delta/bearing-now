@@ -1,62 +1,13 @@
-import { beforeEach, expect, it, vi } from "vitest";
+import { expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import { POST } from "./route";
 
-const db = vi.hoisted(() => ({
-  user: { upsert: vi.fn() }, domain: { count: vi.fn(), create: vi.fn(), findFirst: vi.fn() },
-  project: { create: vi.fn(), findFirst: vi.fn() }, habitLog: { create: vi.fn() }, review: { create: vi.fn() },
-  item: { create: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
-  link: { upsert: vi.fn(), findUnique: vi.fn() },
-  setting: { findMany: vi.fn() }, operationLedger: { create: vi.fn(), count: vi.fn() },
-  $transaction: vi.fn(), $queryRaw: vi.fn(),
-}));
-vi.mock("@/lib/db", () => ({ db }));
-
-beforeEach(() => {
-  vi.resetAllMocks();
-  db.setting.findMany.mockResolvedValue([]);
-  db.operationLedger.create.mockResolvedValue({ id: "receipt-1" });
-  db.$transaction.mockImplementation((run) => run(db));
-  db.user.upsert.mockResolvedValue({ id: "demo-user" });
-  db.domain.count.mockResolvedValue(0);
-  db.domain.findFirst.mockImplementation(async ({ where }: { where: { id: string } }) => ({ id: where.id }));
-  db.project.findFirst.mockImplementation(async ({ where }: { where: { id: string } }) => ({ id: where.id }));
-  db.domain.create.mockImplementation(async ({ data }) => ({ id: data.key }));
-  db.project.create.mockImplementation(async ({ data }) => ({ ...data, id: data.name }));
-  db.item.create.mockImplementation(async ({ data }) => ({ ...data, id: data.title }));
-  db.item.findMany.mockImplementation(async ({ where }) => (where?.id?.in ?? []).map((id: string) => ({ id })));
-  db.item.updateMany.mockResolvedValue({ count: 1 });
-  db.habitLog.create.mockResolvedValue({});
-  // Model the allowance from completed ledger entries, rather than granting
-  // seeds an exemption or a hardcoded zero count.
-  db.operationLedger.count.mockImplementation(async ({ where }) => db.operationLedger.create.mock.calls.filter(([{ data }]) =>
-    data.actor === where.actor && data.operation === where.operation && data.status === "success").length);
-});
-
-it("finishes a fresh demo seed within the cap, ledgering all 20 Item creates", async () => {
-  const response = await POST(new NextRequest("http://localhost/api/seed", { method: "POST" }));
-  expect(response.status).toBe(200);
-  expect(await response.json()).toMatchObject({ success: true });
-  expect(db.item.create).toHaveBeenCalledTimes(20);
-  const creates = db.operationLedger.create.mock.calls.filter(([{ data }]) => data.operation === "item.create");
-  expect(creates).toHaveLength(20);
-  expect(creates.every(([{ data }]) => data.status === "success" && data.actor === "agent:seed")).toBe(true);
-});
-
-it("returns 409 when the demo user already has domains and creates nothing", async () => {
-  db.domain.count.mockResolvedValue(1);
-  const response = await POST(new NextRequest("http://localhost/api/seed", { method: "POST" }));
-  expect(response.status).toBe(409);
-  expect(db.item.create).not.toHaveBeenCalled();
-  expect(db.domain.create).not.toHaveBeenCalled();
-});
-
-it("retires the shared credential seed in V1 without touching users or data", async () => {
-  vi.stubEnv("BEARING_V1_ENABLED", "true");
-  try {
-    const response = await POST(new NextRequest("http://localhost/api/seed", { method: "POST" }));
-    expect(response.status).toBe(410);
-    expect(db.user.upsert).not.toHaveBeenCalled();
-    expect(db.item.create).not.toHaveBeenCalled();
-  } finally { vi.unstubAllEnvs(); }
+it("refuses the shared credential seed", async () => {
+  const response = await POST(
+    new NextRequest("http://localhost/api/seed", { method: "POST" }),
+  );
+  expect(response.status).toBe(410);
+  expect(await response.json()).toMatchObject({
+    error: expect.stringContaining("retired"),
+  });
 });

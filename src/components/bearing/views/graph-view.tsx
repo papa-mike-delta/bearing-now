@@ -3,13 +3,28 @@
 import { colorWithAlpha, itemColor } from "@/lib/product-colors";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { useGraph } from "@/lib/hooks";
-import { useBearing } from "@/store/bearing";
 import { Icon } from "../icon";
 import { PageHeader, SectionCard, EmptyState } from "../layout";
 import { Button } from "@/components/ui/button";
-import { ITEM_TYPES, ITEM_TYPE_MAP } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+
+const kindIcon: Record<string, string> = {
+  task: "CheckSquare",
+  note: "FileText",
+  person: "User",
+  habit: "Repeat",
+  event: "Calendar",
+  goal: "Target",
+  bookmark: "Bookmark",
+};
+function kindMeta(type: string) {
+  return {
+    type,
+    name: type.charAt(0).toUpperCase() + type.slice(1),
+    icon: kindIcon[type] ?? "Circle",
+    color: itemColor(type === "person" ? "contact" : type),
+  };
+}
 
 interface SimNode {
   id: string;
@@ -31,11 +46,6 @@ interface SimEdge {
   kind: "link" | "project";
 }
 
-export function GraphView() {
-  const { openItemDetail, openProject } = useBearing();
-  const { data, isLoading } = useGraph({ limit: "120" });
-  return <GraphExplorer data={data} isLoading={isLoading} openItemDetail={openItemDetail} openProject={openProject}/>;
-}
 export function GraphExplorer({data,isLoading=false,openItemDetail,openProject}:{data:any;isLoading?:boolean;openItemDetail(id:string):void;openProject(id:string):void}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ w: 800, h: 560 });
@@ -237,7 +247,7 @@ export function GraphExplorer({data,isLoading=false,openItemDetail,openProject}:
   const presentTypes = useMemo(() => {
     if (!data) return [];
     const set = new Set(data.nodes.filter((n: any) => n.kind === "item").map((n: any) => n.type));
-    return [...set].map(type=>ITEM_TYPES.find(t=>t.type===type) || {type:type as string,name:(type as string).charAt(0).toUpperCase()+(type as string).slice(1),icon:type==='person'?'User':type==='bookmark'?'Bookmark':'Circle',color:itemColor(type==='person'?'contact':type as string)});
+    return [...set].map((type) => kindMeta(String(type)));
   }, [data]);
 
   return (
