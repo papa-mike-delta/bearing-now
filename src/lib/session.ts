@@ -23,7 +23,11 @@ export interface SessionData {
   expiresAt: number;
 }
 export function sessionCookie(token: string, maxAge = 604800) {
-  return `lifeos-session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${process.env.NODE_ENV === "production" ? "; Secure" : ""}`;
+  const attributes =
+    process.env.NODE_ENV === "development"
+      ? "SameSite=None; Secure"
+      : "SameSite=Lax; Secure";
+  return `lifeos-session=${token}; Path=/; HttpOnly; ${attributes}; Max-Age=${maxAge}`;
 }
 export function createSession(
   userId: string,

@@ -28,6 +28,10 @@ it("pending 2FA cannot authorize a data request and expires in ten minutes", asy
   vi.setSystemTime(Date.now() + 601_000);
   expect(verifySession(token)).toBeNull();
 });
+it("uses cross-site secure cookies in the development preview", () => {
+  vi.stubEnv("NODE_ENV", "development");
+  expect(sessionCookie("test")).toContain("HttpOnly; SameSite=None; Secure");
+});
 it("fails closed without a strong production secret and uses secure cookies", () => {
   vi.stubEnv("NODE_ENV", "production");
   vi.stubEnv("SESSION_SECRET", "short");
