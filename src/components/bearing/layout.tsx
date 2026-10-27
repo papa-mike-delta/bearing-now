@@ -51,6 +51,7 @@ export function SectionCard({
   children,
   className,
   bodyClassName,
+  id,
 }: {
   title?: string;
   icon?: string;
@@ -58,9 +59,10 @@ export function SectionCard({
   children: React.ReactNode;
   className?: string;
   bodyClassName?: string;
+  id?: string;
 }) {
   return (
-    <section data-slot="section-card" className={cn("min-w-0 rounded-2xl border border-border/60 bg-card/50 p-4 backdrop-blur-sm", className)}>
+    <section id={id} data-slot="section-card" className={cn("min-w-0 rounded-2xl border border-border/60 bg-card/50 p-4 backdrop-blur-sm", className)}>
       {title && (
         <div className="mb-3 flex flex-wrap items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-semibold">
