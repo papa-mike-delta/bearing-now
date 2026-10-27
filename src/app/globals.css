@@ -646,8 +646,8 @@ html.dark.bearing-v1:not(:has(style[data-theme-override])) {
 
 html.dark.bearing-v1:not(:has(style[data-theme-override])) .bearing-app {
   background-image:
-    radial-gradient(ellipse at 92% -12%, #264b44cc 0, transparent 48%),
-    radial-gradient(ellipse at -8% 108%, #1c3430b3 0, transparent 42%);
+    radial-gradient(ellipse 70% 55% at 88% 0%, #2d5c52 0%, transparent 62%),
+    radial-gradient(ellipse 45% 40% at 0% 100%, #1a3c36 0%, transparent 70%);
   background-attachment: fixed;
 }
 

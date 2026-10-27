@@ -358,7 +358,7 @@ function Content({
   };
   const me = data.items.find(item => item.selfProfile?.userId === userId);
   const linkClass = (active: boolean) =>
-    `flex min-h-8 items-center gap-2 rounded-lg px-2 text-sm ${active ? "bg-primary/15 font-medium text-foreground" : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"}`;
+    `flex min-h-8 items-center gap-2 rounded-lg px-2 text-sm ${active ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"}`;
   const navigation = (
     <nav aria-label="Main navigation" className="flex flex-col">
       {navGroups.map((group) => (
@@ -375,7 +375,7 @@ function Content({
                 aria-current={view === route ? "page" : undefined}
                 className={linkClass(view === route)}
               >
-                <Icon name={icon} className="h-4 w-4 shrink-0 opacity-80" />
+                <Icon name={icon} className={`h-4 w-4 shrink-0 ${view === route ? "text-primary" : "opacity-80"}`} />
                 {name}
               </Link>
             ))}
@@ -390,7 +390,7 @@ function Content({
             aria-current={view === "settings" ? "page" : undefined}
             className={linkClass(view === "settings")}
           >
-            <Icon name="Settings" className="h-4 w-4 shrink-0 opacity-80" />
+            <Icon name="Settings" className={`h-4 w-4 shrink-0 ${view === "settings" ? "text-primary" : "opacity-80"}`} />
             Settings
           </Link>
           {me && (
@@ -400,7 +400,7 @@ function Content({
               aria-current={recordId === me.id ? "page" : undefined}
               className={linkClass(recordId === me.id)}
             >
-              <Icon name="User" className="h-4 w-4 shrink-0 opacity-80" />
+              <Icon name="User" className={`h-4 w-4 shrink-0 ${recordId === me.id ? "text-primary" : "opacity-80"}`} />
               Me
             </Link>
           )}
