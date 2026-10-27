@@ -474,7 +474,7 @@ function Content({
               <span className="hidden md:inline">Quick Capture</span>
             </Button>
           </header>
-          <main id="workspace-content" tabIndex={-1} className="mx-auto w-full max-w-5xl space-y-4 px-3 py-4 md:space-y-6 md:px-6 md:py-8">
+          <main id="workspace-content" tabIndex={-1} className="mx-auto w-full max-w-6xl space-y-4 px-3 py-4 md:space-y-6 md:px-6 md:py-8">
             <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
               <span role="status" title="Captures sync when saved to your account">
                 {syncStatus || "Connected"}

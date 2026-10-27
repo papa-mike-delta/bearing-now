@@ -105,17 +105,22 @@ export function ReviewComposer() {
             />
           </label>
         </div>
-        {prompts.map(([name, label, placeholder]) => (
-          <label className="block text-sm" key={name}>
-            {label}
-            <textarea
-              className={`${fieldClass} mt-1 min-h-24`}
-              value={data[name]}
-              placeholder={placeholder}
-              onChange={(e) => change({ [name]: e.target.value })}
-            />
-          </label>
-        ))}
+        <div className="grid gap-3 md:grid-cols-2">
+          {prompts.map(([name, label, placeholder]) => (
+            <label
+              className={`block text-sm ${name === "notes" ? "md:col-span-2" : ""}`}
+              key={name}
+            >
+              {label}
+              <textarea
+                className={`${fieldClass} mt-1 min-h-24`}
+                value={data[name]}
+                placeholder={placeholder}
+                onChange={(e) => change({ [name]: e.target.value })}
+              />
+            </label>
+          ))}
+        </div>
         <label className="block text-sm">
           Priorities · one per line
           <textarea

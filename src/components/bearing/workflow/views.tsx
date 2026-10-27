@@ -41,13 +41,17 @@ import {
 } from "@/lib/v1/contracts";
 import { ReviewComposer } from "./review-composer";
 import { TagSelector, ItemEditor } from "./item-editor";
+import { WorkSurface } from "@/lib/v1/surfaces";
+import { Dashboard, Metric, MetricRow, SurfaceGrid, TileGrid } from "./dashboard";
 
 export function ItemCard({
   item,
   context,
+  layout = "row",
 }: {
   item: ItemRecord;
   context?: string;
+  layout?: "row" | "tile";
 }) {
   const { mutate, timezone } = useWorkspace(),
     [busy, setBusy] = useState(false),
@@ -75,9 +79,18 @@ export function ItemCard({
   }
   return (
     <article
-      className="flex min-w-0 flex-wrap items-start gap-3 rounded-xl border border-border bg-card p-4"
+      className={
+        layout === "tile"
+          ? "flex min-w-0 flex-col gap-3 rounded-2xl border border-border/70 bg-card p-3"
+          : "flex min-w-0 flex-wrap items-start gap-3 rounded-xl border border-border bg-card p-4"
+      }
       aria-label={item.title}
     >
+      <div
+        className={
+          layout === "tile" ? "flex min-w-0 items-start gap-3" : "contents"
+        }
+      >
       {item.type === "task" ? (
         <Button
           size="icon"
@@ -90,7 +103,7 @@ export function ItemCard({
           <Icon name={item.status === "done" ? "Check" : "Circle"} />
         </Button>
       ) : (
-        <span className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-muted">
+        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-muted">
           <Icon name={typeIcons[item.type]} />
         </span>
       )}
@@ -164,6 +177,7 @@ export function ItemCard({
           </p>
         )}
       </div>
+      </div>
     </article>
   );
 }
@@ -172,90 +186,132 @@ function Empty({ children }: { children: React.ReactNode }) {
 }
 export function Today({ date }: { date: string }) {
   const { data, timezone } = useWorkspace();
-  const open = data.items.filter(
-    (i) => i.type === "task" && !["done", "archived"].includes(i.status),
+  const { overdue, progress, planned } = WorkSurface.today(
+    data.items,
+    date,
+    timezone,
   );
-  const overdue = open.filter(
-    (i) =>
-      (i.localDate && i.localDate < date) ||
-      (i.dueAt && dateInZone(i.dueAt, timezone) < date),
-  );
-  const progress = open.filter((i) =>
-    ["in_progress", "delegated"].includes(i.status),
-  );
-  const planned = data.items.filter(
-    (i) =>
-      !["done", "archived"].includes(i.status) &&
-      plannedForDay(i, date, timezone),
-  );
+  const organize = WorkSurface.organizeCount(data.items, data.moments);
   return (
-    <div className="space-y-6">
+    <Dashboard>
       <PageHeader
         title="Today"
         subtitle={`A little direction for ${date}. Your plans stay separate from what happened.`}
         icon="Sun"
       />
-      <div className="flex flex-wrap gap-2 text-sm">
-        <Link
-          className="inline-flex min-h-9 items-center rounded-xl border border-border/70 bg-card/60 px-3 text-foreground"
+      <MetricRow label="Today at a glance">
+        <Metric
+          label="Overdue"
+          value={overdue.length}
+          icon="AlarmClock"
+          href="#today-overdue"
+          detail={overdue.length ? "Original deadlines kept" : "Nothing late"}
+        />
+        <Metric
+          label="In progress"
+          value={progress.length}
+          icon="Play"
+          href="#today-progress"
+          detail="Includes delegated"
+        />
+        <Metric
+          label="On the calendar"
+          value={planned.length}
+          icon="CalendarDays"
+          href="#today-calendar"
+          detail="Plans, not history"
+        />
+        <Metric
+          label="To organize"
+          value={organize}
+          icon="Inbox"
           href="/app/inbox"
-        >
-          {data.moments.filter((m) => m.needsOrganization).length +
-            open.filter(
-              (i) =>
-                i.status === "inbox" &&
-                !data.moments.some((m) =>
-                  m.items.some((r) => r.itemId === i.id),
-                ),
-            ).length}{" "}
-          to organize
-        </Link>
-        <Link
-          className="inline-flex min-h-9 items-center rounded-xl border border-border/70 bg-card/60 px-3 text-foreground"
-          href="/app/journal"
-        >
-          Write in your Journal
-        </Link>
-        <Link className="inline-flex min-h-9 items-center rounded-xl border border-border/70 bg-card/60 px-3 text-foreground" href="/app/reviews">Write a reflection</Link>
-      </div>
-      <SectionCard title="Overdue">
-        <div className="space-y-3">
-          {overdue.map((i) => (
-            <ItemCard
-              key={i.id}
-              item={i}
-              context="Overdue · original deadline retained"
-            />
-          ))}
-          {!overdue.length && <Empty>No overdue Tasks.</Empty>}
+          detail="Inbox is waiting"
+        />
+      </MetricRow>
+      <SurfaceGrid variant="main">
+        <div className="grid gap-4">
+          <SectionCard
+            id="today-overdue"
+            className="h-full"
+            title="Overdue"
+            icon="AlarmClock"
+          >
+            <TileGrid>
+              {overdue.map((i) => (
+                <ItemCard
+                  key={i.id}
+                  layout="tile"
+                  item={i}
+                  context="Overdue · original deadline retained"
+                />
+              ))}
+            </TileGrid>
+            {!overdue.length && <Empty>No overdue Tasks.</Empty>}
+          </SectionCard>
+          <SectionCard
+            id="today-progress"
+            className="h-full"
+            title="In progress · including delegated"
+            icon="Play"
+          >
+            <TileGrid>
+              {progress.map((i) => (
+                <ItemCard key={i.id} layout="tile" item={i} />
+              ))}
+            </TileGrid>
+            {!progress.length && (
+              <Empty>Start with one Task when you’re ready.</Empty>
+            )}
+          </SectionCard>
+          <SectionCard
+            id="today-calendar"
+            className="h-full"
+            title="On the calendar"
+            icon="CalendarDays"
+          >
+            <TileGrid>
+              {planned.map((i) => (
+                <ItemCard
+                  key={i.id}
+                  layout="tile"
+                  item={i}
+                  context={plannedForDay(i, date, timezone)!}
+                />
+              ))}
+            </TileGrid>
+            {!planned.length && <Empty>Your day is open.</Empty>}
+          </SectionCard>
         </div>
-      </SectionCard>
-      <SectionCard title="In progress · including delegated">
-        <div className="space-y-3">
-          {progress.map((i) => (
-            <ItemCard key={i.id} item={i} />
-          ))}
-          {!progress.length && (
-            <Empty>Start with one Task when you’re ready.</Empty>
-          )}
+        <div className="grid content-start gap-4">
+          <SectionCard title="Keep moving" icon="ArrowRight">
+            <div className="flex flex-col gap-2 text-sm">
+              <Link
+                className="inline-flex min-h-11 items-center rounded-xl border border-border/70 bg-background/60 px-3"
+                href="/app/inbox"
+              >
+                {organize} to organize
+              </Link>
+              <Link
+                className="inline-flex min-h-11 items-center rounded-xl border border-border/70 bg-background/60 px-3"
+                href="/app/journal"
+              >
+                Write in your Journal
+              </Link>
+              <Link
+                className="inline-flex min-h-11 items-center rounded-xl border border-border/70 bg-background/60 px-3"
+                href="/app/reviews"
+              >
+                Write a reflection
+              </Link>
+            </div>
+          </SectionCard>
+          <RelationshipReminders date={date} />
+          <CheckIn />
+          <HabitsToday date={date} />
         </div>
-      </SectionCard>
-      <RelationshipReminders date={date} />
-      <CheckIn />
-      <HabitsToday date={date} />
-      <SectionCard title="On the calendar">
-        <div className="space-y-3">
-          {planned.map((i) => (
-            <ItemCard
-              key={i.id}
-              item={i}
-              context={plannedForDay(i, date, timezone)!}
-            />
-          ))}
-          {!planned.length && <Empty>Your day is open.</Empty>}
-        </div>
-      </SectionCard>
-    </div>
+      </SurfaceGrid>
+    </Dashboard>
   );
 }
 export function MomentCard({
@@ -495,27 +551,18 @@ export function MomentCard({
 export function Journal({ date }: { date: string }) {
   const { data, timezone, mutate } = useWorkspace(),
     router = useRouter();
-  const moments = data.moments.filter((m) => m.localDate === date);
-  const activities = data.activities.filter(
-    (a) =>
-      a.localDate === date &&
-      !data.moments.some((m) => m.clientId === a.clientId),
-  );
-  const planned = data.items.filter(
-    (i) =>
-      !["done", "archived"].includes(i.status) &&
-      plannedForDay(i, date, timezone),
-  );
   const showActivities = data.preferences.journalActivities !== false;
-  const timeline = [
-    ...moments.map((m) => ({ time: m.occurredAt, id: m.id, moment: m })),
-    ...(showActivities
-      ? activities.map((a) => ({ time: a.occurredAt, id: a.id, activity: a }))
-      : []),
-  ].sort((a, b) => a.time.localeCompare(b.time));
+  const day = WorkSurface.journalDay({
+    moments: data.moments,
+    activities: data.activities,
+    items: data.items,
+    date,
+    timezone,
+    showActivities,
+  });
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <Dashboard>
+      <div className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-border/70 bg-card/70 p-3">
         <label className="text-sm font-medium">
           Journal date
           <input
@@ -544,80 +591,149 @@ export function Journal({ date }: { date: string }) {
           Show Activity
         </label>
       </div>
-      <SectionCard title="What happened">
-        <div className="space-y-3">
-          {timeline.map((entry) =>
-            "moment" in entry ? (
-              <MomentCard key={entry.id} moment={entry.moment} />
-            ) : (
-              <article
-                id={`activity-${entry.id}`}
-                key={entry.id}
-                className="rounded-xl border border-border p-4 text-sm"
-              >
-                <strong className="capitalize">
-                  {entry.activity.kind.replaceAll("_", " ")}
-                </strong>
-                <time className="ml-2 text-xs">
-                  {new Date(entry.time).toLocaleTimeString(undefined, {
-                    timeZone: entry.activity.timezone || timezone,
-                  })}
-                </time>
-                <p>{activitySummary(entry.activity)}</p>
-                {entry.activity.itemId &&
-                  data.items.find((i) => i.id === entry.activity.itemId) && (
-                    <ItemCard
-                      item={data.items.find(
-                        (i) => i.id === entry.activity.itemId,
-                      )!}
-                    />
-                  )}
-              </article>
-            ),
-          )}
-          {!timeline.length && (
-            <Empty>No moments yet. Capture a line when you’re ready.</Empty>
-          )}
-        </div>
-      </SectionCard>
-      <SectionCard title="Planned · not recorded as happened">
-        <div className="space-y-3">
-          {planned.map((i) => (
-            <ItemCard
-              key={i.id}
-              item={i}
-              context={plannedForDay(i, date, timezone)!}
-            />
-          ))}
-          {!planned.length && <Empty>No plans for this date.</Empty>}
-        </div>
-      </SectionCard>
-    </div>
+      <MetricRow label="This Journal day">
+        <Metric label="Moments" value={day.moments.length} icon="BookOpen" />
+        <Metric
+          label="Activity"
+          value={showActivities ? day.activities.length : "Hidden"}
+          icon="Activity"
+          detail={showActivities ? "Shown beside moments" : "Turned off"}
+        />
+        <Metric
+          label="Planned"
+          value={day.planned.length}
+          icon="CalendarDays"
+          detail="Not recorded as happened"
+        />
+        <Metric
+          label="Still to organize"
+          value={
+            day.moments.filter((moment) => moment.needsOrganization).length
+          }
+          icon="Inbox"
+          href="/app/inbox"
+        />
+      </MetricRow>
+      <SurfaceGrid>
+        <SectionCard title="What happened" icon="BookOpen" className="h-full">
+          <div className="space-y-3">
+            {day.timeline.map((entry) =>
+              entry.kind === "moment" ? (
+                <MomentCard key={entry.id} moment={entry.moment} />
+              ) : (
+                <article
+                  id={`activity-${entry.id}`}
+                  key={entry.id}
+                  className="rounded-xl border border-border p-4 text-sm"
+                >
+                  <strong className="capitalize">
+                    {entry.activity.kind.replaceAll("_", " ")}
+                  </strong>
+                  <time className="ml-2 text-xs">
+                    {new Date(entry.time).toLocaleTimeString(undefined, {
+                      timeZone: entry.activity.timezone || timezone,
+                    })}
+                  </time>
+                  <p>{activitySummary(entry.activity)}</p>
+                  {entry.activity.itemId &&
+                    data.items.find((i) => i.id === entry.activity.itemId) && (
+                      <ItemCard
+                        item={data.items.find(
+                          (i) => i.id === entry.activity.itemId,
+                        )!}
+                      />
+                    )}
+                </article>
+              ),
+            )}
+            {!day.timeline.length && (
+              <Empty>No moments yet. Capture a line when you’re ready.</Empty>
+            )}
+          </div>
+        </SectionCard>
+        <SectionCard
+          title="Planned · not recorded as happened"
+          icon="CalendarDays"
+          className="h-full"
+        >
+          <div className="space-y-3">
+            {day.planned.map((i) => (
+              <ItemCard
+                key={i.id}
+                layout="tile"
+                item={i}
+                context={plannedForDay(i, date, timezone)!}
+              />
+            ))}
+            {!day.planned.length && <Empty>No plans for this date.</Empty>}
+          </div>
+        </SectionCard>
+      </SurfaceGrid>
+    </Dashboard>
   );
 }
 export function Inbox() {
   const { data } = useWorkspace();
-  const moments = data.moments.filter((m) => m.needsOrganization),
-    items = data.items.filter(
-      (i) =>
-        i.status === "inbox" &&
-        !moments.some((m) => m.items.some((r) => r.itemId === i.id)),
-    );
+  const waiting = WorkSurface.inbox(data.items, data.moments);
   return (
-    <div className="space-y-5">
+    <Dashboard>
       <PageHeader
         title="Inbox"
         icon="Inbox"
         subtitle="Original words first. Organize or clarify when you’re ready."
       />
-      {moments.map((m) => (
-        <MomentCard key={m.id} moment={m} organize />
-      ))}
-      {items.map((i) => (
-        <ItemCard key={i.id} item={i} />
-      ))}
-      {!moments.length && !items.length && <Empty>Your Inbox is clear.</Empty>}
-    </div>
+      <MetricRow label="Inbox load">
+        <Metric
+          label="Original words"
+          value={waiting.moments.length}
+          icon="BookOpen"
+          detail="Journal text, still raw"
+        />
+        <Metric
+          label="Items waiting"
+          value={waiting.items.length}
+          icon="Inbox"
+          detail="Not already linked above"
+        />
+        <Metric
+          label="To organize"
+          value={waiting.moments.length + waiting.items.length}
+          icon="ListTodo"
+        />
+        <Metric
+          label="Journal"
+          value="Open"
+          icon="PenLine"
+          href="/app/journal"
+          detail="Capture stays separate"
+        />
+      </MetricRow>
+      <SurfaceGrid variant="board">
+        <SectionCard title="Original words" icon="BookOpen" className="h-full">
+          <div className="space-y-3">
+            {waiting.moments.map((m) => (
+              <MomentCard key={m.id} moment={m} organize />
+            ))}
+            {!waiting.moments.length && (
+              <Empty>No Journal text is waiting to be organized.</Empty>
+            )}
+          </div>
+        </SectionCard>
+        <SectionCard title="Items waiting" icon="Inbox" className="h-full">
+          <div className="space-y-3">
+            {waiting.items.map((i) => (
+              <ItemCard key={i.id} layout="tile" item={i} />
+            ))}
+            {!waiting.items.length && (
+              <Empty>No unlinked Inbox Items.</Empty>
+            )}
+          </div>
+        </SectionCard>
+      </SurfaceGrid>
+      {!waiting.moments.length && !waiting.items.length && (
+        <Empty>Your Inbox is clear.</Empty>
+      )}
+    </Dashboard>
   );
 }
 export function Library({ recordId }: { recordId?: string }) {
@@ -676,59 +792,86 @@ export function Library({ recordId }: { recordId?: string }) {
     );
   }
   const tag = params.get("tag");
-  const items = data.items.filter(
-    (i) =>
-      (type === "all" || i.type === type) &&
-      (status === "all" ||
-        (status === "in_progress"
-          ? ["in_progress", "delegated"].includes(i.status)
-          : i.status === status)) &&
-      (!area ||
-        [...i.directAreas, ...i.inheritedAreas].some((a) => a.id === area)) &&
-      (!tag || i.tags.some((t) => t.tagId === tag)),
-  );
+  const items = WorkSurface.libraryItems(data.items, {
+    type,
+    status,
+    area,
+    tag,
+  });
+  const openWork = WorkSurface.openTasks(data.items).length;
   return (
-    <div className="space-y-5">
+    <Dashboard>
       <PageHeader
         title="Library"
         icon="Library"
         subtitle="Your saved Tasks, Notes, People and references."
         actions={
-          <>
+          <Link
+            className="inline-flex min-h-11 items-center underline text-sm"
+            href="/app/graph"
+          >
+            Explore Graph
+          </Link>
+        }
+      />
+      <MetricRow label="Library composition">
+        <Metric
+          label="Showing"
+          value={items.length}
+          icon="Library"
+          detail={type === "all" ? "Every saved type" : type}
+          onClick={() => {
+            setType("all");
+            setStatus("all");
+          }}
+          pressed={type === "all" && status === "all"}
+        />
+        <Metric
+          label="Open tasks"
+          value={openWork}
+          icon="CheckSquare"
+          detail="Not done or archived"
+        />
+        <Metric
+          label="In progress"
+          value={
+            data.items.filter((item) =>
+              ["in_progress", "delegated"].includes(item.status),
+            ).length
+          }
+          icon="Play"
+          detail="Includes delegated"
+          onClick={() => setStatus("in_progress")}
+          pressed={status === "in_progress"}
+        />
+        <Metric
+          label="People"
+          value={data.items.filter((item) => item.type === "person").length}
+          icon="User"
+          onClick={() => setType("person")}
+          pressed={type === "person"}
+        />
+      </MetricRow>
+      <SectionCard title="Add to the library" icon="Plus">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+          {Object.entries(typeNames).map(([t, name]) => (
             <Button
+              key={t}
+              variant={t === "task" ? "default" : "outline"}
+              className="h-auto min-h-11 w-full whitespace-normal px-2 py-2"
               onClick={() =>
                 router.push(
-                  `/app/library/new?type=task&draft=${crypto.randomUUID()}`,
+                  `/app/library/new?type=${t}&draft=${crypto.randomUUID()}`,
                 )
               }
             >
-              New Task
+              <Icon name={typeIcons[t]} />
+              New {name}
             </Button>
-            {Object.entries(typeNames)
-              .filter(([t]) => t !== "task")
-              .map(([t, name]) => (
-                <Button
-                  key={t}
-                  variant="outline"
-                  onClick={() =>
-                    router.push(
-                      `/app/library/new?type=${t}&draft=${crypto.randomUUID()}`,
-                    )
-                  }
-                >
-                  New {name}
-                </Button>
-              ))}
-            <Link
-              className="inline-flex min-h-11 items-center underline text-sm"
-              href="/app/graph"
-            >
-              Explore Graph
-            </Link>
-          </>
-        }
-      />
-      <div className="grid gap-3 sm:grid-cols-3">
+          ))}
+        </div>
+      </SectionCard>
+      <div className="grid gap-3 rounded-2xl border border-border/70 bg-card/60 p-3 sm:grid-cols-3">
         <label className="text-xs">
           Type
           <select
@@ -775,11 +918,13 @@ export function Library({ recordId }: { recordId?: string }) {
           </select>
         </label>
       </div>
-      {items.map((i) => (
-        <ItemCard key={i.id} item={i} />
-      ))}
+      <TileGrid>
+        {items.map((i) => (
+          <ItemCard key={i.id} layout="tile" item={i} />
+        ))}
+      </TileGrid>
       {!items.length && <Empty>No Items match these filters.</Empty>}
-    </div>
+    </Dashboard>
   );
 }
 function ProjectForm({
@@ -851,8 +996,20 @@ export function Projects({ recordId }: { recordId?: string }) {
   const project = data.projects.find((p) => p.id === recordId);
   if (recordId && !project)
     return <Empty>This Project is not available in this account.</Empty>;
+  const lanes = project
+    ? WorkSurface.projectLanes(data.items, project.id)
+    : null;
+  const openAcross = data.projects.reduce(
+    (sum, entry) => sum + WorkSurface.projectSnapshot(entry, data.items).open,
+    0,
+  );
+  const movingAcross = data.projects.reduce(
+    (sum, entry) =>
+      sum + WorkSurface.projectSnapshot(entry, data.items).moving,
+    0,
+  );
   return (
-    <div className="space-y-5">
+    <Dashboard>
       <PageHeader
         title={project?.name || "Projects"}
         icon="Folder"
@@ -866,68 +1023,232 @@ export function Projects({ recordId }: { recordId?: string }) {
           </Button>
         }
       />
+      <MetricRow label={project ? "This Project" : "Projects at a glance"}>
+        {project && lanes ? (
+          <>
+            <Metric label="To do" value={lanes.waiting.length} icon="Circle" />
+            <Metric
+              label="In progress"
+              value={lanes.moving.length}
+              icon="Play"
+              detail="Includes delegated"
+            />
+            <Metric label="Done" value={lanes.finished.length} icon="Check" />
+            <Metric
+              label="References"
+              value={lanes.context.length}
+              icon="Link"
+              detail="Notes, People and the rest"
+            />
+          </>
+        ) : (
+          <>
+            <Metric
+              label="Projects"
+              value={data.projects.length}
+              icon="Folder"
+            />
+            <Metric label="Open tasks" value={openAcross} icon="Circle" />
+            <Metric
+              label="In progress"
+              value={movingAcross}
+              icon="Play"
+              detail="Includes delegated"
+            />
+            <Metric
+              label="Areas"
+              value={
+                data.tags.filter((tag) => tag.kind === "area").length
+              }
+              icon="Tag"
+            />
+          </>
+        )}
+      </MetricRow>
       {editing && (
         <ProjectForm project={project} onDone={() => setEditing(false)} />
       )}
-      {project
-        ? data.items
-            .filter((i) => i.projectId === project.id)
-            .map((i) => <ItemCard key={i.id} item={i} />)
-        : data.projects.map((p) => (
-            <Link
-              className="block rounded-xl border border-border bg-card p-4"
-              href={`/app/projects/${p.id}`}
-              key={p.id}
-            >
-              <h2 className="font-semibold">{p.name}</h2>
-              <p className="text-sm text-muted-foreground">{p.description}</p>
-              <p className="mt-2 text-xs">
-                {p.tags
-                  .filter((t) => t.tag.kind === "area")
-                  .map((t) => t.tag.name)
-                  .join(" · ") || "No Areas assigned"}
-              </p>
-            </Link>
-          ))}
-    </div>
+      {lanes ? (
+        <SurfaceGrid variant="board">
+          <SectionCard title="To do" icon="Circle" className="h-full">
+            <div className="space-y-3">
+              {lanes.waiting.map((i) => (
+                <ItemCard key={i.id} layout="tile" item={i} />
+              ))}
+              {!lanes.waiting.length && <Empty>Nothing waiting.</Empty>}
+            </div>
+          </SectionCard>
+          <SectionCard
+            title="In progress · including delegated"
+            icon="Play"
+            className="h-full"
+          >
+            <div className="space-y-3">
+              {lanes.moving.map((i) => (
+                <ItemCard key={i.id} layout="tile" item={i} />
+              ))}
+              {!lanes.moving.length && <Empty>Nothing in motion.</Empty>}
+            </div>
+          </SectionCard>
+          <SectionCard title="Done" icon="Check" className="h-full">
+            <div className="space-y-3">
+              {lanes.finished.map((i) => (
+                <ItemCard key={i.id} layout="tile" item={i} />
+              ))}
+              {!lanes.finished.length && <Empty>Nothing finished yet.</Empty>}
+            </div>
+          </SectionCard>
+          <SectionCard title="References" icon="Link" className="h-full">
+            <div className="space-y-3">
+              {lanes.context.map((i) => (
+                <ItemCard key={i.id} layout="tile" item={i} />
+              ))}
+              {!lanes.context.length && (
+                <Empty>No Notes, Habits or other references.</Empty>
+              )}
+            </div>
+          </SectionCard>
+        </SurfaceGrid>
+      ) : (
+        <SurfaceGrid variant="cards">
+          {data.projects.map((p) => {
+            const snapshot = WorkSurface.projectSnapshot(p, data.items);
+            return (
+              <Link
+                className="flex h-full flex-col rounded-2xl border border-border/70 bg-card p-4"
+                href={`/app/projects/${p.id}`}
+                key={p.id}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="font-semibold">{p.name}</h2>
+                  <span className="text-xs capitalize text-muted-foreground">
+                    {p.status}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {p.description}
+                </p>
+                <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-xl bg-background/70 px-2 py-2">
+                    <dt className="text-xs text-muted-foreground">Open</dt>
+                    <dd
+                      data-slot="metric-value"
+                      className="text-xl leading-none"
+                    >
+                      {snapshot.open}
+                    </dd>
+                  </div>
+                  <div className="rounded-xl bg-background/70 px-2 py-2">
+                    <dt className="text-xs text-muted-foreground">Moving</dt>
+                    <dd
+                      data-slot="metric-value"
+                      className="text-xl leading-none"
+                    >
+                      {snapshot.moving}
+                    </dd>
+                  </div>
+                  <div className="rounded-xl bg-background/70 px-2 py-2">
+                    <dt className="text-xs text-muted-foreground">Done</dt>
+                    <dd
+                      data-slot="metric-value"
+                      className="text-xl leading-none"
+                    >
+                      {snapshot.done}
+                    </dd>
+                  </div>
+                </dl>
+                <p className="mt-3 text-xs">
+                  {snapshot.areas.join(" · ") || "No Areas assigned"}
+                </p>
+              </Link>
+            );
+          })}
+        </SurfaceGrid>
+      )}
+      {!project && !data.projects.length && (
+        <Empty>No Projects yet. Create one when a body of work needs a home.</Empty>
+      )}
+    </Dashboard>
   );
 }
 export function Calendar({ date }: { date: string }) {
   const { data, timezone } = useWorkspace(),
     router = useRouter();
-  const items = data.items.filter(
-    (i) => i.status !== "archived" && plannedForDay(i, date, timezone),
-  );
+  const agenda = WorkSurface.agenda(data.items, date, timezone);
+  const week = WorkSurface.weekContaining(date);
+  const lanes = [
+    ["Events", "Event plans for this date.", agenda.events],
+    ["Scheduled", "Work placed on this date.", agenda.scheduled],
+    ["Due", "Deadlines that land today.", agenda.due],
+  ] as const;
   return (
-    <div className="space-y-5">
+    <Dashboard>
       <PageHeader
         title="Calendar & Agenda"
         icon="CalendarDays"
         subtitle="Tasks, deadlines and Event plans, together."
       />
-      <label className="block text-sm">
-        Calendar date
-        <input
-          type="date"
-          className={`${fieldClass} mt-1 max-w-xs`}
-          value={date}
-          onChange={(e) =>
-            e.target.value &&
-            router.push(`/app/calendar?date=${e.target.value}`)
-          }
-        />
-      </label>
-      {items.map((i) => (
-        <ItemCard
-          key={i.id}
-          item={i}
-          context={plannedForDay(i, date, timezone)!}
-        />
-      ))}
-      {!items.length && (
+      <section
+        aria-label={`Week of ${week[0]}`}
+        className="rounded-2xl border border-border/70 bg-card/70 p-3"
+      >
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {week.map((day) => (
+            <Button
+              key={day}
+              variant={day === date ? "default" : "outline"}
+              className="h-auto min-w-16 flex-1 flex-col px-2 py-2"
+              aria-current={day === date ? "date" : undefined}
+              onClick={() => router.push(`/app/calendar?date=${day}`)}
+            >
+              <span className="text-xs font-medium">
+                {WorkSurface.formatDay(day, { weekday: "short" })}
+              </span>
+              <span>{day.slice(8)}</span>
+            </Button>
+          ))}
+        </div>
+        <label className="mt-3 block max-w-xs text-sm">
+          Calendar date
+          <input
+            type="date"
+            className={`${fieldClass} mt-1`}
+            value={date}
+            onChange={(e) =>
+              e.target.value &&
+              router.push(`/app/calendar?date=${e.target.value}`)
+            }
+          />
+        </label>
+      </section>
+      <MetricRow label="This date">
+        <Metric label="On the agenda" value={agenda.rows.length} icon="CalendarDays" />
+        <Metric label="Events" value={agenda.events.length} icon="Calendar" />
+        <Metric label="Scheduled" value={agenda.scheduled.length} icon="Clock" />
+        <Metric label="Due" value={agenda.due.length} icon="AlarmClock" />
+      </MetricRow>
+      <div className="grid items-start gap-4 lg:grid-cols-3">
+        {lanes.map(([title, hint, rows]) => (
+          <SectionCard key={title} title={title} className="h-full">
+            <p className="mb-3 text-xs text-muted-foreground">{hint}</p>
+            <div className="space-y-3">
+              {rows.map((row) => (
+                <ItemCard
+                  key={row.item.id}
+                  layout="tile"
+                  item={row.item}
+                  context={row.context}
+                />
+              ))}
+              {!rows.length && <Empty>Nothing in this lane.</Empty>}
+            </div>
+          </SectionCard>
+        ))}
+      </div>
+      {!agenda.rows.length && (
         <Empty>No scheduled work, deadlines or Event plans on this date.</Empty>
       )}
-    </div>
+    </Dashboard>
   );
 }
 export function Search({ coach = false }: { coach?: boolean }) {
@@ -1063,28 +1384,96 @@ export function Search({ coach = false }: { coach?: boolean }) {
     </div>
   );
 }
+function ReviewBody({ review }: { review: { prompts: Record<string, unknown> } }) {
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      {Object.entries(review.prompts).map(([key, value]) => (
+        <section
+          key={key}
+          className="rounded-xl border border-border/70 bg-background/50 p-3"
+        >
+          <h3 className="text-xs font-semibold capitalize">{key}</h3>
+          <p className="mt-2 whitespace-pre-wrap break-words text-sm">
+            {Array.isArray(value) ? value.join("\n") : String(value)}
+          </p>
+        </section>
+      ))}
+    </div>
+  );
+}
 export function Reviews({ recordId }: { recordId?: string }) {
   const { data } = useWorkspace();
   const reviews = data.reviews.filter((r) => !recordId || r.id === recordId);
+  const counts = WorkSurface.reviewCounts(data.reviews);
+  const recent = WorkSurface.sortedReviews(data.reviews);
   return (
-    <div className="space-y-5">
-      <PageHeader title="Reviews" subtitle="Pause and reflect. Separate from your daily log and check-ins." />
-      {recordId ? <Link className="inline-flex min-h-11 items-center underline" href="/app/reviews">All Reviews · write a reflection</Link> : <ReviewComposer />}
-      {reviews.map((r) => (
-        <SectionCard key={r.id} title={`${r.period} · ${r.localDate}`}>
-          <dl className="space-y-3">
-            {Object.entries(r.prompts).map(([key, value]) => (
-              <div key={key}>
-                <dt className="text-xs font-semibold capitalize">{key}</dt>
-                <dd className="whitespace-pre-wrap break-words text-sm">
-                  {Array.isArray(value) ? value.join("\n") : String(value)}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </SectionCard>
-      ))}
-      {!reviews.length && <Empty>No matching Review in this account.</Empty>}
-    </div>
+    <Dashboard>
+      <PageHeader
+        title="Reviews"
+        icon="ClipboardList"
+        subtitle="Pause and reflect. Separate from your daily log and check-ins."
+      />
+      <MetricRow label="Reflections">
+        <Metric label="Saved" value={counts.total} icon="ClipboardList" />
+        <Metric label="Daily" value={counts.daily} icon="Sun" />
+        <Metric label="Weekly" value={counts.weekly} icon="CalendarDays" />
+        <Metric label="Monthly" value={counts.monthly} icon="Calendar" />
+      </MetricRow>
+      {recordId ? (
+        <Link
+          className="inline-flex min-h-11 items-center underline"
+          href="/app/reviews"
+        >
+          All Reviews · write a reflection
+        </Link>
+      ) : (
+        <SurfaceGrid variant="main">
+          <ReviewComposer />
+          <SectionCard title="Recent reflections" icon="Library" className="h-full">
+            <div className="space-y-3">
+              {recent.map((review) => (
+                <article
+                  key={review.id}
+                  className="rounded-xl border border-border/70 bg-background/40 p-3"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h3 className="text-sm font-semibold capitalize">
+                      {review.period} · {review.localDate}
+                    </h3>
+                    <Link
+                      className="text-sm underline"
+                      href={`/app/reviews/${review.id}`}
+                    >
+                      Open reflection
+                    </Link>
+                  </div>
+                  <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
+                    {WorkSurface.reviewExcerpt(review)}
+                  </p>
+                  <details className="mt-2">
+                    <summary className="min-h-11 cursor-pointer py-2 text-sm">
+                      Read prompts here
+                    </summary>
+                    <ReviewBody review={review} />
+                  </details>
+                </article>
+              ))}
+              {!recent.length && (
+                <Empty>No matching Review in this account.</Empty>
+              )}
+            </div>
+          </SectionCard>
+        </SurfaceGrid>
+      )}
+      {recordId &&
+        reviews.map((r) => (
+          <SectionCard key={r.id} title={`${r.period} · ${r.localDate}`}>
+            <ReviewBody review={r} />
+          </SectionCard>
+        ))}
+      {recordId && !reviews.length && (
+        <Empty>No matching Review in this account.</Empty>
+      )}
+    </Dashboard>
   );
 }
