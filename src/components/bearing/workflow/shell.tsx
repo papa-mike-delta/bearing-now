@@ -36,18 +36,32 @@ import {
   Search,
   Reviews,
 } from "./views";
-const nav = [
-  ["today", "Today", "Sun"],
-  ["journal", "Journal", "BookOpen"],
-  ["inbox", "Inbox", "Inbox"],
-  ["projects", "Projects", "Folder"],
-  ["library", "Library", "Library"],
-  ["calendar", "Calendar", "CalendarDays"],
-  ["focus", "Focus", "Timer"],
-  ["reviews", "Reviews", "ClipboardList"],
-  ["graph", "Graph", "Network"],
-  ["coach", "Coach", "Sparkles"],
-  ["settings", "Settings", "Settings"],
+const navGroups: { label: string; items: [string, string, string][] }[] = [
+  {
+    label: "Day",
+    items: [
+      ["today", "Today", "Sun"],
+      ["journal", "Journal", "BookOpen"],
+      ["inbox", "Inbox", "Inbox"],
+    ],
+  },
+  {
+    label: "Work",
+    items: [
+      ["projects", "Projects", "Folder"],
+      ["library", "Library", "Library"],
+      ["calendar", "Calendar", "CalendarDays"],
+      ["focus", "Focus", "Timer"],
+    ],
+  },
+  {
+    label: "Reflect",
+    items: [
+      ["reviews", "Reviews", "ClipboardList"],
+      ["graph", "Graph", "Network"],
+      ["coach", "Coach", "Sparkles"],
+    ],
+  },
 ];
 export function WorkflowShell(props: {
   userId: string;
@@ -115,10 +129,10 @@ function Content({
         }
         setSyncStatus(
           result.offline
-            ? "Offline · captures remain on this device"
+            ? "Offline · captures stay on this device"
             : result.unavailable
               ? "Server unavailable · captures retained"
-              : "Connected · captures sync when saved to your account",
+              : "Connected",
         );
         await loadQueue();
         if (result.synced) await refresh();
@@ -178,7 +192,7 @@ function Content({
     if (channel) channel.onmessage = () => void changed();
     const online = () => void sync();
     const offline = () => {
-      setSyncStatus("Offline · text capture is available on this device");
+      setSyncStatus("Offline · captures stay on this device");
     };
     window.addEventListener("online", online);
     window.addEventListener("offline", offline);
@@ -343,21 +357,55 @@ function Content({
     }
   };
   const me = data.items.find(item => item.selfProfile?.userId === userId);
+  const linkClass = (active: boolean) =>
+    `flex min-h-8 items-center gap-2 rounded-lg px-2 text-sm ${active ? "bg-primary/15 font-medium text-foreground" : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"}`;
   const navigation = (
-    <nav aria-label="Main navigation" className="flex flex-col gap-1">
-      {nav.map(([route, name, icon]) => (
-        <Link
-          key={route}
-          href={`/app/${route}`}
-          onClick={() => setMenu(false)}
-          aria-current={view === route ? "page" : undefined}
-          className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm ${view === route ? "bg-muted font-semibold" : "hover:bg-muted/60"}`}
-        >
-          <Icon name={icon} className="h-4 w-4" />
-          {name}
-        </Link>
+    <nav aria-label="Main navigation" className="flex flex-col">
+      {navGroups.map((group) => (
+        <div key={group.label} className="pt-3 first:pt-0">
+          <p className="bearing-eyebrow px-2 pb-1 text-xs font-semibold uppercase tracking-[0.16em]">
+            {group.label}
+          </p>
+          <div className="flex flex-col gap-0.5">
+            {group.items.map(([route, name, icon]) => (
+              <Link
+                key={route}
+                href={`/app/${route}`}
+                onClick={() => setMenu(false)}
+                aria-current={view === route ? "page" : undefined}
+                className={linkClass(view === route)}
+              >
+                <Icon name={icon} className="h-4 w-4 shrink-0 opacity-80" />
+                {name}
+              </Link>
+            ))}
+          </div>
+        </div>
       ))}
-      {me && <Link href={`/app/library/${me.id}`} onClick={() => setMenu(false)} aria-current={recordId === me.id ? "page" : undefined} className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm ${recordId === me.id ? "bg-muted font-semibold" : "hover:bg-muted/60"}`}><Icon name="User" className="h-4 w-4" /> Me</Link>}
+      <div className="mt-3 border-t border-border/60 pt-2">
+        <div className="flex flex-col gap-0.5">
+          <Link
+            href="/app/settings"
+            onClick={() => setMenu(false)}
+            aria-current={view === "settings" ? "page" : undefined}
+            className={linkClass(view === "settings")}
+          >
+            <Icon name="Settings" className="h-4 w-4 shrink-0 opacity-80" />
+            Settings
+          </Link>
+          {me && (
+            <Link
+              href={`/app/library/${me.id}`}
+              onClick={() => setMenu(false)}
+              aria-current={recordId === me.id ? "page" : undefined}
+              className={linkClass(recordId === me.id)}
+            >
+              <Icon name="User" className="h-4 w-4 shrink-0 opacity-80" />
+              Me
+            </Link>
+          )}
+        </div>
+      </div>
     </nav>
   );
   return (
@@ -367,24 +415,28 @@ function Content({
       <div className="bearing-app flex min-h-dvh min-w-0 bg-background text-foreground">
         <StoredThemeOverride />
         <a href="#workspace-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-background focus:p-4">Skip to workspace</a>
-        <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 space-y-6 overflow-y-auto border-r border-border p-4 md:block">
+        <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar/80 backdrop-blur-md md:flex">
           <Link
             href="/app/today"
-            className="flex min-h-11 items-center gap-2 font-bold"
+            className="flex items-center gap-2 px-3 pt-4 pb-2 text-[15px] font-semibold tracking-tight"
           >
-            <Icon name="Brain" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <Icon name="Brain" className="h-4 w-4" />
+            </span>
             bearing.now
           </Link>
-          {navigation}
-          <p className="break-all text-xs text-muted-foreground">
-            {identity?.email}
-          </p>
-          <Button variant="ghost" onClick={() => setLogout(true)}>
-            Sign out
-          </Button>
+          <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">{navigation}</div>
+          <div className="space-y-1 border-t border-sidebar-border px-2 py-3">
+            <p className="truncate px-2 text-xs text-muted-foreground" title={identity?.email}>
+              {identity?.email}
+            </p>
+            <Button variant="ghost" size="sm" className="w-full justify-start px-2 text-muted-foreground" onClick={() => setLogout(true)}>
+              Sign out
+            </Button>
+          </div>
         </aside>
         <div className="min-w-0 flex-1">
-          <header className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-border bg-background/95 p-3 backdrop-blur">
+          <header className="sticky top-0 z-20 flex flex-nowrap items-center gap-1.5 border-b border-border/70 bg-background/75 px-2 py-1.5 backdrop-blur-md md:gap-2 md:px-4 md:py-2.5">
             <Button
               className="md:hidden"
               variant="outline"
@@ -408,6 +460,7 @@ function Content({
             <Button
               size="icon"
               variant="ghost"
+              className="shrink-0"
               aria-label={`Switch to ${resolvedTheme === "dark" ? "light" : "dark"} theme`}
               onClick={() =>
                 setTheme(resolvedTheme === "dark" ? "light" : "dark")
@@ -415,53 +468,58 @@ function Content({
             >
               <Icon name={resolvedTheme === "dark" ? "Sun" : "Moon"} />
             </Button>
-            <Button onClick={openCapture}>Quick Capture</Button>
+            <Button onClick={openCapture} aria-label="Quick Capture" className="shrink-0 px-3 md:px-4">
+              <Icon name="Zap" className="h-4 w-4" />
+              <span className="md:hidden">Capture</span>
+              <span className="hidden md:inline">Quick Capture</span>
+            </Button>
           </header>
-          <main id="workspace-content" tabIndex={-1} className="mx-auto w-full max-w-5xl space-y-5 px-4 py-6 sm:px-6">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-              <span role="status">{syncStatus || "Connected"}</span>
-              <span>
-                {ready ? (
-                  <a className="underline" href="/offline.html">
-                    Available offline · open device Journal
-                  </a>
-                ) : (
-                  "Preparing offline capture…"
-                )}
+          <main id="workspace-content" tabIndex={-1} className="mx-auto w-full max-w-5xl space-y-4 px-3 py-4 md:space-y-6 md:px-6 md:py-8">
+            <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+              <span role="status" title="Captures sync when saved to your account">
+                {syncStatus || "Connected"}
               </span>
-            </div>
+              <span aria-hidden="true">·</span>
+              {ready ? (
+                <a className="underline decoration-border underline-offset-2" href="/offline.html">
+                  Available offline · open device Journal
+                </a>
+              ) : (
+                <span>Preparing offline capture…</span>
+              )}
+            </p>
             {workspace.error && (
               <p role="alert">
                 Refresh failed: {workspace.error.message}. Your open drafts are
                 retained.
               </p>
             )}
-            <section aria-label="Capture sync status" className="space-y-2">
-              <div className="flex flex-wrap items-center gap-3 text-xs">
-                <span>
-                  {pending.length} pending ·{" "}
-                  {queue.filter((r) => r.status === "synced").length} synced on
-                  this device
-                </span>
-                {pending.length > 0 && (
-                  <Button variant="outline" onClick={() => void sync(true)}>
+            {pending.length > 0 && (
+              <section aria-label="Capture sync status" className="space-y-2">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                  <span>
+                    {pending.length} pending ·{" "}
+                    {queue.filter((r) => r.status === "synced").length} synced on
+                    this device
+                  </span>
+                  <Button variant="outline" size="sm" onClick={() => void sync(true)}>
                     Retry sync
                   </Button>
-                )}
-              </div>
-              {pending.map((r) => (
-                <article
-                  className="rounded-xl border border-border bg-muted/30 p-3 text-sm"
-                  key={r.clientId}
-                >
-                  <strong>
-                    {r.status === "error" ? "Needs attention" : "Pending sync"}
-                  </strong>
-                  <p className="whitespace-pre-wrap break-words">{r.text}</p>
-                  {r.error && <p role="alert">{r.error}</p>}
-                </article>
-              ))}
-            </section>
+                </div>
+                {pending.map((r) => (
+                  <article
+                    className="rounded-xl border border-border/70 bg-card/70 p-3 text-sm"
+                    key={r.clientId}
+                  >
+                    <strong>
+                      {r.status === "error" ? "Needs attention" : "Pending sync"}
+                    </strong>
+                    <p className="whitespace-pre-wrap break-words">{r.text}</p>
+                    {r.error && <p role="alert">{r.error}</p>}
+                  </article>
+                ))}
+              </section>
+            )}
             {view === "journal" && (
               <PageHeader
                 title="Daily Journal"
@@ -504,16 +562,16 @@ function Content({
           </main>
         </div>
         <Dialog open={menu} onOpenChange={setMenu}>
-          <DialogContent className="max-h-[90dvh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="max-h-[85dvh] gap-3 overflow-y-auto p-4 sm:max-w-sm">
+            <DialogHeader className="gap-1">
               <DialogTitle>Navigation</DialogTitle>
-              <DialogDescription>
-                Open a view of your information.
-              </DialogDescription>
+              <DialogDescription>Open a view.</DialogDescription>
             </DialogHeader>
             {navigation}
+            <p className="truncate text-xs text-muted-foreground">{identity?.email}</p>
             <Button
-              variant="outline"
+              variant="ghost"
+              className="justify-start px-2 text-muted-foreground"
               onClick={() => {
                 setMenu(false);
                 setLogout(true);
@@ -566,8 +624,12 @@ function Settings({ onSignOut }: { onSignOut(): void }) {
     }
   }
   return (
-    <div className="space-y-5">
-      <PageHeader title="Settings" icon="Settings" />
+    <div className="space-y-4">
+      <PageHeader
+        title="Settings"
+        icon="Settings"
+        subtitle="Where the day opens, how it looks, and a copy of your records."
+      />
       <SectionCard title="Start your day">
         <form
           className="space-y-3"
@@ -578,34 +640,36 @@ function Settings({ onSignOut }: { onSignOut(): void }) {
             );
           }}
         >
-          <label className="block text-sm">
-            Startup view
-            <select
-              className={`${fieldClass} mt-1`}
-              value={startup}
-              onChange={(e) => setStartup(e.target.value)}
-            >
-              {[
-                "today",
-                "journal",
-                "inbox",
-                "projects",
-                "library",
-                "calendar",
-              ].map((v) => (
-                <option key={v}>{v}</option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm">
-            Timezone
-            <input
-              className={`${fieldClass} mt-1`}
-              value={zone}
-              onChange={(e) => setZone(e.target.value)}
-              placeholder="America/New_York"
-            />
-          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-sm text-muted-foreground">
+              Startup view
+              <select
+                className={`${fieldClass} mt-1`}
+                value={startup}
+                onChange={(e) => setStartup(e.target.value)}
+              >
+                {[
+                  "today",
+                  "journal",
+                  "inbox",
+                  "projects",
+                  "library",
+                  "calendar",
+                ].map((v) => (
+                  <option key={v}>{v}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm text-muted-foreground">
+              Timezone
+              <input
+                className={`${fieldClass} mt-1`}
+                value={zone}
+                onChange={(e) => setZone(e.target.value)}
+                placeholder="America/New_York"
+              />
+            </label>
+          </div>
           <Button>Save preferences</Button>
         </form>
       </SectionCard>
@@ -623,26 +687,28 @@ function Settings({ onSignOut }: { onSignOut(): void }) {
             });
           }}
         >
-          <label className="block text-sm">
-            Name
-            <input
-              className={`${fieldClass} mt-1`}
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </label>
-          <label className="block text-sm">
-            Kind
-            <select
-              className={`${fieldClass} mt-1`}
-              value={kind}
-              onChange={(e) => setKind(e.target.value)}
-            >
-              <option value="area">Area · an enduring responsibility</option>
-              <option value="tag">Tag · a flexible topic</option>
-            </select>
-          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-sm text-muted-foreground">
+              Name
+              <input
+                className={`${fieldClass} mt-1`}
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </label>
+            <label className="block text-sm text-muted-foreground">
+              Kind
+              <select
+                className={`${fieldClass} mt-1`}
+                value={kind}
+                onChange={(e) => setKind(e.target.value)}
+              >
+                <option value="area">Area · an enduring responsibility</option>
+                <option value="tag">Tag · a flexible topic</option>
+              </select>
+            </label>
+          </div>
           <Button>Create label</Button>
         </form>
       </SectionCard>
@@ -653,7 +719,7 @@ function Settings({ onSignOut }: { onSignOut(): void }) {
         </p>
       )}
       {saved && <p role="status">Saved.</p>}
-      <Button variant="outline" onClick={onSignOut}>
+      <Button variant="ghost" className="text-muted-foreground" onClick={onSignOut}>
         Sign out
       </Button>
     </div>

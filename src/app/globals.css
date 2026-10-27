@@ -569,6 +569,222 @@
   .bearing-app [data-slot="slider-thumb"] { min-width: 44px; min-height: 44px; }
 }
 
+/* V1 shell borrows the landing palette (landing.module.css: --ink, --quiet, --accent,
+   cream cards, teal field). Scoped to html.bearing-v1 so legacy .bearing-app and an
+   imported :root/.dark theme keep their own variables. */
+html.bearing-v1:not(.dark):not(:has(style[data-theme-override])) {
+  --background: #f4efe4;
+  --foreground: #223b35;
+  --card: #fffaf0;
+  --card-foreground: #223b35;
+  --popover: #fffaf0;
+  --popover-foreground: #223b35;
+  --primary: #f0c779;
+  --primary-foreground: #172c28;
+  --secondary: #e7efe6;
+  --secondary-foreground: #223b35;
+  --muted: #e7efe6;
+  --muted-foreground: #5a6e65;
+  --accent: #e1ebe2;
+  --accent-foreground: #223b35;
+  --border: #d5ddd4;
+  --input: #d5ddd4;
+  --ring: #9a7433;
+  --sidebar: #efe6d4;
+  --sidebar-foreground: #223b35;
+  --sidebar-primary: #f0c779;
+  --sidebar-primary-foreground: #172c28;
+  --sidebar-accent: #e1ebe2;
+  --sidebar-accent-foreground: #223b35;
+  --sidebar-border: #d5ddd4;
+  --sidebar-ring: #9a7433;
+  --chart-1: #c4923e;
+  --chart-2: #486b5c;
+  --chart-3: #d7a08a;
+  --chart-4: #7d9a86;
+  --chart-5: #8a6238;
+  --radius: 0.875rem;
+  --page-mark-bg: color-mix(in oklab, #f0c779 32%, #fffaf0);
+  --page-mark-fg: #6d5424;
+}
+
+html.dark.bearing-v1:not(:has(style[data-theme-override])) {
+  --background: #101e20;
+  --foreground: #f5f1e7;
+  --card: #1b3330;
+  --card-foreground: #f5f1e7;
+  --popover: #142523;
+  --popover-foreground: #f5f1e7;
+  --primary: #f0c779;
+  --primary-foreground: #172c28;
+  --secondary: #243f3a;
+  --secondary-foreground: #f5f1e7;
+  --muted: #1c3430;
+  --muted-foreground: #bac9c5;
+  --accent: #264b44;
+  --accent-foreground: #f5f1e7;
+  --border: #ffffff1f;
+  --input: #ffffff29;
+  --ring: #f0c779;
+  --sidebar: #0d191b;
+  --sidebar-foreground: #f5f1e7;
+  --sidebar-primary: #f0c779;
+  --sidebar-primary-foreground: #172c28;
+  --sidebar-accent: #1c3430;
+  --sidebar-accent-foreground: #f5f1e7;
+  --sidebar-border: #ffffff14;
+  --sidebar-ring: #f0c779;
+  --chart-1: #f0c779;
+  --chart-2: #8fb3a4;
+  --chart-3: #e9bb98;
+  --chart-4: #f5f1e7;
+  --chart-5: #6e8f7c;
+  --radius: 0.875rem;
+  --page-mark-bg: color-mix(in oklab, #f0c779 22%, #1b3330);
+  --page-mark-fg: #f0c779;
+}
+
+html.dark.bearing-v1:not(:has(style[data-theme-override])) .bearing-app {
+  background-image:
+    radial-gradient(ellipse at 92% -12%, #264b44cc 0, transparent 48%),
+    radial-gradient(ellipse at -8% 108%, #1c3430b3 0, transparent 42%);
+  background-attachment: fixed;
+}
+
+html.bearing-v1:not(.dark):not(:has(style[data-theme-override])) .bearing-app {
+  background-image: radial-gradient(ellipse at 100% -8%, #e1ebe2 0, transparent 46%);
+  background-attachment: fixed;
+}
+
+html.bearing-v1 .bearing-eyebrow {
+  color: #776039;
+}
+
+html.dark.bearing-v1 .bearing-eyebrow {
+  color: #f0c779;
+}
+
+html.bearing-v1 [data-slot="page-header"] h1 {
+  font-family: Georgia, "Iowan Old Style", Palatino, serif;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+@media (min-width: 768px) {
+  html.bearing-v1 [data-slot="page-header"] h1 {
+    font-size: 1.875rem;
+    line-height: 1.15;
+  }
+}
+
+html.bearing-v1 [data-slot="section-card"] {
+  border-radius: 1.125rem;
+  border-color: color-mix(in oklab, var(--foreground) 10%, transparent);
+  background: color-mix(in oklab, var(--card) 88%, transparent);
+  box-shadow: none;
+}
+
+html.bearing-v1 [data-slot="dialog-content"] {
+  border-radius: 1.125rem;
+  border-color: color-mix(in oklab, var(--foreground) 14%, transparent);
+  background: var(--popover);
+  box-shadow: 0 24px 60px #0000002e;
+}
+
+html.bearing-v1 [data-slot="button"] {
+  border-radius: 0.75rem;
+}
+
+html.bearing-v1 [data-slot="checkbox"] {
+  border-radius: 0.45rem;
+}
+
+html.bearing-v1 input[type="checkbox"],
+html.bearing-v1 input[type="radio"] {
+  appearance: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  flex: 0 0 auto;
+  border: 1.5px solid color-mix(in oklab, var(--foreground) 32%, var(--border));
+  background-color: color-mix(in oklab, var(--background) 70%, transparent);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 0.75rem 0.75rem;
+  vertical-align: middle;
+}
+
+html.bearing-v1 input[type="checkbox"] {
+  border-radius: 0.4rem;
+}
+
+html.bearing-v1 input[type="radio"] {
+  border-radius: 999px;
+}
+
+html.bearing-v1 input[type="checkbox"]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.2 8.3 6.4 11.4 12.8 4.6' fill='none' stroke='%23172c28' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+html.bearing-v1 input[type="radio"]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+  background-image: radial-gradient(circle, #172c28 0 38%, transparent 42%);
+}
+
+html.bearing-v1 input[type="checkbox"]:focus-visible,
+html.bearing-v1 input[type="radio"]:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+html.bearing-v1 input[type="checkbox"]:disabled,
+html.bearing-v1 input[type="radio"]:disabled {
+  opacity: 0.5;
+}
+
+@media (max-width: 767px) {
+  html.bearing-v1 [data-slot="page-header"] h1 {
+    font-size: 1.25rem;
+    line-height: 1.25;
+  }
+
+  html.bearing-v1 [data-slot="page-mark"] {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.65rem;
+  }
+
+  html.bearing-v1 [data-slot="page-mark"] svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  html.bearing-v1 [data-slot="dialog-title"] {
+    font-size: 1.0625rem;
+    letter-spacing: -0.02em;
+  }
+
+  html.bearing-v1 [data-slot="dialog-content"] textarea {
+    min-height: 6.5rem;
+  }
+}
+
+@media (max-width: 767px), (pointer: coarse) {
+  html.bearing-v1 .bearing-app input[type="checkbox"],
+  html.bearing-v1 .bearing-app input[type="radio"],
+  html.bearing-v1 [data-slot="dialog-content"] input[type="checkbox"],
+  html.bearing-v1 [data-slot="dialog-content"] input[type="radio"],
+  html.bearing-v1 [data-slot="checkbox"] {
+    width: 1.15rem;
+    height: 1.15rem;
+    min-width: 1.15rem;
+    min-height: 1.15rem;
+  }
+}
+
 /* Respect reduced motion across shared primitives, auth and V1 routes. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -168,11 +168,7 @@ export function ItemCard({
   );
 }
 function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="rounded-xl border border-dashed border-border p-5 text-sm text-muted-foreground">
-      {children}
-    </p>
-  );
+  return <p className="py-1 text-sm text-muted-foreground">{children}</p>;
 }
 export function Today({ date }: { date: string }) {
   const { data, timezone } = useWorkspace();
@@ -199,9 +195,9 @@ export function Today({ date }: { date: string }) {
         subtitle={`A little direction for ${date}. Your plans stay separate from what happened.`}
         icon="Sun"
       />
-      <div className="flex flex-wrap gap-3 text-sm">
+      <div className="flex flex-wrap gap-2 text-sm">
         <Link
-          className="rounded-xl border border-border px-4 py-3"
+          className="inline-flex min-h-9 items-center rounded-xl border border-border/70 bg-card/60 px-3 text-foreground"
           href="/app/inbox"
         >
           {data.moments.filter((m) => m.needsOrganization).length +
@@ -215,12 +211,12 @@ export function Today({ date }: { date: string }) {
           to organize
         </Link>
         <Link
-          className="rounded-xl border border-border px-4 py-3"
+          className="inline-flex min-h-9 items-center rounded-xl border border-border/70 bg-card/60 px-3 text-foreground"
           href="/app/journal"
         >
           Write in your Journal
         </Link>
-        <Link className="rounded-xl border border-border px-4 py-3" href="/app/reviews">Write a reflection</Link>
+        <Link className="inline-flex min-h-9 items-center rounded-xl border border-border/70 bg-card/60 px-3 text-foreground" href="/app/reviews">Write a reflection</Link>
       </div>
       <SectionCard title="Overdue">
         <div className="space-y-3">
