@@ -24,8 +24,23 @@ a migration trigger.
 after **2027-01-26** ([ADR 0005](adr/0005-sunset-legacy-domain-and-coach.md)).
 Do not query or extend them. There is no `Item` → `V1Item` conversion.
 
-`src/lib/v1/contracts.ts` validates canonical typed metadata. `service.ts`,
-`workflow.ts` and `connected-service.ts` implement owned operations;
+`src/lib/v1/contracts.ts` validates canonical typed metadata. The static `V1`
+methods in `src/lib/v1/service/index.ts` are the shared write interface for UI and
+approved Coach operations, including capture, Journal organization/edit/mentions,
+checklist promotion and Habit occurrences. `workflow.ts` reads canonical data and
+stores display preferences; it has no canonical mutations. ESLint rejects canonical
+Prisma mutations outside `service/`. The existing backup/reset and demo maintenance
+operations live inside that directory; demo creation reuses `V1` primitives, while
+restore preserves validated record identities/history atomically.
+
+Tags/Areas, Links and Activities are create-only records; their schema has no
+revision counter or edit API. Items, Projects and Journal changes check their
+existing revision; adding a mention advances the Journal revision. Capture retries
+use the existing account/client ID and ingest hash. Coach apply composes the same
+operations and their receipts in its existing atomic approval transaction.
+Operation receipts have the same outcome shape for either caller; generated IDs,
+timestamps and the audit actor retain their normal identity/provenance.
+
 HTTP routes under `/api/v1` require enabled V1, existing account and fully verified
 session. Expected-account headers bind browser writes to their original account.
 Composite ownership constraints protect relationships. Writes use the shared audit

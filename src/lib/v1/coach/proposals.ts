@@ -1,4 +1,3 @@
-import { Workflow } from "../workflow";
 import crypto from "node:crypto";
 import { z } from "zod";
 import {
@@ -401,7 +400,7 @@ export async function approve(
             delegateId: resolve(op.data.delegateId),
             tagIds: op.data.tagIds.map((t) => resolve(t)!),
           };
-          const organized = await Workflow.organize(
+          const organized = await V1.organize(
             p,
             op.id,
             { revision: op.revision, item: data, resolved: true },

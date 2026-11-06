@@ -1,8 +1,8 @@
 import type { Item } from "@bearing/v1-client";
 import crypto from "node:crypto";
-import { write, Fault, type Principal } from "./service";
+import { V1, write, Fault, type Principal } from "./index";
 import { snapshot } from "./backup";
-import { dateInZone } from "./dates";
+import { dateInZone } from "../dates";
 
 const marker = "system.demo";
 export class V1Demo {
@@ -16,22 +16,22 @@ export class V1Demo {
       if (exists) return { alreadySeeded: true };
       const demoBatchId = crypto.randomUUID(),
         userId = p.userId;
-      const area = await tx.tag.create({
-        data: {
-          userId,
-          demoBatchId,
+      const { value: area } = await V1.createTag(
+        p,
+        {
           kind: "area",
           name: `Demo · Wellbeing ${demoBatchId.slice(0, 6)}`,
         },
-      });
-      const project = await tx.project.create({
-        data: {
-          userId,
-          demoBatchId,
+        tx,
+      );
+      const { value: project } = await V1.createProject(
+        p,
+        {
           name: "Demo · A calmer week",
-          tags: { create: { tagId: area.id } },
+          tagIds: [area.id],
         },
-      });
+        tx,
+      );
       const items: Item[] = [];
       for (const [type, template, title, metadata, content] of [
         [
@@ -84,23 +84,11 @@ export class V1Demo {
           "A plan, not a completed interaction.",
         ],
       ] as const) {
-        const count = await tx.ledger.count({
-          where: {
-            userId,
-            actor: p.actor,
-            operation: { in: ["item.create", "v1.item.create"] },
-            status: "success",
-            createdAt: { gt: new Date(Date.now() - 3600_000) },
-          },
-        });
-        if (count >= 20)
-          throw new Fault(429, "Demo exceeds remaining Item allowance");
         const now = new Date(),
           startAt = type === "event" ? new Date(+now + 86400_000) : null;
-        const item = await tx.item.create({
-          data: {
-            userId,
-            demoBatchId,
+        const { value: item } = await V1.createItem(
+          p,
+          {
             type,
             template,
             title,
@@ -108,94 +96,74 @@ export class V1Demo {
             content,
             status: "todo",
             projectId: project.id,
-            startAt,
-            endAt: startAt && new Date(+startAt + 3600_000),
+            tagIds: type === "task" ? [area.id] : [],
+            startAt: startAt?.toISOString() ?? null,
+            endAt: startAt ? new Date(+startAt + 3600_000).toISOString() : null,
           },
-        });
+          tx,
+        );
         items.push(item);
-        await tx.ledger.create({
-          data: {
-            userId,
-            actor: p.actor,
-            operation: "v1.item.create",
-            payload: JSON.stringify({ demoBatchId }),
-            status: "success",
-            receipt: JSON.stringify({ ok: true, value: { id: item.id } }),
-          },
-        });
       }
       const task = items[0],
         goal = items[5],
         now = new Date(),
         localDate = dateInZone(now, "UTC");
-      await tx.itemTag.create({
-        data: { userId, itemId: task.id, tagId: area.id },
-      });
-      const linkCount = await tx.ledger.count({
-        where: {
-          userId,
-          actor: p.actor,
-          operation: { in: ["link.create", "v1.link.create"] },
-          status: "success",
-          createdAt: { gt: new Date(Date.now() - 3600_000) },
-        },
-      });
-      if (linkCount >= 50)
-        throw new Fault(429, "Demo exceeds remaining Link allowance");
-      const link = await tx.link.create({
-        data: {
-          userId,
-          demoBatchId,
+      const { value: link } = await V1.createLink(
+        p,
+        {
           fromId: task.id,
           toId: goal.id,
           type: "advances",
         },
-      });
-      await tx.ledger.create({
-        data: {
-          userId,
-          actor: p.actor,
-          operation: "v1.link.create",
-          payload: JSON.stringify({ demoBatchId }),
-          status: "success",
-          receipt: JSON.stringify({ ok: true, value: { id: link.id } }),
-        },
-      });
-      const moment = await tx.journalMoment.create({
-        data: {
-          userId,
-          demoBatchId,
+        tx,
+      );
+      const { value: moment } = await V1.createMoment(
+        p,
+        {
           clientId: `demo_${demoBatchId}`,
           text: "Demo · A short walk sounds good.",
-          occurredAt: now,
-          localDate,
+          occurredAt: now.toISOString(),
           timezone: "UTC",
-          items: { create: { itemId: task.id, relation: "reference" } },
+          items: [{ itemId: task.id, relation: "reference" }],
         },
-      });
-      await tx.activity.create({
-        data: {
-          userId,
-          demoBatchId,
+        tx,
+      );
+      const { value: activity } = await V1.createActivity(
+        p,
+        {
           clientId: `demo_${demoBatchId}`,
           kind: "check_in",
-          occurredAt: now,
-          localDate,
+          occurredAt: now.toISOString(),
           timezone: "UTC",
           data: { mood: 4, energy: 3 },
         },
-      });
-      await tx.review.create({
-        data: {
-          userId,
-          demoBatchId,
+        tx,
+      );
+      const { value: review } = await V1.createReview(
+        p,
+        {
           period: "daily",
           localDate,
           timezone: "UTC",
           prompts: { wins: "Demo · Made space for a break", priorities: [] },
-          items: { create: { itemId: task.id } },
+          itemIds: [task.id],
         },
-      });
+        tx,
+      );
+      // Maintenance metadata only; domain creation above uses the same primitives as UI/Coach.
+      for (const [kind, ids] of [
+        ["tag", [area.id]],
+        ["project", [project.id]],
+        ["item", items.map((i) => i.id)],
+        ["link", [link.id]],
+        ["journalMoment", [moment.id]],
+        ["activity", [activity.id]],
+        ["review", [review.id]],
+      ] as const)
+        await (tx[kind] as typeof tx.item).updateMany({
+          where: { userId, id: { in: [...ids] } },
+          data: { demoBatchId },
+        });
       const rows = await snapshot(tx, userId);
       const ids = Object.values(rows.tables).flatMap((records) =>
         records

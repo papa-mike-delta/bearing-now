@@ -1,10 +1,22 @@
-import { canonicalJson } from "./json";
+import crypto from "node:crypto";
+import { id as idSchema, revision, instant, timezone } from "../contracts";
+import { itemDto } from "../client-model";
+import type { HabitOccurrence } from "../client-model";
+import { markdownTasks } from "../workflow-dates";
+import { habitPeriod } from "../connected";
+import {
+  captureInput,
+  captureIntent,
+  organizeInput,
+  momentEditInput,
+} from "../workflow-contracts";
+import { canonicalJson } from "../json";
 import { Prisma, type Item } from "@bearing/v1-client";
 import { z } from "zod";
-import { v1db } from "./db";
-import * as schema from "./contracts";
-import { dateInZone, nextOccurrence } from "./dates";
-import { validLinkEndpoints } from "./link-policy";
+import { v1db } from "../db";
+import * as schema from "../contracts";
+import { dateInZone, nextOccurrence } from "../dates";
+import { validLinkEndpoints } from "../link-policy";
 
 export type Principal = {
   userId: string;
@@ -43,10 +55,10 @@ export async function write<T>(
   transaction?: Tx,
 ) {
   const { userId, actor } = principal;
-  if (actor.startsWith("user:") && actor !== `user:${userId}`)
-    throw new Fault(403, "Actor does not own this account");
   const run = async (tx: Tx) => {
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(731909)::text`;
+    if (actor.startsWith("user:") && actor !== `user:${userId}`)
+      throw new Fault(403, "Actor does not own this account");
     if (actor.startsWith("agent:") && !principal.approved)
       throw new Fault(403, "An approved change set is required");
     const value = await work(tx);
@@ -201,7 +213,394 @@ export function withAreas(
         .map((t) => t.tag) ?? [],
   };
 }
+const occurrenceInput = z.strictObject({
+  revision,
+  occurredAt: instant,
+  timezone,
+  checklist: z.array(z.boolean()).max(500),
+  value: z.number().finite().nonnegative(),
+  complete: z.boolean(),
+});
+
+const includeMoment = { items: { include: { item: true } } } as const;
 export class V1 {
+  static mention(p: Principal, momentId: string, raw: unknown) {
+    return write(
+      p,
+      "v1.moment.mention",
+      { momentId, data: raw },
+      async (tx) => {
+        const { itemId, revision: expectedRevision } = parse(
+          z.strictObject({ itemId: schema.id, revision }),
+          raw,
+        );
+        const moment = await owned(tx, p.userId, "journalMoment", momentId);
+        if (moment.revision !== expectedRevision)
+          throw new Fault(409, "Journal entry changed", {
+            currentRevision: moment.revision,
+          });
+        await owned(tx, p.userId, "item", itemId);
+        await guardOpen(tx, p, [itemId]);
+        const reference = await tx.momentItem.upsert({
+          where: {
+            userId_momentId_itemId_relation: {
+              userId: p.userId,
+              momentId,
+              itemId,
+              relation: "mention",
+            },
+          },
+          create: { userId: p.userId, momentId, itemId, relation: "mention" },
+          update: {},
+        });
+        await tx.journalMoment.update({
+          where: { userId_id: { userId: p.userId, id: momentId } },
+          data: { revision: { increment: 1 }, demoBatchId: null },
+        });
+        return reference;
+      },
+    );
+  }
+
+  static habit(p: Principal, itemId: string, raw: unknown) {
+    return write(
+      p,
+      "v1.habit.occurrence",
+      { itemId, data: raw },
+      async (tx) => {
+        const input = parse(occurrenceInput, raw);
+        const item = await owned(tx, p.userId, "item", itemId);
+        if (item.type !== "habit" || item.status === "archived")
+          throw new Fault(400, "Choose an active Habit");
+        // Habit timezone anchors cadence, independent of which device records the occurrence.
+        const cadence =
+          (item.metadata as { cadence?: string }).cadence || "daily";
+        const period = habitPeriod(input.occurredAt, item.timezone, cadence);
+        const key = `habit.${itemId}.${cadence}.${period}`;
+        const previous = await tx.preference.findUnique({
+          where: { userId_key: { userId: p.userId, key } },
+        });
+        const saved = previous?.value as HabitOccurrence | undefined;
+        if (saved?.completed) {
+          if (
+            input.complete &&
+            saved.value === input.value &&
+            JSON.stringify(saved.checklist) === JSON.stringify(input.checklist)
+          )
+            return saved;
+          throw new Fault(
+            409,
+            "This occurrence is complete; its history is retained",
+          );
+        }
+        if ((saved?.revision || 0) !== input.revision)
+          throw new Fault(409, "Habit occurrence changed", {
+            currentRevision: saved?.revision || 0,
+          });
+        const content = saved?.content ?? item.content;
+        if (input.checklist.length !== markdownTasks(content).length)
+          throw new Fault(400, "Checklist changed; reload the occurrence");
+        const value: HabitOccurrence = {
+          revision: input.revision + 1,
+          period,
+          content,
+          checklist: input.checklist,
+          value: input.value,
+          completed: input.complete,
+        };
+        if (input.complete)
+          await V1.createActivity(
+            p,
+            {
+              kind: "habit_completion",
+              clientId: `habit_${itemId}_${cadence}_${period}`,
+              itemId,
+              occurredAt: input.occurredAt,
+              timezone: item.timezone,
+              data: {
+                value: input.value,
+                checklist: input.checklist,
+                content,
+                period,
+              },
+            },
+            tx,
+          );
+        await tx.preference.upsert({
+          where: { userId_key: { userId: p.userId, key } },
+          create: { userId: p.userId, key, value },
+          update: { value },
+        });
+        return value;
+      },
+    );
+  }
+  static capture(p: Principal, raw: unknown) {
+    return write(p, "v1.capture", raw, async (tx) => {
+      const value = parse(captureInput, raw),
+        hash = crypto
+          .createHash("sha256")
+          .update(JSON.stringify(value))
+          .digest("hex");
+      const previous = await tx.journalMoment.findUnique({
+        where: {
+          userId_clientId: { userId: p.userId, clientId: value.clientId },
+        },
+        include: includeMoment,
+      });
+      if (previous) {
+        if (previous.ingestHash !== hash)
+          throw new Fault(
+            409,
+            "Capture key already used for different text or time",
+          );
+        return previous;
+      }
+      const intent = value.place
+        ? {
+            kind: "item" as const,
+            item: {
+              type: "bookmark" as const,
+              template: "place",
+              title:
+                value.text
+                  .trim()
+                  .replace(/^\/place\s*/i, "")
+                  .split("\n")[0]
+                  .slice(0, 300) || "Captured place",
+              content: value.text,
+              status: "inbox" as const,
+              metadata: {
+                version: 1 as const,
+                category: "place" as const,
+                ...value.place,
+              },
+            },
+          }
+        : captureIntent(value.text, value.intendedType);
+      const { value: moment } = await V1.createMoment(
+        p,
+        {
+          clientId: value.clientId,
+          text: value.text,
+          occurredAt: value.occurredAt,
+          timezone: value.timezone,
+          intendedType: value.intendedType,
+          items: (value.mentionIds || []).map((itemId) => ({
+            itemId,
+            relation: "mention",
+          })),
+        },
+        tx,
+      );
+      if (intent.kind === "item") {
+        const { value: item } = await V1.createItem(
+          p,
+          { ...intent.item, timezone: value.timezone },
+          tx,
+        );
+        await tx.momentItem.create({
+          data: {
+            userId: p.userId,
+            momentId: moment.id,
+            itemId: item.id,
+            relation: "reference",
+          },
+        });
+      } else if (intent.kind === "check_in")
+        await V1.createActivity(
+          p,
+          {
+            clientId: value.clientId,
+            occurredAt: value.occurredAt,
+            timezone: value.timezone,
+            kind: "check_in",
+            data: intent.data,
+          },
+          tx,
+        );
+      return tx.journalMoment.update({
+        where: { id: moment.id },
+        data: {
+          capturedAt: new Date(value.capturedAt),
+          ingestHash: hash,
+          needsOrganization: intent.kind !== "check_in",
+        },
+        include: includeMoment,
+      });
+    });
+  }
+  static organize(p: Principal, id: string, raw: unknown, transaction?: Tx) {
+    return write(
+      p,
+      "v1.moment.organize",
+      { id, data: raw },
+      async (tx) => {
+        const value = parse(organizeInput, raw);
+        await owned(tx, p.userId, "journalMoment", id);
+        const moment = await tx.journalMoment.findUniqueOrThrow({
+          where: { id },
+          include: includeMoment,
+        });
+        // A repeated promotion returns its canonical reference, never a duplicate Task.
+        if (value.item && moment.items.some((r) => r.relation === "reference"))
+          return moment;
+        if (moment.revision !== value.revision)
+          throw new Fault(409, "Journal entry changed", {
+            currentRevision: moment.revision,
+          });
+        if (value.item) {
+          const { value: item } = await V1.createItem(p, value.item, tx);
+          await tx.momentItem.create({
+            data: {
+              userId: p.userId,
+              momentId: id,
+              itemId: item.id,
+              relation: "reference",
+            },
+          });
+        }
+        if (!value.item && value.resolved) {
+          for (const ref of moment.items.filter(
+            (r) => r.relation === "reference" && r.item.status === "inbox",
+          )) {
+            const tags = await tx.itemTag.findMany({
+              where: { userId: p.userId, itemId: ref.itemId },
+            });
+            const dto = itemDto({
+              ...JSON.parse(JSON.stringify(ref.item)),
+              tagIds: tags.map((t) => t.tagId),
+            });
+            await V1.updateItem(
+              p,
+              ref.itemId,
+              ref.item.revision,
+              { ...dto, status: "todo" },
+              tx,
+            );
+          }
+        }
+        return tx.journalMoment.update({
+          where: { id },
+          data: {
+            needsOrganization: !value.resolved,
+            revision: { increment: 1 },
+            demoBatchId: null,
+          },
+          include: includeMoment,
+        });
+      },
+      transaction,
+    );
+  }
+  static promoteTask(p: Principal, id: string, raw: unknown) {
+    return write(p, "v1.checklist.promote", { id, data: raw }, async (tx) => {
+      const value = parse(
+        z.strictObject({
+          revision,
+          line: z.number().int().nonnegative(),
+          clientId: idSchema,
+        }),
+        raw,
+      );
+      const key = `promotion:${value.clientId}`,
+        previous = await tx.preference.findUnique({
+          where: { userId_key: { userId: p.userId, key } },
+        });
+      if (previous) {
+        const saved = previous.value as {
+          parentId: string;
+          line: number;
+          itemId: string;
+        };
+        if (saved.parentId !== id || saved.line !== value.line)
+          throw new Fault(409, "Promotion key already used");
+        return { itemId: saved.itemId };
+      }
+      const parent = await owned(tx, p.userId, "item", id);
+      if (parent.revision !== value.revision)
+        throw new Fault(409, "Item changed", {
+          currentRevision: parent.revision,
+        });
+      await guardOpen(tx, p, [id]);
+      if (parent.type !== "task")
+        throw new Fault(400, "Only Task checklist steps can be promoted");
+      const step = markdownTasks(parent.content).find(
+        (task) => task.index === value.line,
+      );
+      if (!step || !step.text.trim() || step.text.trim().length > 300)
+        throw new Fault(400, "Choose a checklist step with a short Task title");
+      const tags = await tx.itemTag.findMany({
+        where: { userId: p.userId, itemId: id },
+      });
+      const { value: child } = await V1.createItem(
+        p,
+        {
+          type: "task",
+          title: step.text.trim(),
+          status: step.checked ? "done" : "todo",
+          projectId: parent.projectId,
+          tagIds: tags.map((t) => t.tagId),
+          timezone: parent.timezone,
+        },
+        tx,
+      );
+      const lines = parent.content.split("\n"),
+        prefix = lines[value.line].match(/^(\s*(?:[-*+]|\d+\.)\s+)/)![1];
+      lines[value.line] =
+        `${prefix}[${step.text.replace(/[\[\]]/g, "")}](/app/library/${child.id})`;
+      await V1.updateItem(
+        p,
+        id,
+        value.revision,
+        {
+          ...itemDto({
+            ...JSON.parse(JSON.stringify(parent)),
+            tagIds: tags.map((t) => t.tagId),
+          }),
+          content: lines.join("\n"),
+        },
+        tx,
+      );
+      await tx.preference.create({
+        data: {
+          userId: p.userId,
+          key,
+          value: { parentId: id, line: value.line, itemId: child.id },
+        },
+      });
+      return { itemId: child.id };
+    });
+  }
+  static editMoment(p: Principal, id: string, raw: unknown, transaction?: Tx) {
+    return write(
+      p,
+      "v1.moment.update",
+      { id, data: raw },
+      async (tx) => {
+        const value = parse(momentEditInput, raw),
+          row = await owned(tx, p.userId, "journalMoment", id);
+        if (row.revision !== value.revision)
+          throw new Fault(409, "Journal entry changed", {
+            currentRevision: row.revision,
+          });
+        return tx.journalMoment.update({
+          where: { id },
+          data: {
+            text: value.text,
+            occurredAt: new Date(value.occurredAt),
+            localDate: dateInZone(value.occurredAt, value.timezone),
+            timezone: value.timezone,
+            revision: { increment: 1 },
+            demoBatchId: null,
+          },
+          include: includeMoment,
+        });
+      },
+      transaction,
+    );
+  }
+
   static async items(
     userId: string,
     filters: {
@@ -392,18 +791,29 @@ export class V1 {
           value.status === "done" &&
           row.type === "task"
         ) {
-          await tx.activity.create({
-            data: {
-              userId: p.userId,
-              clientId: `task_${id}_${row.revision}`,
-              kind: "task_completion",
-              itemId: id,
-              occurredAt: row.completedAt!,
-              localDate: dateInZone(row.completedAt!, row.timezone),
-              timezone: row.timezone,
-              data: {},
-            },
-          });
+          const activity = {
+            clientId: `task_${id}_${row.revision}`,
+            kind: "task_completion",
+            itemId: id,
+            occurredAt: row.completedAt!.toISOString(),
+            timezone: row.timezone,
+            data: {},
+          };
+          await write(
+            p,
+            "v1.activity.create",
+            activity,
+            (tx) =>
+              tx.activity.create({
+                data: {
+                  ...activity,
+                  userId: p.userId,
+                  occurredAt: row.completedAt!,
+                  localDate: dateInZone(row.completedAt!, row.timezone),
+                },
+              }),
+            tx,
+          );
           await V1.completeOccurrence(tx, p, row);
         }
         return withAreas(row);
@@ -628,21 +1038,27 @@ export class V1 {
       transaction,
     );
   }
-  static createReview(p: Principal, raw: unknown) {
-    return write(p, "v1.review.create", raw, async (tx) => {
-      const { itemIds, ...value } = parse(schema.reviewInput, raw);
-      for (const id of itemIds) await owned(tx, p.userId, "item", id);
-      return tx.review.create({
-        data: {
-          ...value,
-          userId: p.userId,
-          prompts: json(value.prompts),
-          items: {
-            create: [...new Set(itemIds)].map((itemId) => ({ itemId })),
+  static createReview(p: Principal, raw: unknown, transaction?: Tx) {
+    return write(
+      p,
+      "v1.review.create",
+      raw,
+      async (tx) => {
+        const { itemIds, ...value } = parse(schema.reviewInput, raw);
+        for (const id of itemIds) await owned(tx, p.userId, "item", id);
+        return tx.review.create({
+          data: {
+            ...value,
+            userId: p.userId,
+            prompts: json(value.prompts),
+            items: {
+              create: [...new Set(itemIds)].map((itemId) => ({ itemId })),
+            },
           },
-        },
-      });
-    });
+        });
+      },
+      transaction,
+    );
   }
   static setLease(p: Principal, itemId: string, token: string, open: boolean) {
     return write(p, "v1.item.lease", { itemId, token, open }, async (tx) => {
@@ -715,7 +1131,6 @@ export class V1 {
       data: { completedAt: item.completedAt },
     });
     if (!occurrence.recurrence.active) return;
-    await cap(tx, p, "item");
     const rule = parse(schema.recurrenceRule, occurrence.recurrence.rule);
     const anchor = await tx.taskOccurrence.findFirstOrThrow({
       where: { userId: p.userId, recurrenceId: occurrence.recurrenceId },
@@ -727,15 +1142,6 @@ export class V1 {
       item.completedAt!,
       anchor.scheduledAt,
     );
-    const stored = await tx.item.findUniqueOrThrow({ where: { id: item.id } });
-    const {
-      id: _,
-      revision: _r,
-      createdAt: _c,
-      updatedAt: _u,
-      completedAt: _d,
-      ...data
-    } = stored;
     const tags = await tx.itemTag.findMany({
       where: { userId: p.userId, itemId: item.id },
     });
@@ -757,21 +1163,25 @@ export class V1 {
           .toISOString()
           .slice(0, 10)
       : null;
-    const next = await tx.item.create({
-      data: {
-        ...data,
+    const { value: next } = await V1.createItem(
+      p,
+      {
+        ...itemDto({
+          ...JSON.parse(JSON.stringify(item)),
+          tagIds: tags.map((t) => t.tagId),
+        }),
         timezone: rule.timezone,
         localDate: nextDate,
-        metadata: json(data.metadata),
         status: "todo",
-        scheduledAt: nextAt,
+        scheduledAt: nextAt.toISOString(),
         dueAt: item.dueAt
-          ? new Date(+nextAt + (+item.dueAt - +occurrence.scheduledAt))
+          ? new Date(
+              +nextAt + (+item.dueAt - +occurrence.scheduledAt),
+            ).toISOString()
           : null,
-        demoBatchId: null,
-        tags: { create: tags.map((t) => ({ tagId: t.tagId })) },
       },
-    });
+      tx,
+    );
     await tx.taskOccurrence.create({
       data: {
         userId: p.userId,
@@ -783,16 +1193,6 @@ export class V1 {
     await tx.taskOccurrence.update({
       where: { id: occurrence.id },
       data: { nextItemId: next.id },
-    });
-    await tx.ledger.create({
-      data: {
-        userId: p.userId,
-        actor: p.actor,
-        operation: "v1.item.create",
-        payload: JSON.stringify({ recurrenceId: occurrence.recurrenceId }),
-        status: "success",
-        receipt: JSON.stringify({ ok: true, value: { id: next.id } }),
-      },
     });
   }
 }

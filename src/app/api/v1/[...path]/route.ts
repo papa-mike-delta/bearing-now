@@ -4,9 +4,8 @@ import { z } from "zod";
 import { getUserFromRequest } from "@/lib/auth";
 import { v1db } from "@/lib/v1/db";
 import { V1, Fault, parse, type Principal } from "@/lib/v1/service";
-import { V1Backup } from "@/lib/v1/backup";
-import { V1Demo } from "@/lib/v1/demo";
-import { Connected } from "@/lib/v1/connected-service";
+import { V1Backup } from "@/lib/v1/service/backup";
+import { V1Demo } from "@/lib/v1/service/demo";
 import { Workflow } from "@/lib/v1/workflow";
 import { id, revision } from "@/lib/v1/contracts";
 export const dynamic = "force-dynamic";
@@ -64,14 +63,14 @@ async function handle(
     else if (resource === "capture" && !recordId && method === "POST") {
       if (expected !== session.userId)
         throw new Fault(409, "Confirm the signed-in account before syncing");
-      result = await Workflow.capture(p, body);
+      result = await V1.capture(p, body);
     } else if (
       resource === "items" &&
       recordId &&
       action === "promote" &&
       method === "POST"
     )
-      result = await Workflow.promoteTask(p, recordId, body);
+      result = await V1.promoteTask(p, recordId, body);
     else if (resource === "preferences" && !recordId && method === "PUT")
       result = await Workflow.setPreferences(p, body);
     else if (
@@ -80,23 +79,23 @@ async function handle(
       action === "organize" &&
       method === "POST"
     )
-      result = await Workflow.organize(p, recordId, body);
+      result = await V1.organize(p, recordId, body);
     else if (
       resource === "journal" &&
       recordId &&
       action === "mention" &&
       method === "POST"
     )
-      result = await Connected.mention(p, recordId, body);
+      result = await V1.mention(p, recordId, body);
     else if (resource === "journal" && recordId && !action && method === "PUT")
-      result = await Workflow.editMoment(p, recordId, body);
+      result = await V1.editMoment(p, recordId, body);
     else if (
       resource === "items" &&
       recordId &&
       action === "occurrence" &&
       method === "PUT"
     )
-      result = await Connected.habit(p, recordId, body);
+      result = await V1.habit(p, recordId, body);
     else if (resource === "items" && !action) {
       if (method === "GET") {
         if (recordId) result = await V1.item(p.userId, recordId);

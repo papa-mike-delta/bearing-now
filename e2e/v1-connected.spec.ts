@@ -81,6 +81,32 @@ test("People distinguish mentions, linked media and actual interaction; Me keeps
       "No confirmed interactions. A mention does not record contact.",
     ),
   ).toBeVisible();
+  const entry = await page.request.post("/api/v1/journal", {
+    data: {
+      clientId: `mention-${id}`,
+      text: `Remember ${name}`,
+      occurredAt: new Date().toISOString(),
+      timezone: "America/New_York",
+    },
+  });
+  expect(entry.ok()).toBeTruthy();
+  const moment = (await entry.json()).value;
+  await page.reload();
+  await page
+    .getByRole("combobox", { name: "Link an existing Journal moment" })
+    .selectOption(moment.id);
+  await page.getByRole("button", { name: "Link mention", exact: true }).click();
+  await expect(
+    page.getByRole("link", { name: new RegExp(`Remember ${name}`) }),
+  ).toBeVisible();
+  const linkedMoment = await (
+    await page.request.get(`/api/v1/journal/${moment.id}`)
+  ).json();
+  expect(linkedMoment.revision).toBe(moment.revision + 1);
+  expect(linkedMoment.items).toEqual([
+    expect.objectContaining({ itemId: personId, relation: "mention" }),
+  ]);
+
   await page
     .getByLabel("Interaction note", { exact: true })
     .fill("Spoke today");
