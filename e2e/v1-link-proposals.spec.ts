@@ -83,7 +83,7 @@ test("a health suggestion rejects with no Link and accepts one receipt", async (
   ).toHaveLength(1);
 });
 
-test("a Journal Person mention without another Item is not turned into a Link", async ({
+test("Journal text can propose a mention, while a checked Person is saved immediately", async ({
   page,
 }) => {
   const identity = await (await page.request.get("/api/v1/identity")).json();
@@ -92,49 +92,104 @@ test("a Journal Person mention without another Item is not turned into a Link", 
       data: { type: "person", title: "Alex Rivera" },
     })
   ).json();
-  const captured = await page.request.post("/api/v1/capture", {
+  const named = await page.request.post("/api/v1/capture", {
     headers: { "X-Bearing-Account": identity.userId },
     data: {
-      clientId: `mention-${Date.now()}`,
+      clientId: `named-${Date.now()}`,
       text: "Saw Alex Rivera today",
       capturedAt: "2026-11-06T15:00:00.000Z",
       occurredAt: "2026-11-06T15:00:00.000Z",
       timezone: "America/New_York",
-      mentionIds: [person.value.id],
     },
   });
-  expect(captured.ok()).toBeTruthy();
+  expect(named.ok()).toBeTruthy();
   await page.goto("/app/journal?date=2026-11-06");
+  await page
+    .getByRole("button", {
+      name: "Reject journal mention of Alex Rivera",
+      exact: true,
+    })
+    .click();
+  await expect(page.getByText("Rejected. Nothing was written.")).toBeVisible();
+  const moments = await (await page.request.get("/api/v1/journal")).json();
+  const namedMoment = moments.find((moment: { text: string }) =>
+    moment.text.includes("Alex Rivera"),
+  );
+  expect(namedMoment.items).toEqual([]);
+  await page.reload();
+  await page
+    .getByRole("button", {
+      name: "Accept journal mention of Alex Rivera",
+      exact: true,
+    })
+    .click();
   await expect(
-    page.getByText("That mention stays on the Journal entry."),
+    page.getByRole("status").filter({ hasText: "Saved. Receipt" }),
   ).toBeVisible();
+  const mentioned = await (await page.request.get("/api/v1/journal")).json();
   expect(
-    (await (await page.request.get("/api/v1/links")).json()).some(
-      (link: { type: string }) => link.type === "mentions",
-    ),
-  ).toBe(false);
-  const filed = await page.request.post("/api/v1/capture", {
+    mentioned
+      .find((moment: { id: string }) => moment.id === namedMoment.id)
+      .items.some(
+        (item: { relation: string; itemId: string }) =>
+          item.relation === "mention" && item.itemId === person.value.id,
+      ),
+  ).toBe(true);
+  const checked = await page.request.post("/api/v1/capture", {
     headers: { "X-Bearing-Account": identity.userId },
     data: {
-      clientId: `note-${Date.now()}`,
-      text: "/note Clinic note",
+      clientId: `checked-${Date.now()}`,
+      text: "Checked Alex Rivera",
       capturedAt: "2026-11-06T16:00:00.000Z",
       occurredAt: "2026-11-06T16:00:00.000Z",
       timezone: "America/New_York",
       mentionIds: [person.value.id],
     },
   });
-  expect(filed.ok()).toBeTruthy();
-  await page.reload();
+  expect(checked.ok()).toBeTruthy();
+  expect((await checked.json()).value.items).toEqual([
+    expect.objectContaining({
+      itemId: person.value.id,
+      relation: "mention",
+    }),
+  ]);
+});
+
+test("a location capture proposes that the entry was at the Place", async ({
+  page,
+}) => {
+  const identity = await (await page.request.get("/api/v1/identity")).json();
+  const captured = await page.request.post("/api/v1/capture", {
+    headers: { "X-Bearing-Account": identity.userId },
+    data: {
+      clientId: `place-${Date.now()}`,
+      text: "Corner cafe",
+      capturedAt: "2026-11-06T17:00:00.000Z",
+      occurredAt: "2026-11-06T17:00:00.000Z",
+      timezone: "America/New_York",
+      place: { latitude: 40.71, longitude: -74 },
+    },
+  });
+  expect(captured.ok()).toBeTruthy();
+  await page.goto("/app/journal?date=2026-11-06");
+  await expect(page.getByText("does not place Me")).toBeVisible();
   await page
-    .getByRole("button", { name: "Accept mentions link for Clinic note", exact: true })
+    .getByRole("button", { name: "Accept location for Corner cafe", exact: true })
     .click();
-  await expect(page.getByRole("status").filter({ hasText: "Saved. Receipt" })).toBeVisible();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Saved. Receipt" }),
+  ).toBeVisible();
+  const moments = await (await page.request.get("/api/v1/journal")).json();
+  const moment = moments.find((entry: { text: string }) =>
+    entry.text.includes("Corner cafe"),
+  );
+  expect(
+    moment.items.some(
+      (item: { relation: string }) => item.relation === "located_at",
+    ),
+  ).toBe(true);
   const links = await (await page.request.get("/api/v1/links")).json();
   expect(
-    links.filter(
-      (link: { type: string; toId: string }) =>
-        link.type === "mentions" && link.toId === person.value.id,
-    ),
-  ).toHaveLength(1);
+    links.some((link: { type: string }) => link.type === "located_at"),
+  ).toBe(false);
 });

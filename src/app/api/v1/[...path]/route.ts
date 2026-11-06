@@ -71,6 +71,13 @@ async function handle(
       method === "POST"
     )
       result = await V1.promoteTask(p, recordId, body);
+    else if (
+      resource === "items" &&
+      recordId &&
+      action === "place" &&
+      method === "POST"
+    )
+      result = await V1.placeTask(p, recordId, body);
     else if (resource === "preferences" && !recordId && method === "PUT")
       result = await Workflow.setPreferences(p, body);
     else if (
@@ -87,6 +94,13 @@ async function handle(
       method === "POST"
     )
       result = await V1.mention(p, recordId, body);
+    else if (
+      resource === "journal" &&
+      recordId &&
+      action === "relate" &&
+      method === "POST"
+    )
+      result = await V1.relateMoment(p, recordId, body);
     else if (resource === "journal" && recordId && !action && method === "PUT")
       result = await V1.editMoment(p, recordId, body);
     else if (

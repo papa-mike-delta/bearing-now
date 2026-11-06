@@ -355,9 +355,11 @@ export function MomentCard({
     draft,
     data: edit,
   } = useItemDraft(`moment:${moment.id}`, seed);
-  const refs = moment.items
-    .map((r) => data.items.find((i) => i.id === r.itemId))
-    .filter((i): i is ItemRecord => !!i);
+  const refs = [
+    ...new Map(moment.items.map((ref) => [ref.itemId, ref])).values(),
+  ]
+    .map((ref) => data.items.find((item) => item.id === ref.itemId))
+    .filter((item): item is ItemRecord => !!item);
   async function classify(item = false) {
     setBusy(true);
     setError("");

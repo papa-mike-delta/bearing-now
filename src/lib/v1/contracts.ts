@@ -75,6 +75,7 @@ const bookmarkMeta = z.discriminatedUnion("category", [
       latitude: z.number().min(-90).max(90).optional(),
       longitude: z.number().min(-180).max(180).optional(),
       url: url.optional(),
+      capturedMomentId: id.optional(),
     })
     .refine(
       (m) => (m.latitude === undefined) === (m.longitude === undefined),

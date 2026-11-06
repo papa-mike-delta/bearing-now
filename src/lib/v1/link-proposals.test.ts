@@ -117,29 +117,35 @@ describe("LinkProposals", () => {
         },
       },
     ]);
-    expect(LinkProposals.unsupportedMentions(workspace({
-      items: [me, alex, note],
-      moments: [
-        moment("m1", [
-          { itemId: "alex", relation: "mention" },
-          { itemId: "note", relation: "reference" },
-        ]),
-      ],
-    }))).toEqual([]);
   });
 
-  it("keeps a Person mention without another Item as a MomentItem limit", () => {
+  it("proposes a Journal mention from the entry text when none is stored", () => {
     const data = workspace({
       items: [me, alex],
-      moments: [moment("m1", [{ itemId: "alex", relation: "mention" }])],
+      moments: [moment("m1", [], "Saw Alex today")],
     });
-    expect(LinkProposals.infer(data)).toEqual([]);
-    expect(LinkProposals.unsupportedMentions(data)[0].summary).toContain(
-      "Alex",
-    );
-    expect(LinkProposals.unsupportedMentions(data)[0].summary).toContain(
-      LinkProposals.mentionLimit,
-    );
+    expect(LinkProposals.infer(data)).toMatchObject([
+      {
+        id: "journal-mention:m1:alex",
+        accept: {
+          kind: "moment",
+          relation: "mention",
+          itemId: "alex",
+          revision: 1,
+        },
+      },
+    ]);
+    expect(LinkProposals.namesPerson("Alexandra called", "Alex")).toBe(false);
+    expect(LinkProposals.namesPerson("help me today", "Me")).toBe(false);
+    const stored = workspace({
+      items: [me, alex],
+      moments: [
+        moment("m1", [{ itemId: "alex", relation: "mention" }], "Saw Alex today"),
+      ],
+    });
+    expect(
+      LinkProposals.infer(stored).some((card) => card.accept.kind === "moment"),
+    ).toBe(false);
     expect(LinkProposals.reject()).toEqual({ writes: false });
   });
 
@@ -220,6 +226,104 @@ describe("LinkProposals", () => {
     );
   });
 
+  it("proposes a capture location and a checklist Project without using stored coordinates alone", () => {
+    const place = item({
+      id: "place",
+      type: "bookmark",
+      template: "place",
+      title: "Cafe",
+      metadata: {
+        version: 1,
+        category: "place",
+        latitude: 40.71,
+        longitude: -74,
+        capturedMomentId: "gps",
+      },
+    });
+    const oldPlace = item({
+      id: "old",
+      type: "bookmark",
+      template: "place",
+      title: "Old cafe",
+      metadata: {
+        version: 1,
+        category: "place",
+        latitude: 1,
+        longitude: 2,
+      },
+    });
+    const parent = item({
+      id: "parent",
+      type: "task",
+      title: "Parent",
+      projectId: project.id,
+      project,
+      content: "- [Call](/app/library/child)",
+    });
+    const child = item({
+      id: "child",
+      type: "task",
+      title: "Call",
+      projectId: null,
+    });
+    const cards = LinkProposals.infer(
+      workspace({
+        items: [me, place, oldPlace, parent, child],
+        moments: [
+          moment("gps", [{ itemId: "place", relation: "reference" }], "Cafe"),
+          moment("old", [{ itemId: "old", relation: "reference" }], "Old cafe"),
+        ],
+        projects: [project],
+      }),
+    );
+    expect(cards.map((card) => card.id).sort()).toEqual([
+      "located:gps:place",
+      "project:child:proj",
+    ]);
+    expect(cards.find((card) => card.id.startsWith("located"))?.reason).toContain(
+      "does not place Me",
+    );
+    expect(JSON.stringify(cards)).not.toContain("advances");
+  });
+
+  it("suggests a Note filed on an entry that mentions Me, separately from health words", () => {
+    const groceries = item({
+      id: "groceries",
+      type: "note",
+      title: "Grocery list",
+      content: "eggs",
+    });
+    const cards = LinkProposals.infer(
+      workspace({
+        items: [me, groceries],
+        moments: [
+          moment(
+            "m1",
+            [
+              { itemId: "me", relation: "mention" },
+              { itemId: "groceries", relation: "reference" },
+            ],
+            "With me",
+          ),
+        ],
+      }),
+    );
+    expect(cards.map((card) => card.id)).toEqual([
+      "me-note:groceries:me",
+      "mention:m1:groceries:me",
+    ]);
+    expect(cards[0].confidence).toBe("suggestion");
+    expect(cards[0].accept).toMatchObject({ type: "related_to" });
+    expect(LinkProposals.acceptance.map((row) => row.case)).toEqual([
+      "journal-person-mention",
+      "gps-place",
+      "task-in-project",
+      "health-note",
+      "area-inheritance",
+      "me-related-note",
+    ]);
+  });
+
   it("does not turn a Project Goal or stored coordinates into a Link", () => {
     const goal = item({
       id: "goal",
@@ -259,17 +363,5 @@ describe("LinkProposals", () => {
     expect(cards).toEqual([]);
     expect(JSON.stringify(cards)).not.toContain("located_at");
     expect(JSON.stringify(cards)).not.toContain("advances");
-    expect(LinkProposals.modelingGaps.map((gap) => gap.code)).toEqual([
-      "task-in-project",
-      "gps-place",
-    ]);
-    expect(
-      LinkProposals.modelingGaps.find((gap) => gap.code === "task-in-project")
-        ?.summary,
-    ).toContain("A Project is not an Item");
-    expect(
-      LinkProposals.modelingGaps.find((gap) => gap.code === "gps-place")
-        ?.summary,
-    ).toContain("do not prove");
   });
 });

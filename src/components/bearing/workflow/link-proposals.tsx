@@ -25,32 +25,41 @@ export function LinkProposalCards({
   const cards = LinkProposals.forContext(data, { momentId, itemId }).filter(
     (card) => !hidden.includes(card.id),
   );
-  const limits = momentId
-    ? LinkProposals.unsupportedMentions(data).filter(
-        (entry) => entry.momentId === momentId,
-      )
-    : [];
   async function accept(card: LinkProposal) {
     setBusy(card.id);
     setError("");
     setNotice("");
     try {
-      const saved =
-        card.accept.kind === "link"
-          ? await mutate<{ receiptId: string }>("links", {
-              fromId: card.accept.fromId,
-              toId: card.accept.toId,
-              type: card.accept.type,
-              fromRevision: card.accept.fromRevision,
-              toRevision: card.accept.toRevision,
-            })
-          : await assignArea(card);
+      const saved = await save(card);
       setReceiptId(saved.receiptId);
     } catch (cause) {
       setError(errorText(cause));
     } finally {
       setBusy("");
     }
+  }
+  function save(card: LinkProposal) {
+    const accept = card.accept;
+    if (accept.kind === "link")
+      return mutate<{ receiptId: string }>("links", {
+        fromId: accept.fromId,
+        toId: accept.toId,
+        type: accept.type,
+        fromRevision: accept.fromRevision,
+        toRevision: accept.toRevision,
+      });
+    if (accept.kind === "moment")
+      return mutate<{ receiptId: string }>(`journal/${accept.momentId}/relate`, {
+        itemId: accept.itemId,
+        revision: accept.revision,
+        relation: accept.relation,
+      });
+    if (accept.kind === "project")
+      return mutate<{ receiptId: string }>(`items/${accept.itemId}/place`, {
+        projectId: accept.projectId,
+        revision: accept.revision,
+      });
+    return assignArea(card);
   }
   async function assignArea(card: LinkProposal) {
     if (card.accept.kind !== "area")
@@ -82,15 +91,9 @@ export function LinkProposalCards({
     setReceiptId("");
     setNotice("Rejected. Nothing was written.");
   }
-  if (!cards.length && !limits.length && !receiptId && !error && !notice)
-    return null;
+  if (!cards.length && !receiptId && !error && !notice) return null;
   return (
     <div className="space-y-3">
-      {limits.map((entry) => (
-        <p key={entry.momentId} className="text-sm text-muted-foreground">
-          {entry.summary}
-        </p>
-      ))}
       {cards.length || receiptId || error || notice ? (
         <SectionCard title="Review connections">
           <div className="space-y-3">

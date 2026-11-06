@@ -71,10 +71,12 @@ it("proposes a mentions Link from an explicit Journal Item and preserves a bare 
     expect.objectContaining({ itemId: person.id, relation: "mention" }),
   ]);
   const before = await Workflow.workspace(userId);
-  expect(LinkProposals.infer(before).map((card) => card.accept)).toEqual([]);
-  expect(LinkProposals.unsupportedMentions(before)[0].summary).toContain(
-    "Alex",
-  );
+  expect(
+    LinkProposals.infer(before).some(
+      (card) =>
+        card.accept.kind === "moment" && card.accept.relation === "mention",
+    ),
+  ).toBe(false);
   expect(await v1db.link.count({ where: { userId } })).toBe(0);
 
   const filed = (
@@ -222,8 +224,17 @@ it("assigns an inherited Area only through the Item write and leaves GPS and Pro
   );
   const workspace = await Workflow.workspace(userId);
   const cards = LinkProposals.infer(workspace);
-  expect(cards.some((card) => card.accept.kind === "link" && card.accept.type === "advances")).toBe(false);
-  expect(JSON.stringify(cards)).not.toContain("located_at");
+  expect(
+    cards.some(
+      (card) => card.accept.kind === "link" && card.accept.type === "advances",
+    ),
+  ).toBe(false);
+  expect(
+    cards.some(
+      (card) =>
+        card.accept.kind === "moment" && card.accept.relation === "located_at",
+    ),
+  ).toBe(true);
   expect(cards.map((card) => card.accept.kind)).toContain("area");
   expect(goal.projectId).toBe(project.id);
   expect(task.projectId).toBe(project.id);
@@ -265,4 +276,232 @@ it("assigns an inherited Area only through the Item write and leaves GPS and Pro
       where: { userId, OR: [{ fromId: goal.id }, { toId: goal.id }] },
     }),
   ).toBe(0);
+  expect(placed.value.items.some((ref) => ref.relation === "located_at")).toBe(
+    false,
+  );
+  const capturedPlace = (
+    await Workflow.workspace(userId)
+  ).items.find((item) => item.type === "bookmark");
+  expect(capturedPlace?.metadata).toMatchObject({
+    capturedMomentId: placed.value.id,
+    latitude: 40.71,
+    longitude: -74,
+  });
+});
+
+it("records a derived Journal mention once, and keeps an explicit mention immediate", async () => {
+  const person = (await V1.createItem(p, { type: "person", title: "Alex Rivera" }))
+    .value;
+  const named = (
+    await V1.capture(p, capture({ text: "Saw Alex Rivera today" }))
+  ).value;
+  expect(named.items).toEqual([]);
+  const workspace = await Workflow.workspace(userId);
+  const card = LinkProposals.infer(workspace).find(
+    (entry) => entry.id === `journal-mention:${named.id}:${person.id}`,
+  );
+  expect(card?.accept).toMatchObject({
+    kind: "moment",
+    relation: "mention",
+    revision: named.revision,
+  });
+  const ledgerBefore = await v1db.ledger.count({ where: { userId } });
+  expect(LinkProposals.reject()).toEqual({ writes: false });
+  expect(await v1db.momentItem.count({ where: { userId } })).toBe(0);
+  expect(await v1db.ledger.count({ where: { userId } })).toBe(ledgerBefore);
+  const body = {
+    itemId: person.id,
+    revision: named.revision,
+    relation: "mention" as const,
+  };
+  const [first, second] = await Promise.all([
+    V1.relateMoment(p, named.id, body),
+    V1.relateMoment(p, named.id, body),
+  ]);
+  expect(second.receiptId).toBe(first.receiptId);
+  expect(
+    await v1db.momentItem.count({
+      where: { userId, relation: "mention", itemId: person.id },
+    }),
+  ).toBe(1);
+  expect(
+    await v1db.ledger.count({
+      where: { userId, operation: "v1.moment.relate", status: "success" },
+    }),
+  ).toBe(1);
+  const edited = await v1db.journalMoment.findUniqueOrThrow({
+    where: { id: named.id },
+  });
+  await V1.editMoment(p, named.id, {
+    revision: edited.revision,
+    text: "Saw Alex Rivera later",
+    occurredAt: "2026-11-06T15:00:00.000Z",
+    timezone: "America/New_York",
+  });
+  const otherPerson = (
+    await V1.createItem(p, { type: "person", title: "Sam" })
+  ).value;
+  await expect(
+    V1.relateMoment(p, named.id, {
+      itemId: otherPerson.id,
+      revision: named.revision,
+      relation: "mention",
+    }),
+  ).rejects.toMatchObject({ status: 409 });
+  expect(
+    await v1db.momentItem.count({ where: { userId, itemId: otherPerson.id } }),
+  ).toBe(0);
+  await expect(
+    V1.relateMoment(q, named.id, body),
+  ).rejects.toMatchObject({ status: 404 });
+  const explicit = (
+    await V1.capture(p, capture({ text: "Checked", mentionIds: [person.id] }))
+  ).value;
+  expect(explicit.items).toEqual([
+    expect.objectContaining({ itemId: person.id, relation: "mention" }),
+  ]);
+});
+
+it("places a promoted Task in its parent Project only when accepted", async () => {
+  const project = (await V1.createProject(p, { name: "Launch" })).value;
+  const parent = (
+    await V1.createItem(p, {
+      type: "task",
+      title: "Parent list",
+      content: "- [ ] Call Alex",
+      projectId: project.id,
+    })
+  ).value;
+  const explicit = (
+    await V1.createItem(p, {
+      type: "task",
+      title: "Chosen",
+      projectId: project.id,
+    })
+  ).value;
+  expect(explicit.projectId).toBe(project.id);
+  const promoted = await V1.promoteTask(p, parent.id, {
+    revision: parent.revision,
+    line: 0,
+    clientId: "promote-project",
+  });
+  const child = await V1.item(userId, promoted.value.itemId);
+  expect(child.projectId).toBeNull();
+  const card = LinkProposals.infer(await Workflow.workspace(userId)).find(
+    (entry) => entry.id === `project:${child.id}:${project.id}`,
+  );
+  expect(card?.accept).toMatchObject({
+    kind: "project",
+    projectId: project.id,
+    revision: child.revision,
+  });
+  const body = { projectId: project.id, revision: child.revision };
+  const [first, second] = await Promise.all([
+    V1.placeTask(p, child.id, body),
+    V1.placeTask(p, child.id, body),
+  ]);
+  expect(second.receiptId).toBe(first.receiptId);
+  expect((await V1.item(userId, child.id)).projectId).toBe(project.id);
+  expect(
+    await v1db.ledger.count({
+      where: { userId, operation: "v1.task.place", status: "success" },
+    }),
+  ).toBe(1);
+  const fresh = (
+    await V1.createItem(p, { type: "task", title: "Later", projectId: null })
+  ).value;
+  await V1.updateItem(p, fresh.id, fresh.revision, {
+    type: "task",
+    title: "Later",
+    projectId: project.id,
+  });
+  await expect(
+    V1.placeTask(p, fresh.id, { projectId: project.id, revision: fresh.revision }),
+  ).rejects.toMatchObject({ status: 409 });
+  expect((await V1.item(userId, fresh.id)).projectId).toBe(project.id);
+  await expect(
+    V1.placeTask(q, child.id, body),
+  ).rejects.toMatchObject({ status: 404 });
+});
+
+it("records that a located capture was at its Place and restores that relation", async () => {
+  const before = await V1Backup.export(userId);
+  const captured = (
+    await V1.capture(
+      p,
+      capture({
+        text: "Cafe stop",
+        place: { latitude: 40.71, longitude: -74 },
+      }),
+    )
+  ).value;
+  const manual = (
+    await V1.createItem(p, {
+      type: "bookmark",
+      template: "place",
+      title: "Old place",
+      metadata: { version: 1, category: "place", latitude: 1, longitude: 2 },
+    })
+  ).value;
+  const workspace = await Workflow.workspace(userId);
+  const cards = LinkProposals.infer(workspace);
+  expect(cards.some((card) => card.id === `located:${captured.id}:${manual.id}`)).toBe(
+    false,
+  );
+  const card = cards.find((entry) => entry.id.startsWith("located:"));
+  expect(card?.accept).toMatchObject({
+    kind: "moment",
+    relation: "located_at",
+    revision: captured.revision,
+  });
+  expect(card?.reason).toContain("does not place Me");
+  const body = {
+    itemId: card && card.accept.kind === "moment" ? card.accept.itemId : "",
+    revision: captured.revision,
+    relation: "located_at" as const,
+  };
+  const [first, second] = await Promise.all([
+    V1.relateMoment(p, captured.id, body),
+    V1.relateMoment(p, captured.id, body),
+  ]);
+  expect(second.receiptId).toBe(first.receiptId);
+  expect(
+    await v1db.momentItem.count({ where: { userId, relation: "located_at" } }),
+  ).toBe(1);
+  expect(
+    await v1db.ledger.count({
+      where: { userId, operation: "v1.moment.relate", status: "success" },
+    }),
+  ).toBe(1);
+  expect(
+    await v1db.link.count({ where: { userId, type: "located_at" } }),
+  ).toBe(0);
+  const current = await v1db.journalMoment.findUniqueOrThrow({
+    where: { id: captured.id },
+  });
+  await expect(
+    V1.relateMoment(p, captured.id, {
+      itemId: manual.id,
+      revision: current.revision,
+      relation: "located_at",
+    }),
+  ).rejects.toMatchObject({ status: 400 });
+  await expect(V1.relateMoment(q, captured.id, body)).rejects.toMatchObject({
+    status: 404,
+  });
+  const exported = await V1Backup.export(userId);
+  expect(
+    exported.tables.momentItems.some((row) => row.relation === "located_at"),
+  ).toBe(true);
+  await V1Backup.restore(p, exported, "RESTORE V1 DATA");
+  expect(
+    await v1db.momentItem.count({ where: { userId, relation: "located_at" } }),
+  ).toBe(1);
+  await V1Backup.restore(p, before, "RESTORE V1 DATA");
+  expect(
+    await v1db.momentItem.count({ where: { userId, relation: "located_at" } }),
+  ).toBe(0);
+  expect(before.tables.momentItems.every((row) => row.relation !== "located_at")).toBe(
+    true,
+  );
 });
