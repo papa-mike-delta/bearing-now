@@ -27,8 +27,12 @@ The create URL's query parameters are passed to shadcn's `/init` JSON endpoint.
 Restart the development server or rebuild after generating. The script never
 writes `globals.css`.
 
-In Settings → Appearance & Notifications, paste a create URL, exported CSS, or
-JSON and select **Import theme**. JSON accepts `{ "light": {...}, "dark": {...} }`
+In Settings → Appearance, choose a shipped preset or the full set of
+ui.shadcn.com/create options (base, style, base color, the expanded theme and
+chart colors, icon library, font, heading, radius, menu accent, menu color,
+direction, and pointer). **Apply** posts that choice through the same import
+used for a pasted create URL, exported CSS, or JSON. A preset id is sent as
+`preset:<id>`. JSON accepts `{ "light": {...}, "dark": {...} }`
 or shadcn's `{ "cssVars": { "theme": {...}, "light": {...}, "dark": {...} } }`.
 Names may include or omit `--`; both variants must contain variables. The
 optional `theme` map provides shared variables. **Reset imported theme** restores
