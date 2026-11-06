@@ -306,6 +306,8 @@ export function PersonProfile({ item }: { item: ItemRecord }) {
               try {
                 await mutate(`journal/${momentId}/mention`, {
                   itemId: item.id,
+                  revision: data.moments.find((m) => m.id === momentId)!
+                    .revision,
                 });
                 setMoment("");
               } catch (err) {

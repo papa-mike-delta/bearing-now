@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { beforeAll, afterAll, beforeEach, expect, it } from "vitest";
 import { Workflow } from "@/lib/v1/workflow";
 import { V1, type Principal } from "@/lib/v1/service";
-import { V1Backup } from "@/lib/v1/backup";
+import { V1Backup } from "@/lib/v1/service/backup";
 import { v1db } from "@/lib/v1/db";
 import { createSession } from "@/lib/session";
 import { POST, GET } from "@/app/api/v1/[...path]/route";
@@ -55,8 +55,8 @@ beforeEach(async () => {
 it("captures once under retries/concurrency and keeps original text, capture time and local date", async () => {
   const value = input();
   const [a, b] = await Promise.all([
-    Workflow.capture(p, value),
-    Workflow.capture(p, value),
+    V1.capture(p, value),
+    V1.capture(p, value),
   ]);
   expect(a.value.id).toBe(b.value.id);
   expect(a.value).toMatchObject({
@@ -66,14 +66,14 @@ it("captures once under retries/concurrency and keeps original text, capture tim
   });
   expect(a.value.capturedAt.toISOString()).toBe(value.capturedAt);
   await expect(
-    Workflow.capture(p, { ...value, text: "Different" }),
+    V1.capture(p, { ...value, text: "Different" }),
   ).rejects.toMatchObject({ status: 409 });
   expect(await v1db.item.count({ where: { userId } })).toBe(1);
 });
 it("creates one canonical Task from an explicit shortcut and reflects its edits in Journal references", async () => {
   const value = input({ text: "/task Call Alex" });
-  const capture = await Workflow.capture(p, value);
-  await Workflow.capture(p, value);
+  const capture = await V1.capture(p, value);
+  await V1.capture(p, value);
   expect(capture.value.items).toHaveLength(1);
   const item = await V1.item(userId, capture.value.items[0].itemId);
   await V1.updateItem(p, item.id, item.revision, {
@@ -89,25 +89,25 @@ it("creates one canonical Task from an explicit shortcut and reflects its edits 
 });
 it("promotes a raw entry atomically and retry after organization/edit never duplicates the source", async () => {
   const value = input();
-  const moment = (await Workflow.capture(p, value)).value;
+  const moment = (await V1.capture(p, value)).value;
   const body = {
     revision: moment.revision,
     item: { type: "task", title: "Clarified Task", status: "todo" },
   };
   await Promise.all([
-    Workflow.organize(p, moment.id, body),
-    Workflow.organize(p, moment.id, body),
+    V1.organize(p, moment.id, body),
+    V1.organize(p, moment.id, body),
   ]);
   const current = await v1db.journalMoment.findUniqueOrThrow({
     where: { id: moment.id },
   });
-  await Workflow.editMoment(p, moment.id, {
+  await V1.editMoment(p, moment.id, {
     revision: current.revision,
     text: "Clarified Journal context",
     occurredAt: value.occurredAt,
     timezone: value.timezone,
   });
-  await Workflow.capture(p, value);
+  await V1.capture(p, value);
   expect(await v1db.item.count({ where: { userId, type: "task" } })).toBe(1);
   expect((await Workflow.workspace(userId)).moments[0].text).toBe(
     "Clarified Journal context",
@@ -115,9 +115,9 @@ it("promotes a raw entry atomically and retry after organization/edit never dupl
 });
 it("separates check-ins from Journal records, preserves incomplete commands for clarification", async () => {
   const a = input({ text: "/mood 4 energy 3" });
-  await Workflow.capture(p, a);
-  await Workflow.capture(p, a);
-  await Workflow.capture(p, input({ text: "/task" }));
+  await V1.capture(p, a);
+  await V1.capture(p, a);
+  await V1.capture(p, input({ text: "/task" }));
   const state = await Workflow.workspace(userId);
   expect(state.activities).toHaveLength(1);
   expect(state.moments.filter((m) => m.needsOrganization)).toHaveLength(1);
@@ -132,8 +132,8 @@ it("promotes a Markdown checkbox once with an atomic parent update", async () =>
     })
   ).value;
   const body = { revision: parent.revision, line: 0, clientId: "promote-step" };
-  const a = await Workflow.promoteTask(p, parent.id, body),
-    b = await Workflow.promoteTask(p, parent.id, body);
+  const a = await V1.promoteTask(p, parent.id, body),
+    b = await V1.promoteTask(p, parent.id, body);
   expect(a.value.itemId).toBe(b.value.itemId);
   expect((await V1.item(userId, parent.id)).content).toContain(
     `/app/library/${a.value.itemId}`,
@@ -153,7 +153,7 @@ it("universal keyword search finds every supported record kind and respects Area
       projectId: project.id,
     })
   ).value;
-  await Workflow.capture(p, input({ text: "Needle Journal" }));
+  await V1.capture(p, input({ text: "Needle Journal" }));
   await V1.createReview(p, {
     period: "daily",
     localDate: "2026-10-24",
@@ -195,9 +195,9 @@ it("treats wildcard characters as literal keywords and searches typed metadata",
   expect(await Workflow.search(userId, { q: "%" })).toHaveLength(0);
 });
 it("refuses cross-account classification, preferences and sync under a switched cookie", async () => {
-  const moment = (await Workflow.capture(p, input())).value;
+  const moment = (await V1.capture(p, input())).value;
   await expect(
-    Workflow.organize(q, moment.id, { revision: 0 }),
+    V1.organize(q, moment.id, { revision: 0 }),
   ).rejects.toMatchObject({ status: 404 });
   const req = new Request("http://localhost/api/v1/capture", {
     method: "POST",
@@ -231,10 +231,10 @@ it("refuses cross-account classification, preferences and sync under a switched 
 
 it("organizing an explicit Task capture clears both Inbox flags without another Item", async () => {
   const captured = (
-    await Workflow.capture(p, input({ text: "/task Ready to organize" }))
+    await V1.capture(p, input({ text: "/task Ready to organize" }))
   ).value;
   const itemId = captured.items[0].itemId;
-  const organized = await Workflow.organize(p, captured.id, {
+  const organized = await V1.organize(p, captured.id, {
     revision: captured.revision,
   });
   expect(organized.value.needsOrganization).toBe(false);
@@ -243,7 +243,6 @@ it("organizing an explicit Task capture clears both Inbox flags without another 
 });
 
 // #46: connected life contracts over the same canonical records.
-import { Connected } from "@/lib/v1/connected-service";
 it("keeps Person mentions, confirmed interactions, follow-ups and linked references distinct and tenant scoped", async () => {
   const person = (
     await V1.createItem(p, {
@@ -270,12 +269,15 @@ it("keeps Person mentions, confirmed interactions, follow-ups and linked referen
     type: "related_to",
   });
   const moment = (
-    await Workflow.capture(
+    await V1.capture(
       p,
       input({ text: "Thought about Alex", mentionIds: [person.id] }),
     )
   ).value;
-  await Connected.mention(p, moment.id, { itemId: person.id });
+  await V1.mention(p, moment.id, {
+    itemId: person.id,
+    revision: moment.revision,
+  });
   expect(
     await v1db.momentItem.count({
       where: { userId, momentId: moment.id, itemId: person.id },
@@ -310,7 +312,7 @@ it("keeps Person mentions, confirmed interactions, follow-ups and linked referen
     await v1db.activity.count({ where: { userId, kind: "interaction" } }),
   ).toBe(1);
   await expect(
-    Connected.mention(q, moment.id, { itemId: person.id }),
+    V1.mention(q, moment.id, { itemId: person.id, revision: moment.revision }),
   ).rejects.toMatchObject({ status: 404 });
   await expect(
     V1.createLink(q, { fromId: person.id, toId: book.id, type: "related_to" }),
@@ -352,15 +354,15 @@ it("saves routine steps independently and resets the next occurrence while prese
     value: 2,
     complete: false,
   };
-  const draft = (await Connected.habit(p, habit.id, payload)).value;
+  const draft = (await V1.habit(p, habit.id, payload)).value;
   expect(draft.completed).toBe(false);
   expect(
     await v1db.activity.count({ where: { userId, kind: "habit_completion" } }),
   ).toBe(0);
   const complete = { ...payload, revision: draft.revision, complete: true };
   const [a, b] = await Promise.all([
-    Connected.habit(p, habit.id, complete),
-    Connected.habit(p, habit.id, complete),
+    V1.habit(p, habit.id, complete),
+    V1.habit(p, habit.id, complete),
   ]);
   expect(a.value).toEqual(b.value);
   const history = await v1db.activity.findMany({
@@ -374,7 +376,7 @@ it("saves routine steps independently and resets the next occurrence while prese
     period: "2026-11-01",
   });
   expect((await V1.item(userId, habit.id)).status).toBe("inbox");
-  await Connected.habit(p, habit.id, {
+  await V1.habit(p, habit.id, {
     ...payload,
     occurredAt: "2026-11-02T17:00:00Z",
     checklist: [false, false],
@@ -385,11 +387,11 @@ it("saves routine steps independently and resets the next occurrence while prese
     checklist: [false, false],
     completed: false,
   });
-  await expect(Connected.habit(q, habit.id, payload)).rejects.toMatchObject({
+  await expect(V1.habit(q, habit.id, payload)).rejects.toMatchObject({
     status: 404,
   });
   await expect(
-    Connected.habit(p, habit.id, { ...complete, value: 3 }),
+    V1.habit(p, habit.id, { ...complete, value: 3 }),
   ).rejects.toMatchObject({ status: 409 });
 });
 it("records one Focus Activity per session while mood check-ins and Reviews remain separate", async () => {
@@ -441,8 +443,8 @@ it("captures Place coordinates once without venue lookup or visit Activity", asy
     text: "By the river",
     place: { latitude: 40.7, longitude: -73.9 },
   });
-  const a = await Workflow.capture(p, value),
-    b = await Workflow.capture(p, value);
+  const a = await V1.capture(p, value),
+    b = await V1.capture(p, value);
   expect(a.value.id).toBe(b.value.id);
   const places = await V1.items(userId, { type: "bookmark" });
   expect(places).toHaveLength(1);
@@ -452,4 +454,41 @@ it("captures Place coordinates once without venue lookup or visit Activity", asy
     longitude: -73.9,
   });
   expect(await v1db.activity.count({ where: { userId } })).toBe(0);
+});
+
+it("revision-checks Journal mentions and refuses foreign or unapproved writes without partial associations", async () => {
+  const moment = (await V1.capture(p, input())).value;
+  const person = (await V1.createItem(p, { type: "person", title: "Alex" }))
+    .value;
+  const foreign = (await V1.createItem(q, { type: "person", title: "Private" }))
+    .value;
+  const mention = { itemId: person.id, revision: moment.revision };
+  await expect(
+    V1.mention(p, moment.id, { ...mention, itemId: foreign.id }),
+  ).rejects.toMatchObject({ status: 404 });
+  await expect(V1.mention(q, moment.id, mention)).rejects.toMatchObject({
+    status: 404,
+  });
+  await expect(
+    V1.mention({ userId, actor: "agent:coach" }, moment.id, mention),
+  ).rejects.toMatchObject({ status: 403 });
+  expect(
+    await v1db.momentItem.count({ where: { userId, momentId: moment.id } }),
+  ).toBe(0);
+  expect(
+    await v1db.journalMoment.findUnique({ where: { id: moment.id } }),
+  ).toMatchObject({ revision: moment.revision });
+  const result = await V1.mention(p, moment.id, mention);
+  expect(
+    await v1db.ledger.findUnique({ where: { id: result.receiptId } }),
+  ).toMatchObject({ operation: "v1.moment.mention", status: "success" });
+  await expect(V1.mention(p, moment.id, mention)).rejects.toMatchObject({
+    status: 409,
+  });
+  expect(
+    await v1db.journalMoment.findUnique({ where: { id: moment.id } }),
+  ).toMatchObject({ revision: moment.revision + 1 });
+  expect(
+    await v1db.momentItem.count({ where: { userId, momentId: moment.id } }),
+  ).toBe(1);
 });

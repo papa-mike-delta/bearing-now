@@ -44,6 +44,16 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "no-useless-escape": "off",
   },
 }, {
+  files: ["src/**/*.ts", "src/**/*.tsx"],
+  ignores: ["src/lib/v1/service/**", "src/**/*.test.ts"],
+  rules: {
+    // Canonical mutations belong to the V1 service, including association writes.
+    "no-restricted-syntax": ["error", {
+      selector: "CallExpression[callee.type='MemberExpression'][callee.property.name=/^(create|createMany|update|updateMany|upsert|delete|deleteMany)$/][callee.object.type='MemberExpression'][callee.object.property.name=/^(item|project|tag|link|activity|journalMoment|momentItem|itemTag|projectTag)$/]",
+      message: "Use the shared V1 service for canonical writes (issue #62).",
+    }],
+  },
+}, {
   ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills"]
 }];
 

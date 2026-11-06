@@ -1,8 +1,9 @@
+import { POST as uiPost, PUT as uiPut } from "@/app/api/v1/[...path]/route";
 import { execFileSync } from "node:child_process";
 import { beforeAll, afterAll, beforeEach, it, expect, vi } from "vitest";
 import { v1db } from "@/lib/v1/db";
 import { V1, type Principal } from "@/lib/v1/service";
-import { V1Backup } from "@/lib/v1/backup";
+import { V1Backup } from "@/lib/v1/service/backup";
 import { preview, approve, reject } from "@/lib/v1/coach/proposals";
 import { CoachReads } from "@/lib/v1/coach/reads";
 import { CoachStore } from "@/lib/v1/coach/store";
@@ -560,7 +561,7 @@ it("keeps user JSON as user text rather than treating it as assistant evidence",
   expect(saved.messages[0].sources).toEqual([]);
 });
 it("organizes raw Inbox text into one canonical linked Task only after approval", async () => {
-  const captured = await Workflow.capture(p, {
+  const captured = await V1.capture(p, {
     clientId: "raw-coach-capture",
     text: "  Buy milk after work\n",
     capturedAt: new Date().toISOString(),
@@ -649,3 +650,295 @@ it("reports missing evidence instead of accepting confident prose after an empty
   expect(answer.text).not.toContain("Paris");
   expect(answer.sources).toEqual([]);
 });
+
+// Compare real HTTP writes with signed, approved Coach proposals from the same snapshot.
+// Receipt IDs, timestamps and actor identify executions; their domain outcome is identical.
+function outcome(raw: unknown, createdIds: string[]) {
+  const normalized = JSON.parse(JSON.stringify(raw), (key, value) => {
+    if (["createdAt", "updatedAt"].includes(key)) return undefined;
+    if (typeof value === "string" && createdIds.includes(value))
+      return `created_${createdIds.indexOf(value)}`;
+    return value;
+  });
+  // Backup tables are unordered sets; restore may change PostgreSQL scan order.
+  for (const value of Object.values(normalized))
+    if (Array.isArray(value))
+      value.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+  return normalized;
+}
+async function uiWrite(path: string, method: "POST" | "PUT", body: unknown) {
+  const response = await (method === "POST" ? uiPost : uiPut)(
+    new Request(`http://localhost/api/v1/${path}`, {
+      method,
+      headers: {
+        "content-type": "application/json",
+        "X-Bearing-Account": userId,
+        cookie: `lifeos-session=${createSession(userId, `${userId}@example.test`, true)}`,
+      },
+      body: JSON.stringify(body),
+    }),
+    { params: Promise.resolve({ path: path.split("/") }) },
+  );
+  expect(response.status).toBe(200);
+  return response.json();
+}
+it.each([
+  "item",
+  "project",
+  "tag",
+  "link",
+  "item update",
+  "project update",
+  "organize",
+])(
+  "HTTP and approved Coach %s share canonical state and operation receipts",
+  async (kind) => {
+    const item = (await V1.createItem(p, { type: "note", title: "Before" }))
+      .value;
+    const target = (await V1.createItem(p, { type: "note", title: "Target" }))
+      .value;
+    const project = (await V1.createProject(p, { name: "Before" })).value;
+    const moment = (
+      await V1.createMoment(p, {
+        clientId: "parity-moment",
+        text: "A thought",
+        occurredAt: "2026-11-01T12:00:00Z",
+        timezone: "UTC",
+      })
+    ).value;
+    const itemData = { type: "note", title: "After" };
+    const projectData = { name: "After" };
+    const cases: Record<
+      string,
+      {
+        path: string;
+        method: "POST" | "PUT";
+        body: unknown;
+        op: unknown;
+        operation: string;
+      }
+    > = {
+      item: {
+        path: "items",
+        method: "POST",
+        body: itemData,
+        op: { op: "create_item", key: "new_item", data: itemData },
+        operation: "v1.item.create",
+      },
+      project: {
+        path: "projects",
+        method: "POST",
+        body: projectData,
+        op: { op: "create_project", key: "new_project", data: projectData },
+        operation: "v1.project.create",
+      },
+      tag: {
+        path: "tags",
+        method: "POST",
+        body: { name: "Health", kind: "area" },
+        op: {
+          op: "create_tag",
+          key: "new_area",
+          data: { name: "Health", kind: "area" },
+        },
+        operation: "v1.tag.create",
+      },
+      link: {
+        path: "links",
+        method: "POST",
+        body: {
+          fromId: item.id,
+          toId: target.id,
+          type: "related_to",
+          note: "Context",
+        },
+        op: {
+          op: "link",
+          fromId: item.id,
+          toId: target.id,
+          type: "related_to",
+          note: "Context",
+        },
+        operation: "v1.link.create",
+      },
+      "item update": {
+        path: `items/${item.id}`,
+        method: "PUT",
+        body: { revision: item.revision, data: itemData },
+        op: {
+          op: "update_item",
+          id: item.id,
+          revision: item.revision,
+          data: itemData,
+        },
+        operation: "v1.item.update",
+      },
+      "project update": {
+        path: `projects/${project.id}`,
+        method: "PUT",
+        body: { revision: project.revision, data: projectData },
+        op: {
+          op: "update_project",
+          id: project.id,
+          revision: project.revision,
+          data: projectData,
+        },
+        operation: "v1.project.update",
+      },
+      organize: {
+        path: `journal/${moment.id}/organize`,
+        method: "POST",
+        body: { revision: moment.revision, item: itemData, resolved: true },
+        op: {
+          op: "organize_moment",
+          key: "new_item",
+          id: moment.id,
+          revision: moment.revision,
+          data: itemData,
+        },
+        operation: "v1.moment.organize",
+      },
+    };
+    const c = cases[kind],
+      before = await V1Backup.export(userId);
+    const existingIds = new Set(
+      Object.values(before.tables).flatMap((rows) =>
+        rows.map((r) => ("id" in r ? r.id : null)),
+      ),
+    );
+    const domain = async () => {
+      const data = await V1Backup.export(userId);
+      return {
+        items: data.tables.items,
+        projects: data.tables.projects,
+        tags: data.tables.tags,
+        links: data.tables.links,
+        moments: data.tables.moments,
+        momentItems: data.tables.momentItems,
+        activities: data.tables.activities,
+        itemTags: data.tables.itemTags,
+        projectTags: data.tables.projectTags,
+      };
+    };
+    const created = (state: Awaited<ReturnType<typeof domain>>) =>
+      Object.values(state).flatMap((rows) =>
+        rows.flatMap((r) =>
+          "id" in r && !existingIds.has(r.id) ? [r.id as string] : [],
+        ),
+      );
+    const receipt = async (id: string) => {
+      const row = await v1db.ledger.findUniqueOrThrow({ where: { id } });
+      expect(row.operation).toBe(c.operation);
+      expect(row.status).toBe("success");
+      return JSON.parse(row.receipt);
+    };
+    const ui = await uiWrite(c.path, c.method, c.body),
+      uiState = await domain();
+    const uiReceipt = await receipt(ui.receiptId);
+    await V1Backup.restore(p, before, "RESTORE V1 DATA");
+    const draft = await preview(userId, [c.op]);
+    const applied = await approve(p, draft.token, "");
+    const coachState = await domain();
+    const coachReceipt = await receipt(applied.value.changes[0].receiptId);
+    expect(outcome(coachState, created(coachState))).toEqual(
+      outcome(uiState, created(uiState)),
+    );
+    expect(outcome(coachReceipt, created(coachState))).toEqual(
+      outcome(uiReceipt, created(uiState)),
+    );
+  },
+);
+it("rolls back earlier service operations and their success receipts when a later approved write is locked", async () => {
+  const item = (await V1.createItem(p, { type: "note", title: "Locked" }))
+    .value;
+  const draft = await preview(userId, [
+    {
+      op: "create_tag",
+      key: "new_area",
+      data: { name: "Must roll back", kind: "area" },
+    },
+    {
+      op: "update_item",
+      id: item.id,
+      revision: item.revision,
+      data: { title: "Changed" },
+    },
+  ]);
+  await V1.setLease(p, item.id, "editor", true);
+  const successes = await v1db.ledger.count({
+    where: { userId, status: "success" },
+  });
+  await expect(approve(p, draft.token, "")).rejects.toMatchObject({
+    status: 423,
+  });
+  expect(await v1db.tag.count({ where: { userId } })).toBe(0);
+  expect(await V1.item(userId, item.id)).toMatchObject({
+    title: "Locked",
+    revision: item.revision,
+  });
+  expect(
+    await v1db.ledger.count({ where: { userId, status: "success" } }),
+  ).toBe(successes);
+  expect(
+    await v1db.ledger.count({
+      where: { userId, status: "refused", operation: "v1.coach.apply" },
+    }),
+  ).toBe(1);
+});
+
+it.each(["journal", "activities", "capture"])(
+  "%s preserves identical records and receipt outcomes for UI and approved agent retries",
+  async (resource) => {
+    const at = "2026-11-01T12:00:00Z";
+    const raw =
+      resource === "activities"
+        ? {
+            clientId: "shared-activity",
+            kind: "check_in",
+            occurredAt: at,
+            timezone: "UTC",
+            data: { mood: 3 },
+          }
+        : {
+            clientId: "shared-moment",
+            text: "A shared capture",
+            occurredAt: at,
+            timezone: "UTC",
+            ...(resource === "capture" ? { capturedAt: at } : {}),
+          };
+    const ui = await uiWrite(resource, "POST", raw);
+    const before = await V1Backup.export(userId);
+    const agent: Principal = { userId, actor: "agent:coach", approved: true };
+    const service =
+      resource === "journal"
+        ? V1.createMoment
+        : resource === "activities"
+          ? V1.createActivity
+          : V1.capture;
+    const coach = await service(agent, raw);
+    expect(JSON.parse(JSON.stringify(coach.value))).toEqual(ui.value);
+    const uiReceipt = await v1db.ledger.findUniqueOrThrow({
+      where: { id: ui.receiptId },
+    });
+    const coachReceipt = await v1db.ledger.findUniqueOrThrow({
+      where: { id: coach.receiptId },
+    });
+    expect(coachReceipt.receipt).toBe(uiReceipt.receipt);
+    expect(coachReceipt.operation).toBe(uiReceipt.operation);
+    expect(coachReceipt.status).toBe(uiReceipt.status);
+    const after = await V1Backup.export(userId);
+    for (const table of [
+      "items",
+      "moments",
+      "momentItems",
+      "activities",
+    ] as const)
+      expect(after.tables[table]).toEqual(before.tables[table]);
+    await expect(
+      service(
+        { ...agent, approved: false },
+        { ...raw, clientId: "unapproved" },
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+  },
+);

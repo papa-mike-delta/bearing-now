@@ -1,5 +1,5 @@
 import { Prisma } from "@bearing/v1-client";
-import { v1db } from "./db";
+import { v1db } from "../db";
 import {
   write,
   parse,
@@ -7,16 +7,16 @@ import {
   guardOpen,
   type Principal,
   type Tx,
-} from "./service";
+} from "./index";
 import {
   backupInput,
   delegates,
   validateRows,
   type Backup,
-} from "./backup-contract";
-import { linkInput, momentInput } from "./contracts";
-import { dateInZone } from "./dates";
-import { validLinkEndpoints } from "./link-policy";
+} from "../backup-contract";
+import { linkInput, momentInput } from "../contracts";
+import { dateInZone } from "../dates";
+import { validLinkEndpoints } from "../link-policy";
 
 // Dynamic iteration is limited to this audited manifest; callers never choose a Prisma delegate.
 type Row = Record<string, unknown>;
