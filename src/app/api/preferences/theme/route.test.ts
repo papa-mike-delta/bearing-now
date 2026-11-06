@@ -56,6 +56,30 @@ it.each([null, {}, { input: 1 }, { input: "body { color: red; }" }, { input: "ht
   expect(await (await GET(request())).json()).toEqual(saved);
 });
 
+it("writes a shipped preset and a create preset into the stored override", async () => {
+  const bearing = await POST(request("POST", { input: "preset:bearing" }));
+  expect(bearing.status).toBe(200);
+  const saved = await bearing.json();
+  expect(saved.css).toContain("--background: #f4efe4;");
+  expect(saved.css).toContain("--background: #101e20;");
+  expect(saved.css).toContain("--primary: #f0c779;");
+  expect(saved.css).toContain("--chart-1: #c4923e;");
+  expect(fetch).not.toHaveBeenCalled();
+  expect(await (await GET(request())).json()).toEqual(saved);
+
+  vi.mocked(fetch).mockResolvedValue(new Response(fixture("theme.json")));
+  const teal = await POST(request("POST", { input: "preset:teal" }));
+  expect(teal.status).toBe(200);
+  const next = await teal.json();
+  expect(next.css).toContain("--primary: oklch(0.488 0.243 264.376);");
+  expect(next.css).toContain("--font-heading:");
+  expect(String(vi.mocked(fetch).mock.calls[0][0])).toContain("theme=teal");
+  expect(await (await GET(request())).json()).toEqual(next);
+
+  expect((await POST(request("POST", { input: "preset:not-a-theme" }))).status).toBe(400);
+  expect(await (await GET(request())).json()).toEqual(next);
+});
+
 it("isolates themes by authenticated user and resets only the current user's import", async () => {
   await POST(request("POST", { input: fixture("theme.css") }));
   expect(await (await GET(request("GET", undefined, "user-2"))).json()).toEqual({ css: "" });

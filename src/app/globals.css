@@ -665,13 +665,14 @@ html.dark.bearing-v1 .bearing-eyebrow {
 }
 
 html.bearing-v1 [data-slot="metric-value"] {
-  font-family: Georgia, "Iowan Old Style", Palatino, serif;
+  font-family: var(--font-heading, Georgia, "Iowan Old Style", Palatino, serif);
   font-weight: 500;
   letter-spacing: -0.03em;
 }
 
-html.bearing-v1 [data-slot="page-header"] h1 {
-  font-family: Georgia, "Iowan Old Style", Palatino, serif;
+html.bearing-v1 [data-slot="page-header"] h1,
+html.bearing-v1 .bearing-dense :where(h1, h2, h3) {
+  font-family: var(--font-heading, Georgia, "Iowan Old Style", Palatino, serif);
   font-weight: 500;
   letter-spacing: -0.03em;
 }
@@ -683,22 +684,67 @@ html.bearing-v1 [data-slot="page-header"] h1 {
   }
 }
 
+html.bearing-v1 body {
+  font-family: var(--font-sans, var(--font-geist-sans)), sans-serif;
+}
+
+html.bearing-v1 {
+  direction: var(--direction, ltr);
+}
+
+html.bearing-v1 .bearing-app :where(button, [role="button"], a[href], summary) {
+  cursor: var(--pointer, revert);
+}
+
 html.bearing-v1 [data-slot="section-card"] {
-  border-radius: 1.125rem;
+  border-radius: min(var(--radius), 1.125rem);
   border-color: color-mix(in oklab, var(--foreground) 10%, transparent);
   background: color-mix(in oklab, var(--card) 88%, transparent);
   box-shadow: none;
 }
 
 html.bearing-v1 [data-slot="dialog-content"] {
-  border-radius: 1.125rem;
+  border-radius: min(var(--radius), 1.125rem);
   border-color: color-mix(in oklab, var(--foreground) 14%, transparent);
   background: var(--popover);
   box-shadow: 0 24px 60px #0000002e;
 }
 
 html.bearing-v1 [data-slot="button"] {
-  border-radius: 0.75rem;
+  border-radius: min(var(--radius), 0.75rem);
+}
+
+html.bearing-v1 [data-slot="page-mark"] {
+  border-radius: min(var(--radius), 0.75rem);
+}
+
+html.bearing-v1 .bearing-dense[class~="space-y-6"] > :not([hidden]) ~ :not([hidden]),
+html.bearing-v1 .bearing-dense .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.75rem;
+}
+
+html.bearing-v1 .bearing-app main:has(.bearing-dense) {
+  padding-top: 1rem;
+  padding-bottom: 1.25rem;
+}
+
+html.bearing-v1 .bearing-app main:has(.bearing-dense) > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.75rem;
+}
+
+html.bearing-v1 .bearing-dense .grid {
+  gap: 0.75rem;
+}
+
+html.bearing-v1 .bearing-dense [data-slot="section-card"],
+html.bearing-v1 .bearing-dense [data-slot="metric"],
+html.bearing-v1 .bearing-dense [data-slot="journal-bar"],
+html.bearing-v1 .bearing-dense [data-slot="item-card"] {
+  border-radius: min(var(--radius), 0.75rem);
+}
+
+html.bearing-v1 .bearing-dense [data-slot="section-card"]:not(.p-0) {
+  padding: 0.75rem;
 }
 
 html.bearing-v1 [data-slot="checkbox"] {

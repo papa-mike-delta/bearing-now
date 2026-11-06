@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { ThemeCatalog } from "./theme-catalog";
 import { ThemeOverride } from "./theme-override";
 
 const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8");
@@ -90,6 +91,84 @@ it("surfaces upstream errors and rejects redirects or HTML instead of importing 
   await expect(ThemeOverride.parse("https://ui.shadcn.com/create")).rejects.toThrow();
   vi.mocked(fetch).mockResolvedValueOnce(new Response("<html>Builder</html>"));
   await expect(ThemeOverride.parse("https://ui.shadcn.com/create")).rejects.toThrow();
+});
+
+it("imports the Bearing preset into the override without a network request", async () => {
+  const theme = await ThemeOverride.parse("preset:bearing");
+  expect(fetch).not.toHaveBeenCalled();
+  expect(theme.light["--background"]).toBe("#f4efe4");
+  expect(theme.light["--primary"]).toBe("#f0c779");
+  expect(theme.light["--chart-2"]).toBe("#486b5c");
+  expect(theme.dark["--background"]).toBe("#101e20");
+  expect(theme.light["--font-heading"]).toContain("Georgia");
+  expect(await ThemeOverride.parse(ThemeOverride.serialize(theme))).toEqual(theme);
+});
+
+it("imports a create preset through the same override parser", async () => {
+  vi.mocked(fetch).mockResolvedValue(new Response(fixture("theme.json")));
+  const theme = await ThemeOverride.parse("preset:teal");
+  const url = new URL(String(vi.mocked(fetch).mock.calls[0][0]));
+  expect(url.origin).toBe("https://ui.shadcn.com");
+  expect(url.pathname).toBe("/init");
+  expect(url.searchParams.get("theme")).toBe("teal");
+  expect(url.searchParams.get("chartColor")).toBe("amber");
+  expect(theme.light["--primary"]).toBe("oklch(0.488 0.243 264.376)");
+  expect(theme.dark["--primary"]).toBe("oklch(0.424 0.199 265.638)");
+  expect(theme.light["--font-sans"]).toContain("var(--font-geist-sans)");
+  expect(ThemeOverride.serialize(theme)).toContain("--font-heading:");
+});
+
+it("writes heading font, direction and inverted menu into the override", async () => {
+  vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({
+    cssVars: {
+      light: { background: "oklch(1 0 0)", foreground: "oklch(0.2 0 0)", sidebar: "oklch(0.98 0 0)", "sidebar-foreground": "oklch(0.2 0 0)" },
+      dark: { background: "oklch(0.2 0 0)", foreground: "oklch(0.98 0 0)", sidebar: "oklch(0.25 0 0)", "sidebar-foreground": "oklch(0.98 0 0)" },
+    },
+  })));
+  const theme = await ThemeOverride.parse("https://ui.shadcn.com/create?theme=violet&font=inter&fontHeading=playfair-display&menuColor=inverted-translucent&rtl=true&pointer=true");
+  expect(theme.light["--font-heading"]).toContain("Georgia");
+  expect(theme.light["--font-sans"]).toContain("var(--font-geist-sans)");
+  expect(theme.light["--direction"]).toBe("rtl");
+  expect(theme.dark["--pointer"]).toBe("pointer");
+  expect(theme.light["--sidebar"]).toBe("color-mix(in oklch, oklch(0.25 0 0) 72%, transparent)");
+  expect(theme.dark["--sidebar"]).toBe("color-mix(in oklch, oklch(0.98 0 0) 72%, transparent)");
+});
+
+it("rejects an unknown preset before fetching", async () => {
+  await expect(ThemeOverride.parse("preset:not-a-theme")).rejects.toThrow(/Unknown theme preset/);
+  expect(fetch).not.toHaveBeenCalled();
+});
+
+it("ships the create option set, expanded colors, and a preset collection", () => {
+  expect(ThemeCatalog.options.style).toEqual(["vega", "nova", "maia", "lyra", "mira", "luma", "sera", "rhea"]);
+  expect(ThemeCatalog.options.baseColor).toEqual(["neutral", "stone", "zinc", "mauve", "olive", "mist", "taupe"]);
+  expect(ThemeCatalog.options.theme).toEqual(expect.arrayContaining(["amber", "blue", "cyan", "emerald", "fuchsia", "green", "indigo", "lime", "orange", "pink", "purple", "red", "rose", "sky", "teal", "violet", "yellow"]));
+  expect(ThemeCatalog.options.font).toHaveLength(26);
+  expect(ThemeCatalog.presets.length).toBeGreaterThanOrEqual(28);
+  const selections = ThemeCatalog.presets.flatMap((preset) => preset.selection ? [preset.selection] : []);
+  const themes = new Set(selections.map((selection) => selection.theme));
+  for (const theme of ThemeCatalog.options.theme) expect(themes.has(theme)).toBe(true);
+  for (const key of ["base", "style", "baseColor", "radius", "menuAccent", "menuColor", "iconLibrary"] as const) {
+    for (const value of ThemeCatalog.options[key]) {
+      expect(selections.some((selection) => selection[key] === value)).toBe(true);
+    }
+  }
+  expect(selections.some((selection) => selection.rtl)).toBe(true);
+  expect(selections.some((selection) => selection.fontHeading === "playfair-display")).toBe(true);
+  for (const preset of ThemeCatalog.presets) {
+    if (preset.variables) {
+      expect(preset.id).toBe("bearing");
+      expect(ThemeCatalog.importInput(preset.id)).toContain("#f4efe4");
+      continue;
+    }
+    const url = new URL(ThemeCatalog.importInput(preset.id));
+    expect(url.origin).toBe("https://ui.shadcn.com");
+    expect(url.searchParams.get("theme")).toBe(preset.selection!.theme);
+    expect(ThemeCatalog.allowedTheme(preset.selection!.baseColor, preset.selection!.theme)).toBe(true);
+    expect(ThemeCatalog.allowedTheme(preset.selection!.baseColor, preset.selection!.chartColor)).toBe(true);
+  }
+  expect(() => ThemeCatalog.createUrl({ ...ThemeCatalog.defaults(), theme: "nope" })).toThrow(/Unknown theme/);
+  expect(() => ThemeCatalog.createUrl({ ...ThemeCatalog.defaults(), theme: "stone" })).toThrow(/base color stone/);
 });
 
 it("preserves optional semantic overrides, non-hex values and extended palette variables", async () => {

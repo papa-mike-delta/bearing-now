@@ -251,7 +251,7 @@ export function GraphExplorer({data,isLoading=false,openItemDetail,openProject}:
   }, [data]);
 
   return (
-    <div className="space-y-6">
+    <div className="bearing-dense space-y-6">
       <PageHeader
         title="Digital Brain"
         subtitle="See how everything connects. Every line is a link or a project thread weaving your life together."
@@ -486,7 +486,7 @@ export function GraphExplorer({data,isLoading=false,openItemDetail,openProject}:
               </div>
               <div className="flex items-center gap-2">
                 <span className="h-4 w-4 rounded border-2 border-success border-dashed" />
-                <span>Completed (green ring)</span>
+                <span>Completed (ring)</span>
               </div>
             </div>
           </SectionCard>

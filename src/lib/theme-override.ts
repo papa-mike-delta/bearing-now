@@ -1,4 +1,5 @@
 import postcss from "postcss";
+import { ThemeCatalog } from "./theme-catalog";
 
 export type ThemeVariables = {
   light: Record<string, string>;
@@ -16,6 +17,10 @@ export class ThemeOverride {
       throw new Error("Provide a theme URL, CSS, or JSON (up to 100 KB).");
     }
     input = input.trim();
+    if (/^preset:/i.test(input)) {
+      return ThemeOverride.parse(ThemeCatalog.importInput(input.slice(7).trim().toLowerCase()));
+    }
+    let createUrl: URL | undefined;
     if (/^[a-z][a-z0-9+.-]*:/i.test(input)) {
       const url = new URL(input);
       if (url.origin !== "https://ui.shadcn.com" || url.username || url.password ||
@@ -29,6 +34,7 @@ export class ThemeOverride {
       for (const [name, value] of Object.entries(defaults)) {
         if (!url.searchParams.has(name)) url.searchParams.set(name, value);
       }
+      createUrl = url;
       const response = await fetch(url.toString(), { redirect: "error", signal: AbortSignal.timeout(10_000) });
       if (!response.ok) throw new Error(`Theme export failed (${response.status}).`);
       input = (await response.text()).trim();
@@ -42,10 +48,11 @@ export class ThemeOverride {
         return Object.fromEntries(Object.entries(map).map(([name, value]) => [name.startsWith("--") ? name : `--${name}`, value]));
       };
       const shared = variables?.theme === undefined ? {} : normalize(variables.theme);
-      return ThemeOverride.validate({
+      const parsed = ThemeOverride.validate({
         light: { ...shared, ...normalize(variables?.light) },
         dark: { ...shared, ...normalize(variables?.dark) },
       });
+      return createUrl ? ThemeOverride.tune(parsed, createUrl) : parsed;
     }
     const theme: ThemeVariables = { light: {}, dark: {} };
     const shared: Record<string, string> = {};
@@ -64,7 +71,50 @@ export class ThemeOverride {
       }
     }
     ThemeOverride.validate(theme);
-    return ThemeOverride.validate({ light: { ...shared, ...theme.light }, dark: { ...shared, ...theme.dark } });
+    const parsed = ThemeOverride.validate({ light: { ...shared, ...theme.light }, dark: { ...shared, ...theme.dark } });
+    return createUrl ? ThemeOverride.tune(parsed, createUrl) : parsed;
+  }
+
+  /** Fold create options that the export omits into the same override variables. */
+  static tune(theme: ThemeVariables, url: URL): ThemeVariables {
+    const font = url.searchParams.get("font") ?? "geist";
+    const heading = url.searchParams.get("fontHeading") || "inherit";
+    const menu = url.searchParams.get("menuColor") ?? "default";
+    const next: ThemeVariables = {
+      light: {
+        ...theme.light,
+        "--font-sans": ThemeCatalog.fontStack(font),
+        "--font-heading": ThemeCatalog.fontStack(heading === "inherit" ? font : heading),
+        "--direction": url.searchParams.get("rtl") === "true" ? "rtl" : "ltr",
+        "--pointer": url.searchParams.get("pointer") === "true" ? "pointer" : "default",
+      },
+      dark: {
+        ...theme.dark,
+        "--font-sans": ThemeCatalog.fontStack(font),
+        "--font-heading": ThemeCatalog.fontStack(heading === "inherit" ? font : heading),
+        "--direction": url.searchParams.get("rtl") === "true" ? "rtl" : "ltr",
+        "--pointer": url.searchParams.get("pointer") === "true" ? "pointer" : "default",
+      },
+    };
+    if (menu === "inverted" || menu === "inverted-translucent") {
+      const lightSidebar = theme.dark["--sidebar"] ?? theme.dark["--background"];
+      const darkSidebar = theme.light["--sidebar"] ?? theme.light["--background"];
+      const lightFg = theme.dark["--sidebar-foreground"] ?? theme.dark["--foreground"];
+      const darkFg = theme.light["--sidebar-foreground"] ?? theme.light["--foreground"];
+      if (lightSidebar && darkSidebar && lightFg && darkFg) {
+        next.light["--sidebar"] = lightSidebar;
+        next.light["--sidebar-foreground"] = lightFg;
+        next.dark["--sidebar"] = darkSidebar;
+        next.dark["--sidebar-foreground"] = darkFg;
+      }
+    }
+    if (menu.endsWith("translucent")) {
+      for (const mode of ["light", "dark"] as const) {
+        const sidebar = next[mode]["--sidebar"];
+        if (sidebar) next[mode]["--sidebar"] = `color-mix(in oklch, ${sidebar} 72%, transparent)`;
+      }
+    }
+    return ThemeOverride.validate(next);
   }
 
   static validate(theme: ThemeVariables): ThemeVariables {

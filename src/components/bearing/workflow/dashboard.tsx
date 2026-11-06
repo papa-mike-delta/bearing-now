@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Icon } from "../icon";
 import { cn } from "@/lib/utils";
 
-export function Dashboard({ children }: { children: React.ReactNode }) {
-  return <div className="space-y-6">{children}</div>;
+export function Dashboard({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn("space-y-6", className)}>{children}</div>;
 }
 
 export function MetricRow({
@@ -66,6 +66,7 @@ export function Metric({
     return (
       <button
         type="button"
+        data-slot="metric"
         className={className}
         onClick={onClick}
         aria-pressed={pressed}
@@ -75,17 +76,17 @@ export function Metric({
     );
   if (href?.startsWith("#"))
     return (
-      <a href={href} className={className}>
+      <a href={href} data-slot="metric" className={className}>
         {body}
       </a>
     );
   if (href)
     return (
-      <Link href={href} className={className}>
+      <Link href={href} data-slot="metric" className={className}>
         {body}
       </Link>
     );
-  return <div className={className}>{body}</div>;
+  return <div data-slot="metric" className={className}>{body}</div>;
 }
 
 export function SurfaceGrid({

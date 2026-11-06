@@ -41,6 +41,7 @@ import {
 } from "@/lib/v1/contracts";
 import { ReviewComposer } from "./review-composer";
 import { TagSelector, ItemEditor } from "./item-editor";
+import { itemColor } from "@/lib/product-colors";
 import { WorkSurface } from "@/lib/v1/surfaces";
 import { Dashboard, Metric, MetricRow, SurfaceGrid, TileGrid } from "./dashboard";
 
@@ -79,11 +80,13 @@ export function ItemCard({
   }
   return (
     <article
+      data-slot="item-card"
       className={
         layout === "tile"
           ? "flex min-w-0 flex-col gap-3 rounded-2xl border border-border/70 bg-card p-3"
           : "flex min-w-0 flex-wrap items-start gap-3 rounded-xl border border-border bg-card p-4"
       }
+      style={{ borderLeft: `3px solid ${itemColor(item.type)}` }}
       aria-label={item.title}
     >
       <div
@@ -193,7 +196,7 @@ export function Today({ date }: { date: string }) {
   );
   const organize = WorkSurface.organizeCount(data.items, data.moments);
   return (
-    <Dashboard>
+    <Dashboard className="bearing-dense">
       <PageHeader
         title="Today"
         subtitle={`A little direction for ${date}. Your plans stay separate from what happened.`}
@@ -561,8 +564,8 @@ export function Journal({ date }: { date: string }) {
     showActivities,
   });
   return (
-    <Dashboard>
-      <div className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-border/70 bg-card/70 p-3">
+    <Dashboard className="bearing-dense">
+      <div data-slot="journal-bar" className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-border/70 bg-card/70 p-3">
         <label className="text-sm font-medium">
           Journal date
           <input
