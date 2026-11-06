@@ -1,0 +1,268 @@
+import { execFileSync } from "node:child_process";
+import { beforeAll, afterAll, beforeEach, expect, it } from "vitest";
+import { Workflow } from "@/lib/v1/workflow";
+import { V1, type Principal } from "@/lib/v1/service";
+import { V1Backup } from "@/lib/v1/service/backup";
+import { LinkProposals } from "@/lib/v1/link-proposals";
+import { v1db } from "@/lib/v1/db";
+
+const userId = "proposal-alice",
+  other = "proposal-bob",
+  p: Principal = { userId, actor: `user:${userId}` },
+  q: Principal = { userId: other, actor: `user:${other}` };
+
+beforeAll(async () => {
+  for (const schema of ["prisma/schema.prisma", "prisma/v1/schema.prisma"])
+    execFileSync(
+      process.execPath,
+      [
+        "node_modules/prisma/build/index.js",
+        "migrate",
+        "deploy",
+        "--schema",
+        schema,
+      ],
+      { env: process.env, stdio: "pipe" },
+    );
+  await v1db.account.createMany({
+    data: [userId, other].map((id) => ({
+      id,
+      email: `${id}@example.test`,
+      passwordHash: "test",
+    })),
+  });
+});
+afterAll(async () => {
+  const schema = new URL(process.env.DATABASE_URL!).searchParams.get("schema")!;
+  if (!/^v1_test_[a-f0-9]+$/.test(schema))
+    throw new Error("Unsafe test schema");
+  await v1db.$executeRawUnsafe(`DROP SCHEMA "${schema}" CASCADE`);
+  await v1db.$disconnect();
+});
+beforeEach(async () => {
+  for (const person of [p, q]) {
+    await V1Backup.reset(person, "RESET V1 DATA");
+    await v1db.ledger.deleteMany({ where: { userId: person.userId } });
+  }
+});
+
+const capture = (extra: Record<string, unknown> = {}) => ({
+  clientId: crypto.randomUUID(),
+  text: "Saw Alex",
+  capturedAt: "2026-11-06T15:00:00.000Z",
+  occurredAt: "2026-11-06T15:00:00.000Z",
+  timezone: "America/New_York",
+  ...extra,
+});
+
+async function successCount() {
+  return v1db.ledger.count({
+    where: { userId, operation: "v1.link.create", status: "success" },
+  });
+}
+
+it("proposes a mentions Link from an explicit Journal Item and preserves a bare mention", async () => {
+  const person = (
+    await V1.createItem(p, { type: "person", title: "Alex" })
+  ).value;
+  const bare = (await V1.capture(p, capture({ mentionIds: [person.id] })))
+    .value;
+  expect(bare.items).toEqual([
+    expect.objectContaining({ itemId: person.id, relation: "mention" }),
+  ]);
+  const before = await Workflow.workspace(userId);
+  expect(LinkProposals.infer(before).map((card) => card.accept)).toEqual([]);
+  expect(LinkProposals.unsupportedMentions(before)[0].summary).toContain(
+    "Alex",
+  );
+  expect(await v1db.link.count({ where: { userId } })).toBe(0);
+
+  const filed = (
+    await V1.capture(
+      p,
+      capture({ text: "/note Clinic note", mentionIds: [person.id] }),
+    )
+  ).value;
+  const workspace = await Workflow.workspace(userId);
+  const card = LinkProposals.infer(workspace).find(
+    (entry) => entry.accept.kind === "link" && entry.accept.type === "mentions",
+  );
+  expect(card?.accept).toMatchObject({
+    kind: "link",
+    toId: person.id,
+    type: "mentions",
+  });
+  expect(filed.items.some((ref) => ref.relation === "mention")).toBe(true);
+  const linksBeforeAccept = await v1db.link.count({ where: { userId } });
+  const ledgerBeforeReject = await v1db.ledger.count({ where: { userId } });
+  expect(LinkProposals.reject()).toEqual({ writes: false });
+  expect(await v1db.link.count({ where: { userId } })).toBe(linksBeforeAccept);
+  expect(await v1db.ledger.count({ where: { userId } })).toBe(
+    ledgerBeforeReject,
+  );
+});
+
+it("accepts a health suggestion once, refuses another account, and blocks a stale revision", async () => {
+  const me = await V1.me(userId);
+  const note = (
+    await V1.createItem(p, {
+      type: "note",
+      title: "Medication log",
+      content: "Take with food.",
+    })
+  ).value;
+  expect(await v1db.link.count({ where: { userId } })).toBe(0);
+  const card = LinkProposals.infer(await Workflow.workspace(userId)).find(
+    (entry) => entry.id === `health:${note.id}:${me.id}`,
+  );
+  expect(card?.confidence).toBe("suggestion");
+  expect(card?.accept).toMatchObject({
+    kind: "link",
+    type: "related_to",
+    fromRevision: note.revision,
+    toRevision: me.revision,
+  });
+  const payload = card!.accept;
+  if (payload.kind !== "link") throw new Error("expected a Link suggestion");
+  const { kind: _kind, ...link } = payload;
+  const first = await V1.createLink(p, link);
+  const second = await V1.createLink(p, link);
+  expect(second.value.id).toBe(first.value.id);
+  expect(second.receiptId).toBe(first.receiptId);
+  expect(await v1db.link.count({ where: { userId } })).toBe(1);
+  expect(await successCount()).toBe(1);
+  expect(
+    await v1db.ledger.count({
+      where: { userId, operation: "v1.link.create", status: "refused" },
+    }),
+  ).toBe(0);
+
+  await expect(V1.createLink(q, link)).rejects.toMatchObject({
+    status: 404,
+  });
+  expect(await v1db.link.count({ where: { userId: other } })).toBe(0);
+  await expect(V1.createLink(p, { ...link, userId })).rejects.toMatchObject({
+    status: 400,
+  });
+
+  const fresh = (
+    await V1.createItem(p, {
+      type: "note",
+      title: "Symptom log",
+      content: "Mild headache.",
+    })
+  ).value;
+  await V1.updateItem(p, fresh.id, fresh.revision, {
+    type: "note",
+    title: "Symptom log revised",
+    content: fresh.content,
+  });
+  await expect(
+    V1.createLink(p, {
+      fromId: fresh.id,
+      toId: me.id,
+      type: "related_to",
+      fromRevision: fresh.revision,
+      toRevision: me.revision,
+    }),
+  ).rejects.toMatchObject({ status: 409 });
+  expect(
+    await v1db.link.count({
+      where: { userId, fromId: fresh.id, toId: me.id },
+    }),
+  ).toBe(0);
+  expect(await successCount()).toBe(1);
+});
+
+it("keeps unrevisioned duplicate Links on the existing refusal path", async () => {
+  const me = await V1.me(userId);
+  const note = (
+    await V1.createItem(p, { type: "note", title: "Ordinary note" })
+  ).value;
+  await V1.updateItem(p, note.id, note.revision, {
+    type: "note",
+    title: "Ordinary note",
+    content: "edited",
+  });
+  const body = { fromId: note.id, toId: me.id, type: "related_to" as const };
+  await V1.createLink(p, body);
+  await expect(V1.createLink(p, body)).rejects.toMatchObject({
+    status: 409,
+    message: "Record already exists",
+  });
+  expect(await v1db.link.count({ where: { userId } })).toBe(1);
+  expect(await successCount()).toBe(1);
+});
+
+it("assigns an inherited Area only through the Item write and leaves GPS and Project membership unlinked", async () => {
+  const area = (await V1.createTag(p, { name: "Home", kind: "area" })).value;
+  const project = (
+    await V1.createProject(p, { name: "Launch", tagIds: [area.id] })
+  ).value;
+  const goal = (
+    await V1.createItem(p, {
+      type: "goal",
+      title: "Ship",
+      projectId: project.id,
+    })
+  ).value;
+  const task = (
+    await V1.createItem(p, {
+      type: "task",
+      title: "Write",
+      projectId: project.id,
+    })
+  ).value;
+  const placed = await V1.capture(
+    p,
+    capture({
+      text: "/place Cafe",
+      place: { latitude: 40.71, longitude: -74 },
+    }),
+  );
+  const workspace = await Workflow.workspace(userId);
+  const cards = LinkProposals.infer(workspace);
+  expect(cards.some((card) => card.accept.kind === "link" && card.accept.type === "advances")).toBe(false);
+  expect(JSON.stringify(cards)).not.toContain("located_at");
+  expect(cards.map((card) => card.accept.kind)).toContain("area");
+  expect(goal.projectId).toBe(project.id);
+  expect(task.projectId).toBe(project.id);
+  expect(placed.value.items.some((ref) => ref.relation === "reference")).toBe(
+    true,
+  );
+  const suggestion = cards.find((card) => card.accept.kind === "area");
+  if (!suggestion || suggestion.accept.kind !== "area")
+    throw new Error("expected an Area suggestion");
+  const current = workspace.items.find((item) => item.id === suggestion.accept.itemId)!;
+  const updated = await V1.updateItem(p, current.id, suggestion.accept.revision, {
+    type: current.type,
+    title: current.title,
+    content: current.content,
+    status: current.status,
+    projectId: current.projectId,
+    tagIds: [suggestion.accept.tagId],
+    timezone: current.timezone,
+  });
+  expect(updated.value.directAreas.map((entry) => entry.id)).toContain(area.id);
+  await expect(
+    V1.updateItem(p, current.id, suggestion.accept.revision, {
+      type: current.type,
+      title: current.title,
+      content: current.content,
+      status: current.status,
+      projectId: current.projectId,
+      tagIds: [suggestion.accept.tagId],
+      timezone: current.timezone,
+    }),
+  ).rejects.toMatchObject({ status: 409 });
+  expect(
+    await v1db.itemTag.count({
+      where: { userId, itemId: current.id, tagId: area.id },
+    }),
+  ).toBe(1);
+  expect(
+    await v1db.link.count({
+      where: { userId, OR: [{ fromId: goal.id }, { toId: goal.id }] },
+    }),
+  ).toBe(0);
+});

@@ -47,6 +47,15 @@ export function parse<T>(contract: z.ZodType<T>, raw: unknown): T {
 }
 const json = (value: unknown) =>
   JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+/** A revisioned retry of an existing Link. Caught inside the write transaction so it commits no new success receipt. */
+class LinkReplay<T> extends Error {
+  constructor(
+    readonly value: T,
+    readonly receiptId: string,
+  ) {
+    super("Link already recorded");
+  }
+}
 export async function write<T>(
   principal: Principal,
   operation: string,
@@ -61,18 +70,28 @@ export async function write<T>(
       throw new Fault(403, "Actor does not own this account");
     if (actor.startsWith("agent:") && !principal.approved)
       throw new Fault(403, "An approved change set is required");
-    const value = await work(tx);
-    const receipt = await tx.ledger.create({
-      data: {
-        userId,
-        actor,
-        operation,
-        payload: JSON.stringify(payload ?? null),
-        status: "success",
-        receipt: JSON.stringify({ ok: true, value }),
-      },
-    });
-    return { ok: true as const, value, receiptId: receipt.id };
+    try {
+      const value = await work(tx);
+      const receipt = await tx.ledger.create({
+        data: {
+          userId,
+          actor,
+          operation,
+          payload: JSON.stringify(payload ?? null),
+          status: "success",
+          receipt: JSON.stringify({ ok: true, value }),
+        },
+      });
+      return { ok: true as const, value, receiptId: receipt.id };
+    } catch (error) {
+      if (error instanceof LinkReplay)
+        return {
+          ok: true as const,
+          value: error.value as T,
+          receiptId: error.receiptId,
+        };
+      throw error;
+    }
   };
   // Composition shares writes and receipts; only the outer transaction records refusal.
   if (transaction) return run(transaction);
@@ -916,11 +935,47 @@ export class V1 {
         const value = parse(schema.linkInput, raw),
           from = await owned(tx, p.userId, "item", value.fromId),
           to = await owned(tx, p.userId, "item", value.toId);
+        const { fromRevision, toRevision, ...link } = value;
+        const revisioned =
+          fromRevision !== undefined || toRevision !== undefined;
+        if (revisioned) {
+          const existing = await tx.link.findUnique({
+            where: {
+              userId_fromId_toId_type: {
+                userId: p.userId,
+                fromId: link.fromId,
+                toId: link.toId,
+                type: link.type,
+              },
+            },
+          });
+          if (existing) {
+            const prior = await tx.ledger.findFirst({
+              where: {
+                userId: p.userId,
+                operation: "v1.link.create",
+                status: "success",
+                receipt: { contains: `"id":"${existing.id}"` },
+              },
+              orderBy: { createdAt: "asc" },
+            });
+            if (!prior) throw new Fault(409, "Record already exists");
+            throw new LinkReplay(existing, prior.id);
+          }
+          if (fromRevision !== undefined && from.revision !== fromRevision)
+            throw new Fault(409, "Item changed", {
+              currentRevision: from.revision,
+            });
+          if (toRevision !== undefined && to.revision !== toRevision)
+            throw new Fault(409, "Item changed", {
+              currentRevision: to.revision,
+            });
+        }
         await guardOpen(tx, p, [value.fromId, value.toId]);
         await cap(tx, p, "link");
         if (!validLinkEndpoints(value.type, from, to))
           throw new Fault(400, "Invalid semantic Link endpoints");
-        return tx.link.create({ data: { ...value, userId: p.userId } });
+        return tx.link.create({ data: { ...link, userId: p.userId } });
       },
       transaction,
     );

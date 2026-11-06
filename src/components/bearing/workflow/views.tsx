@@ -34,6 +34,7 @@ import {
   CheckIn,
   HabitsToday,
 } from "./connections";
+import { LinkProposalCards } from "./link-proposals";
 import { typeNames } from "./structured-fields";
 import {
   localDate as validLocalDate,
@@ -499,6 +500,7 @@ export function MomentCard({
       {refs.map((i) => (
         <ItemCard key={i.id} item={i} context="Linked Item" />
       ))}
+      <LinkProposalCards momentId={moment.id} />
       {organize && (
         <div className="space-y-3 border-t border-border pt-3">
           {!refs.length && (
@@ -775,6 +777,7 @@ export function Library({ recordId }: { recordId?: string }) {
           subtitle={`${item.type} · ${statusNames[item.status]}`}
           icon={typeIcons[item.type]}
         />
+        <LinkProposalCards itemId={item.id} />
         {item.type === "person" && <PersonProfile item={item} />}
         {item.type === "bookmark" && <BookmarkReference item={item} />}
         <ItemEditor key={item.id} item={item} />

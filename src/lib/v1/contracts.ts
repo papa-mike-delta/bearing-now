@@ -293,6 +293,8 @@ export const linkInput = z
       "located_at",
     ]),
     note: text.default(""),
+    fromRevision: z.number().int().nonnegative().optional(),
+    toRevision: z.number().int().nonnegative().optional(),
   })
   .refine((v) => v.fromId !== v.toId, "Self Links are not supported");
 export const recurrenceRule = z.discriminatedUnion("mode", [
