@@ -72,9 +72,11 @@ and privacy](docs/redesign/CONVERSATIONAL_COACH.md) before enabling it. Never ex
 keys through `NEXT_PUBLIC_*` or browser settings.
 
 For Vercel Hobby, use external PostgreSQL, Node 22+, a production session secret
-and isolated preview environment variables/database. `npm run build:vercel` applies
-**legacy migrations only**; an operator must explicitly apply reviewed V1 migrations
-before enabling V1. See the [deploy/rollback runbook](docs/RELEASE.md). A production
+and isolated preview environment variables/database. `npm run build:vercel` runs
+the main migration chain, including mirrored V1 foundation/capture migrations.
+An operator must separately apply newer reviewed migrations from `prisma/v1/migrations`
+with `db:v1:deploy` before using features that depend on them. See the
+[deploy/rollback runbook](docs/RELEASE.md). A production
 migration or deployment is a separate, explicitly approved action after preview QA.
 Do not use `db:push`, `migrate dev`, `db:reset` or database drops against live data.
 
