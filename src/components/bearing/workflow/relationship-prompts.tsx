@@ -37,7 +37,10 @@ export function RelationshipPrompts({
 }) {
   const { data, mutate, proposals: inferred } = useWorkspace();
   const gaps = perspectiveGaps(data, scope, inferred);
-  const [active, setActive] = useState<string | null>(null);
+  const [active, setActive] = useState<Pick<
+    PerspectiveGap,
+    "kind" | "recordId"
+  > | null>(null);
   const [revision, setRevision] = useState(0);
   const [target, setTarget] = useState("");
   const [targetRevision, setTargetRevision] = useState(0);
@@ -48,14 +51,33 @@ export function RelationshipPrompts({
   const [error, setError] = useState("");
   const [receipt, setReceipt] = useState("");
   const [limit, setLimit] = useState(6);
-  const gap = gaps.find((entry) => entry.id === active);
   const source =
-    gap?.kind === "link"
-      ? data.items.find((item) => item.id === gap.recordId)
+    active?.kind === "link"
+      ? data.items.find((item) => item.id === active.recordId)
       : undefined;
   const moment =
-    gap?.kind === "moment"
-      ? data.moments.find((entry) => entry.id === gap.recordId)
+    active?.kind === "moment"
+      ? data.moments.find((entry) => entry.id === active.recordId)
+      : undefined;
+  const project =
+    active?.kind === "project"
+      ? data.projects.find((entry) => entry.id === active.recordId)
+      : undefined;
+  // An open proposal keeps its choices if fresh inference changes the faded prompt.
+  // Labels and records still come from the current canonical workspace.
+  const gap =
+    active &&
+    ((source?.status !== "archived" && source) ||
+      moment ||
+      (project?.status !== "archived" && project))
+      ? {
+          ...active,
+          title: source
+            ? `Connect ${source.title}`
+            : moment
+              ? `Connect Journal entry: ${moment.text.slice(0, 80)}`
+              : `Place a Task in ${project!.name}`,
+        }
       : undefined;
   const targets = data.items.filter((item) => {
     if (item.status === "archived") return false;
@@ -67,7 +89,7 @@ export function RelationshipPrompts({
   });
 
   function open(next: PerspectiveGap) {
-    setActive(next.id);
+    setActive({ kind: next.kind, recordId: next.recordId });
     setRevision(
       next.kind === "moment"
         ? data.moments.find((entry) => entry.id === next.recordId)!.revision
@@ -191,8 +213,8 @@ export function RelationshipPrompts({
           </DialogHeader>
           {!gap ? (
             <p>
-              This connection is already filled or its record is no longer
-              available.
+              This record is no longer available. Close this prompt to review
+              your current connections.
             </p>
           ) : (
             <form

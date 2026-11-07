@@ -129,7 +129,6 @@ test("a faded Journal prompt creates one connected Note and preserves the origin
     clientId: crypto.randomUUID(),
     text,
     occurredAt: `${date}T15:00:00Z`,
-    capturedAt: `${date}T15:00:00Z`,
     timezone: "America/New_York",
   });
   await page.goto(`/app/journal?date=${date}`);
@@ -183,7 +182,6 @@ test("a Journal prompt attaches an existing Person without fabricating an intera
     clientId: crypto.randomUUID(),
     text,
     occurredAt: `${date}T15:00:00Z`,
-    capturedAt: `${date}T15:00:00Z`,
     timezone: "America/New_York",
   });
   await page.goto(`/app/journal?date=${date}`);
@@ -281,7 +279,7 @@ test("a connection prompt refuses a stale source and retains the editable propos
       data: {
         type: "note",
         title: source.title,
-        content: "Changed elsewhere",
+        content: "Medication changed elsewhere",
         timezone: "UTC",
         metadata: { version: 1 },
       },
