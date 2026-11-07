@@ -4,7 +4,13 @@ import { Workflow } from "@/lib/v1/workflow";
 import { V1, type Principal } from "@/lib/v1/service";
 import { V1Backup } from "@/lib/v1/service/backup";
 import { LinkProposals } from "@/lib/v1/link-proposals";
+import type { Workspace } from "@/lib/v1/client-model";
 import { v1db } from "@/lib/v1/db";
+
+async function clientWorkspace(userId: string): Promise<Workspace> {
+  // Proposal inference consumes the JSON workspace delivered to the browser.
+  return JSON.parse(JSON.stringify(await Workflow.workspace(userId)));
+}
 
 const userId = "proposal-alice",
   other = "proposal-bob",
@@ -70,7 +76,7 @@ it("proposes a mentions Link from an explicit Journal Item and preserves a bare 
   expect(bare.items).toEqual([
     expect.objectContaining({ itemId: person.id, relation: "mention" }),
   ]);
-  const before = await Workflow.workspace(userId);
+  const before = await clientWorkspace(userId);
   expect(
     LinkProposals.infer(before).some(
       (card) =>
@@ -85,7 +91,7 @@ it("proposes a mentions Link from an explicit Journal Item and preserves a bare 
       capture({ text: "/note Clinic note", mentionIds: [person.id] }),
     )
   ).value;
-  const workspace = await Workflow.workspace(userId);
+  const workspace = await clientWorkspace(userId);
   const card = LinkProposals.infer(workspace).find(
     (entry) => entry.accept.kind === "link" && entry.accept.type === "mentions",
   );
@@ -114,7 +120,7 @@ it("accepts a health suggestion once, refuses another account, and blocks a stal
     })
   ).value;
   expect(await v1db.link.count({ where: { userId } })).toBe(0);
-  const card = LinkProposals.infer(await Workflow.workspace(userId)).find(
+  const card = LinkProposals.infer(await clientWorkspace(userId)).find(
     (entry) => entry.id === `health:${note.id}:${me.id}`,
   );
   expect(card?.confidence).toBe("suggestion");
@@ -222,13 +228,11 @@ it("assigns an inherited Area only through the Item write and leaves GPS and Pro
       place: { latitude: 40.71, longitude: -74 },
     }),
   );
-  const workspace = await Workflow.workspace(userId);
+  const workspace = await clientWorkspace(userId);
   const cards = LinkProposals.infer(workspace);
   expect(
-    cards.some(
-      (card) => card.accept.kind === "link" && card.accept.type === "advances",
-    ),
-  ).toBe(false);
+    cards.flatMap((card) => card.accept.kind === "link" ? [card.accept.type] : []),
+  ).not.toContain("advances");
   expect(
     cards.some(
       (card) =>
@@ -244,7 +248,8 @@ it("assigns an inherited Area only through the Item write and leaves GPS and Pro
   const suggestion = cards.find((card) => card.accept.kind === "area");
   if (!suggestion || suggestion.accept.kind !== "area")
     throw new Error("expected an Area suggestion");
-  const current = workspace.items.find((item) => item.id === suggestion.accept.itemId)!;
+  const accept = suggestion.accept;
+  const current = workspace.items.find((item) => item.id === accept.itemId)!;
   const updated = await V1.updateItem(p, current.id, suggestion.accept.revision, {
     type: current.type,
     title: current.title,
@@ -280,7 +285,7 @@ it("assigns an inherited Area only through the Item write and leaves GPS and Pro
     false,
   );
   const capturedPlace = (
-    await Workflow.workspace(userId)
+    await clientWorkspace(userId)
   ).items.find((item) => item.type === "bookmark");
   expect(capturedPlace?.metadata).toMatchObject({
     capturedMomentId: placed.value.id,
@@ -296,7 +301,7 @@ it("records a derived Journal mention once, and keeps an explicit mention immedi
     await V1.capture(p, capture({ text: "Saw Alex Rivera today" }))
   ).value;
   expect(named.items).toEqual([]);
-  const workspace = await Workflow.workspace(userId);
+  const workspace = await clientWorkspace(userId);
   const card = LinkProposals.infer(workspace).find(
     (entry) => entry.id === `journal-mention:${named.id}:${person.id}`,
   );
@@ -387,7 +392,7 @@ it("places a promoted Task in its parent Project only when accepted", async () =
   });
   const child = await V1.item(userId, promoted.value.itemId);
   expect(child.projectId).toBeNull();
-  const card = LinkProposals.infer(await Workflow.workspace(userId)).find(
+  const card = LinkProposals.infer(await clientWorkspace(userId)).find(
     (entry) => entry.id === `project:${child.id}:${project.id}`,
   );
   expect(card?.accept).toMatchObject({
@@ -443,7 +448,7 @@ it("records that a located capture was at its Place and restores that relation",
       metadata: { version: 1, category: "place", latitude: 1, longitude: 2 },
     })
   ).value;
-  const workspace = await Workflow.workspace(userId);
+  const workspace = await clientWorkspace(userId);
   const cards = LinkProposals.infer(workspace);
   expect(cards.some((card) => card.id === `located:${captured.id}:${manual.id}`)).toBe(
     false,
