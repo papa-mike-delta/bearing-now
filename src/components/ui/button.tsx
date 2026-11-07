@@ -1,7 +1,12 @@
+"use client"
+
 import * as React from "react"
+import { Button as BaseButton } from "@base-ui/react/button"
 import { Slot } from "@radix-ui/react-slot"
+import { Button as AriaButton } from "react-aria-components"
 import { cva, type VariantProps } from "class-variance-authority"
 
+import { useThemeSelection } from "@/components/theme-selection"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
@@ -40,20 +45,26 @@ function Button({
   variant,
   size,
   asChild = false,
+  disabled,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
   }) {
-  const Comp = asChild ? Slot : "button"
-
-  return (
-    <Comp
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
-  )
+  const { base } = useThemeSelection()
+  const classes = cn(buttonVariants({ variant, size, className }))
+  const shared = {
+    "data-slot": "button",
+    "data-variant": variant ?? "default",
+    "data-size": size ?? "default",
+    "data-theme-base": base,
+    className: classes,
+  }
+  // asChild composes the child element. It is not a base-library behavior, and call sites rely on it staying available.
+  if (asChild) return <Slot {...shared} {...props} />
+  if (base === "base") return <BaseButton disabled={disabled} {...shared} {...props} />
+  if (base === "aria") return <AriaButton isDisabled={disabled} {...shared} {...(props as React.ComponentProps<typeof AriaButton>)} />
+  return <button disabled={disabled} {...shared} {...props} />
 }
 
 export { Button, buttonVariants }

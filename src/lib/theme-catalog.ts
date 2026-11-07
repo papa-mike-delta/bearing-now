@@ -29,16 +29,35 @@ export type ThemePreset = {
   variables?: ThemeVariables;
 };
 
-const monoFonts = new Set(["jetbrains-mono", "geist-mono"]);
-const serifFonts = new Set([
-  "noto-serif",
-  "roboto-slab",
-  "merriweather",
-  "lora",
-  "playfair-display",
-  "eb-garamond",
-  "instrument-serif",
-]);
+/** Family names match the live shadcn font registry. Geist stays on next/font. */
+const fontFaces: Record<string, { family: string; fallback: string }> = {
+  geist: { family: "var(--font-geist-sans)", fallback: "sans-serif" },
+  inter: { family: '"Inter Variable"', fallback: "var(--font-geist-sans), sans-serif" },
+  "noto-sans": { family: '"Noto Sans Variable"', fallback: "var(--font-geist-sans), sans-serif" },
+  "nunito-sans": { family: '"Nunito Sans Variable"', fallback: "var(--font-geist-sans), sans-serif" },
+  figtree: { family: '"Figtree Variable"', fallback: "var(--font-geist-sans), sans-serif" },
+  roboto: { family: '"Roboto Variable"', fallback: "var(--font-geist-sans), sans-serif" },
+  raleway: { family: '"Raleway Variable"', fallback: "var(--font-geist-sans), sans-serif" },
+  "dm-sans": { family: '"DM Sans Variable"', fallback: "var(--font-geist-sans), sans-serif" },
+  "public-sans": { family: '"Public Sans Variable"', fallback: "var(--font-geist-sans), sans-serif" },
+  outfit: { family: '"Outfit Variable"', fallback: "var(--font-geist-sans), sans-serif" },
+  oxanium: { family: '"Oxanium Variable"', fallback: "var(--font-geist-sans), sans-serif" },
+  manrope: { family: '"Manrope Variable"', fallback: "var(--font-geist-sans), sans-serif" },
+  "space-grotesk": { family: '"Space Grotesk Variable"', fallback: "var(--font-geist-sans), sans-serif" },
+  montserrat: { family: '"Montserrat Variable"', fallback: "var(--font-geist-sans), sans-serif" },
+  "ibm-plex-sans": { family: '"IBM Plex Sans Variable"', fallback: "var(--font-geist-sans), sans-serif" },
+  "source-sans-3": { family: '"Source Sans 3 Variable"', fallback: "var(--font-geist-sans), sans-serif" },
+  "instrument-sans": { family: '"Instrument Sans Variable"', fallback: "var(--font-geist-sans), sans-serif" },
+  "jetbrains-mono": { family: '"JetBrains Mono Variable"', fallback: "var(--font-geist-mono), ui-monospace, monospace" },
+  "geist-mono": { family: "var(--font-geist-mono)", fallback: "ui-monospace, monospace" },
+  "noto-serif": { family: '"Noto Serif Variable"', fallback: 'Georgia, "Iowan Old Style", Palatino, serif' },
+  "roboto-slab": { family: '"Roboto Slab Variable"', fallback: 'Georgia, "Iowan Old Style", Palatino, serif' },
+  merriweather: { family: '"Merriweather Variable"', fallback: 'Georgia, "Iowan Old Style", Palatino, serif' },
+  lora: { family: '"Lora Variable"', fallback: 'Georgia, "Iowan Old Style", Palatino, serif' },
+  "playfair-display": { family: '"Playfair Display Variable"', fallback: 'Georgia, "Iowan Old Style", Palatino, serif' },
+  "eb-garamond": { family: '"EB Garamond Variable"', fallback: 'Georgia, "Iowan Old Style", Palatino, serif' },
+  "instrument-serif": { family: '"Instrument Serif"', fallback: 'Georgia, "Iowan Old Style", Palatino, serif' },
+};
 
 export class ThemeCatalog {
   static readonly options = {
@@ -141,11 +160,22 @@ export class ThemeCatalog {
     return value.replaceAll("-", " ").replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
   }
 
-  /** Stacks use Geist, already loaded, or system serif. Imports never fetch font files. */
+  /**
+   * A :root custom property cannot reference --font-geist-sans: that variable is
+   * defined on body, and a missing var() makes the whole property invalid.
+   * Family names here are quoted literals. Body CSS adds the loaded fallback.
+   */
   static fontStack(name: string): string {
-    if (monoFonts.has(name)) return "var(--font-geist-mono), ui-monospace, monospace";
-    if (serifFonts.has(name)) return 'Georgia, "Iowan Old Style", Palatino, serif';
-    return "var(--font-geist-sans), sans-serif";
+    if (name === "geist" || name === "inherit") return "sans-serif";
+    if (name === "geist-mono") return "ui-monospace, monospace";
+    const face = fontFaces[name] ?? fontFaces.geist;
+    const generic = face.fallback.includes("monospace") ? "ui-monospace, monospace" : face.fallback.includes("serif") ? "Georgia, serif" : "sans-serif";
+    return `${face.family}, ${generic}`;
+  }
+
+  static fontFamily(name: string): string | undefined {
+    const family = (fontFaces[name] ?? fontFaces.geist).family;
+    return family.startsWith("var(") ? undefined : family;
   }
 
   static allowedTheme(baseColor: string, theme: string): boolean {
@@ -264,6 +294,7 @@ export class ThemeCatalog {
       "--font-heading": 'Georgia, "Iowan Old Style", Palatino, serif',
       "--direction": "ltr",
       "--pointer": "default",
+      "--field-image": "radial-gradient(ellipse at 100% -8%, #e1ebe2 0, transparent 46%)",
     };
     const dark = {
       "--background": "#101e20",
@@ -304,6 +335,7 @@ export class ThemeCatalog {
       "--font-heading": 'Georgia, "Iowan Old Style", Palatino, serif',
       "--direction": "ltr",
       "--pointer": "default",
+      "--field-image": "radial-gradient(ellipse 70% 55% at 88% 0%, #2d5c52 0%, transparent 62%), radial-gradient(ellipse 45% 40% at 0% 100%, #1a3c36 0%, transparent 70%)",
     };
     return {
       id: "bearing",
