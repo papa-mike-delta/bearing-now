@@ -35,6 +35,7 @@ import {
   HabitsToday,
 } from "./connections";
 import { LinkProposalCards } from "./link-proposals";
+import { RelationshipPrompts } from "./relationship-prompts";
 import { typeNames } from "./structured-fields";
 import {
   localDate as validLocalDate,
@@ -315,6 +316,7 @@ export function Today({ date }: { date: string }) {
           <HabitsToday date={date} />
         </div>
       </SurfaceGrid>
+      <RelationshipPrompts scope={{ itemIds: [...new Set([...overdue, ...progress, ...planned, ...data.items.filter((item) => item.type === "habit" && item.status !== "archived")].map((item) => item.id))] }} />
     </Dashboard>
   );
 }
@@ -502,7 +504,8 @@ export function MomentCard({
       {refs.map((i) => (
         <ItemCard key={i.id} item={i} context="Linked Item" />
       ))}
-      <LinkProposalCards momentId={moment.id} />
+      <LinkProposalCards momentId={moment.id} faded />
+      <RelationshipPrompts scope={{ momentIds: [moment.id] }} proposals={false} />
       {organize && (
         <div className="space-y-3 border-t border-border pt-3">
           {!refs.length && (
@@ -673,6 +676,7 @@ export function Journal({ date }: { date: string }) {
               />
             ))}
             {!day.planned.length && <Empty>No plans for this date.</Empty>}
+            <RelationshipPrompts scope={{ itemIds: day.planned.map((item) => item.id) }} />
           </div>
         </SectionCard>
       </SurfaceGrid>
@@ -779,7 +783,8 @@ export function Library({ recordId }: { recordId?: string }) {
           subtitle={`${item.type} · ${statusNames[item.status]}`}
           icon={typeIcons[item.type]}
         />
-        <LinkProposalCards itemId={item.id} />
+        <LinkProposalCards itemId={item.id} faded />
+        <RelationshipPrompts scope={{ itemIds: [item.id] }} proposals={false} />
         {item.type === "person" && <PersonProfile item={item} />}
         {item.type === "bookmark" && <BookmarkReference item={item} />}
         <ItemEditor key={item.id} item={item} />
@@ -932,6 +937,7 @@ export function Library({ recordId }: { recordId?: string }) {
         ))}
       </TileGrid>
       {!items.length && <Empty>No Items match these filters.</Empty>}
+      <RelationshipPrompts scope={{ itemIds: items.map((item) => item.id) }} />
     </Dashboard>
   );
 }
@@ -1176,6 +1182,10 @@ export function Projects({ recordId }: { recordId?: string }) {
       {!project && !data.projects.length && (
         <Empty>No Projects yet. Create one when a body of work needs a home.</Empty>
       )}
+      <RelationshipPrompts scope={{
+        projectIds: project ? [project.id] : data.projects.map((entry) => entry.id),
+        itemIds: project ? data.items.filter((item) => item.projectId === project.id).map((item) => item.id) : [],
+      }} />
     </Dashboard>
   );
 }
@@ -1256,6 +1266,7 @@ export function Calendar({ date }: { date: string }) {
       {!agenda.rows.length && (
         <Empty>No scheduled work, deadlines or Event plans on this date.</Empty>
       )}
+      <RelationshipPrompts scope={{ itemIds: agenda.rows.map((row) => row.item.id) }} />
     </Dashboard>
   );
 }
@@ -1389,6 +1400,11 @@ export function Search({ coach = false }: { coach?: boolean }) {
           filters.
         </Empty>
       )}
+      <RelationshipPrompts scope={{
+        itemIds: results.data?.filter((result) => result.kind === "item").map((result) => result.id),
+        momentIds: results.data?.filter((result) => result.kind === "journal").map((result) => result.id),
+        projectIds: results.data?.filter((result) => result.kind === "project").map((result) => result.id),
+      }} />
     </div>
   );
 }

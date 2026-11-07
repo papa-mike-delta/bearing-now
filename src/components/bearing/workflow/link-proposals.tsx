@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "../layout";
 import { itemDto, itemSeed } from "@/lib/v1/client-model";
-import { LinkProposals, type LinkProposal } from "@/lib/v1/link-proposals";
+import { LinkProposals, type LinkProposal, type ProposalScope } from "@/lib/v1/link-proposals";
 import { useWorkspace } from "./context";
 
 const errorText = (error: unknown) =>
@@ -12,17 +12,21 @@ const errorText = (error: unknown) =>
 export function LinkProposalCards({
   momentId,
   itemId,
+  scope,
+  faded = false,
 }: {
   momentId?: string;
   itemId?: string;
+  scope?: ProposalScope;
+  faded?: boolean;
 }) {
-  const { data, mutate } = useWorkspace();
+  const { data, mutate, proposals } = useWorkspace();
   const [hidden, setHidden] = useState<string[]>([]);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [receiptId, setReceiptId] = useState("");
-  const cards = LinkProposals.forContext(data, { momentId, itemId }).filter(
+  const cards = (scope ? LinkProposals.forScope(data, scope, proposals) : LinkProposals.forContext(data, { momentId, itemId }, proposals)).filter(
     (card) => !hidden.includes(card.id),
   );
   async function accept(card: LinkProposal) {
@@ -99,7 +103,7 @@ export function LinkProposalCards({
         <SectionCard title="Review connections">
           <div className="space-y-3">
             {cards.map((card) => (
-              <article key={card.id} className="space-y-2 text-sm">
+              <article key={card.id} data-slot={faded ? "relationship-prompt" : undefined} className={faded ? "space-y-2 rounded-xl border border-dashed border-border p-3 text-sm text-muted-foreground" : "space-y-2 text-sm"}>
                 <p className="font-medium">
                   {card.confidence === "proposal" ? "Proposal" : "Suggestion"}
                   {" · "}

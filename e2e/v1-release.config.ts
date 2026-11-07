@@ -37,7 +37,7 @@ export default defineConfig({
     { name: "setup", testMatch: /v1-workflow.setup.ts/ },
     ...["desktop", "phone"].map((name) => ({
       name,
-      testMatch: /v1-(workflow|foundations|connected|coach|release|cleanup|link-proposals|theme)\.spec.ts/,
+      testMatch: /v1-(workflow|foundations|connected|coach|release|cleanup|link-proposals|theme|perspectives)\.spec.ts/,
       dependencies: ["setup"],
       use: {
         ...devices[name === "phone" ? "iPhone 13" : "Desktop Chrome"],

@@ -7,16 +7,20 @@ import { useWorkspace } from "./context";
 import { graphData } from "@/lib/v1/connected";
 import { dateInZone } from "@/lib/v1/dates";
 import { Button } from "@/components/ui/button";
+import { RelationshipPrompts } from "./relationship-prompts";
 export function ConnectedGraph() {
   const { data } = useWorkspace(),
     router = useRouter(),
     graph = useMemo(() => graphData(data), [data]);
   return (
-    <GraphExplorer
-      data={graph}
-      openItemDetail={(id) => router.push(`/app/library/${id}`)}
-      openProject={(id) => router.push(`/app/projects/${id}`)}
-    />
+    <div className="space-y-4">
+      <GraphExplorer
+        data={graph}
+        openItemDetail={(id) => router.push(`/app/library/${id}`)}
+        openProject={(id) => router.push(`/app/projects/${id}`)}
+      />
+      <RelationshipPrompts scope={{ itemIds: data.items.map((item) => item.id), projectIds: data.projects.map((project) => project.id) }} />
+    </div>
   );
 }
 type PendingFocus = FocusCompletion & { timezone: string };

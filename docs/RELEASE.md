@@ -1,5 +1,5 @@
-> Production cutover: Vercel production serves V1 automatically. The standard
-> `build:vercel` migration chain now includes the V1 tables after the legacy schema.
+> Production cutover: `build:vercel` applies legacy migrations only. Apply reviewed
+> V1 migrations separately with `db:v1:deploy` before enabling V1.
 > Existing login accounts remain valid; V1 starts with its own content tables.
 > There is no Item → V1Item conversion. Unused legacy content tables are scheduled
 > to drop on or after 2027-01-26 ([ADR 0005](adr/0005-sunset-legacy-domain-and-coach.md)).
@@ -52,6 +52,28 @@ leave additive V1 tables intact. The current build shows setup guidance when dis
 This tree does not contain the pre-V1 shell, so an older UI requires an older commit.
 Neither action converts records. Preserve V1 data for a forward fix. Database disaster recovery is separate,
 reviewed operator work; never silently restore over new live writes.
+
+### Applying a pending V1 migration
+
+Use the intended production database connection through your deployment environment's
+secret settings as `DATABASE_URL`. Confirm a current provider backup and recovery
+check before running migrations. From the reviewed commit on `main` with Node 22+:
+
+```bash
+npm ci
+npx prisma migrate status --schema prisma/v1/schema.prisma
+# Review every pending migration listed above, then apply:
+BEARING_V1_SCHEMA_REVIEWED=yes npm run db:v1:deploy
+npx prisma migrate status --schema prisma/v1/schema.prisma
+```
+
+The deploy command applies all pending V1 migrations, rather than selecting one.
+Confirm the final status reports no pending migrations. The location relationship
+migration, `20261106180000_moment_located_at`, expands the `V1MomentItem` relation
+constraint to allow `located_at`; it retains existing `mention` and `reference`
+rows. Verify a location proposal can be accepted and returns an audit receipt on
+an authorized account. A successful Vercel application build alone does not prove
+the production V1 schema is current.
 
 ## Acceptance journeys and evidence owners
 

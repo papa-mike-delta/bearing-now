@@ -58,6 +58,11 @@ export type LinkProposal = {
   accept: LinkAccept | AreaAccept | MomentAccept | ProjectAccept;
 };
 
+export type ProposalScope = {
+  itemIds?: readonly string[];
+  momentIds?: readonly string[];
+};
+
 /**
  * Derived cards only. Explicit mention selectors and Project saves stay immediate
  * writes. These cards describe the canonical record Accept will create.
@@ -340,13 +345,24 @@ export class LinkProposals {
   static forContext(
     workspace: Workspace,
     scope: { momentId?: string; itemId?: string },
+    proposals: readonly LinkProposal[] = LinkProposals.infer(workspace),
   ) {
-    return LinkProposals.infer(workspace).filter((card) =>
+    return proposals.filter((card) =>
       scope.momentId
         ? card.momentId === scope.momentId
         : scope.itemId
           ? card.itemIds.includes(scope.itemId)
           : false,
+    );
+  }
+
+  static forScope(workspace: Workspace, scope: ProposalScope, proposals: readonly LinkProposal[] = LinkProposals.infer(workspace)) {
+    const items = new Set(scope.itemIds);
+    const moments = new Set(scope.momentIds);
+    return proposals.filter(
+      (card) =>
+        (card.momentId && moments.has(card.momentId)) ||
+        card.itemIds.some((id) => items.has(id)),
     );
   }
 
