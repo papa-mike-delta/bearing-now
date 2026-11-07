@@ -1,5 +1,5 @@
 import postcss from "postcss";
-import { ThemeCatalog } from "./theme-catalog";
+import { ThemeCatalog, type CreateSelection } from "./theme-catalog";
 
 export type ThemeVariables = {
   light: Record<string, string>;
@@ -9,7 +9,9 @@ export type ThemeVariables = {
 const VALUE_FUNCTIONS = new Set([
   "oklch", "oklab", "lch", "lab", "rgb", "rgba", "hsl", "hsla", "hwb",
   "color", "color-mix", "var", "calc", "min", "max", "clamp", "light-dark",
+  "radial-gradient",
 ]);
+
 
 export class ThemeOverride {
   static async parse(input: string): Promise<ThemeVariables> {
@@ -52,7 +54,9 @@ export class ThemeOverride {
         light: { ...shared, ...normalize(variables?.light) },
         dark: { ...shared, ...normalize(variables?.dark) },
       });
-      return createUrl ? ThemeOverride.tune(parsed, createUrl) : parsed;
+      if (createUrl) return ThemeOverride.tune(parsed, createUrl);
+      const selection = ThemeOverride.selectionFromExport(data);
+      return selection ? ThemeOverride.applySelection(parsed, selection) : parsed;
     }
     const theme: ThemeVariables = { light: {}, dark: {} };
     const shared: Record<string, string> = {};
@@ -75,26 +79,103 @@ export class ThemeOverride {
     return createUrl ? ThemeOverride.tune(parsed, createUrl) : parsed;
   }
 
+  /** Read base/style/icon/font from a pasted /init payload. Live cssVars do not include them. */
+  static selectionFromExport(data: { config?: { style?: unknown; iconLibrary?: unknown; menuColor?: unknown; rtl?: unknown }; registryDependencies?: unknown }): CreateSelection | undefined {
+    const config = data?.config;
+    if (!config || typeof config.style !== "string") return undefined;
+    const [base, ...styleParts] = config.style.split("-");
+    const style = styleParts.join("-");
+    const dependencies = Array.isArray(data.registryDependencies) ? data.registryDependencies.filter((item): item is string => typeof item === "string") : [];
+    const font = dependencies.find((item) => item.startsWith("font-") && !item.startsWith("font-heading-"))?.slice(5) ?? "geist";
+    const heading = dependencies.find((item) => item.startsWith("font-heading-"))?.slice("font-heading-".length) ?? "inherit";
+    return ThemeOverride.checkedSelection({
+      base,
+      style,
+      baseColor: "neutral",
+      theme: "neutral",
+      chartColor: "neutral",
+      iconLibrary: typeof config.iconLibrary === "string" ? config.iconLibrary : "lucide",
+      font,
+      fontHeading: heading,
+      radius: "default",
+      menuAccent: "subtle",
+      menuColor: typeof config.menuColor === "string" ? config.menuColor : "default",
+      rtl: config.rtl === true,
+      pointer: false,
+    });
+  }
+
+  static checkedSelection(selection: CreateSelection): CreateSelection {
+    const pick = (key: keyof typeof ThemeCatalog.options, value: string) => {
+      const allowed = ThemeCatalog.options[key] as readonly string[];
+      if (!allowed.includes(value)) throw new Error(`Unknown ${key}: ${value}`);
+      return value;
+    };
+    const fontHeading = selection.fontHeading || "inherit";
+    if (fontHeading !== "inherit" && !(ThemeCatalog.options.font as readonly string[]).includes(fontHeading)) {
+      throw new Error(`Unknown fontHeading: ${fontHeading}`);
+    }
+    if (!ThemeCatalog.options.menuColor.includes(selection.menuColor as typeof ThemeCatalog.options.menuColor[number])) {
+      throw new Error(`Unknown menuColor: ${selection.menuColor}`);
+    }
+    return {
+      ...selection,
+      base: pick("base", selection.base),
+      style: pick("style", selection.style),
+      iconLibrary: pick("iconLibrary", selection.iconLibrary),
+      font: pick("font", selection.font),
+      fontHeading,
+      menuColor: selection.menuColor,
+    };
+  }
+
   /** Fold create options that the export omits into the same override variables. */
   static tune(theme: ThemeVariables, url: URL): ThemeVariables {
-    const font = url.searchParams.get("font") ?? "geist";
-    const heading = url.searchParams.get("fontHeading") || "inherit";
-    const menu = url.searchParams.get("menuColor") ?? "default";
+    const pick = (key: keyof typeof ThemeCatalog.options, value: string | null, fallback: string) => {
+      const allowed = ThemeCatalog.options[key] as readonly string[];
+      const next = value && allowed.includes(value) ? value : fallback;
+      if (value && !allowed.includes(value)) throw new Error(`Unknown ${key}: ${value}`);
+      return next;
+    };
+    const fontHeading = url.searchParams.get("fontHeading") || "inherit";
+    return ThemeOverride.applySelection(theme, {
+      ...ThemeCatalog.defaults(),
+      base: pick("base", url.searchParams.get("base"), "radix"),
+      style: pick("style", url.searchParams.get("style"), "nova"),
+      iconLibrary: pick("iconLibrary", url.searchParams.get("iconLibrary"), "lucide"),
+      font: pick("font", url.searchParams.get("font"), "geist"),
+      fontHeading: fontHeading === "inherit" || (ThemeCatalog.options.font as readonly string[]).includes(fontHeading) ? fontHeading : (() => { throw new Error(`Unknown fontHeading: ${fontHeading}`); })(),
+      radius: pick("radius", url.searchParams.get("radius"), "default"),
+      menuAccent: pick("menuAccent", url.searchParams.get("menuAccent"), "subtle"),
+      menuColor: pick("menuColor", url.searchParams.get("menuColor"), "default"),
+      rtl: url.searchParams.get("rtl") === "true",
+      pointer: url.searchParams.get("pointer") === "true",
+    });
+  }
+
+  static applySelection(theme: ThemeVariables, selection: CreateSelection): ThemeVariables {
+    const font = ThemeCatalog.fontStack(selection.font);
+    const headingName = selection.fontHeading === "inherit" ? selection.font : selection.fontHeading;
+    const heading = ThemeCatalog.fontStack(headingName);
+    const menu = selection.menuColor;
+    const meta: Record<string, string> = {
+      "--font-sans": font,
+      "--font-heading": heading,
+      "--direction": selection.rtl ? "rtl" : "ltr",
+      "--pointer": selection.pointer ? "pointer" : "default",
+      "--bearing-base": selection.base,
+      "--bearing-style": selection.style,
+      "--bearing-icon": selection.iconLibrary,
+      "--bearing-font": selection.font,
+      "--bearing-font-heading": selection.fontHeading || "inherit",
+    };
+    const bodyFace = ThemeCatalog.fontFamily(selection.font);
+    const headingFace = ThemeCatalog.fontFamily(headingName);
+    if (bodyFace) meta["--bearing-font-family"] = bodyFace;
+    if (headingFace) meta["--bearing-heading-family"] = headingFace;
     const next: ThemeVariables = {
-      light: {
-        ...theme.light,
-        "--font-sans": ThemeCatalog.fontStack(font),
-        "--font-heading": ThemeCatalog.fontStack(heading === "inherit" ? font : heading),
-        "--direction": url.searchParams.get("rtl") === "true" ? "rtl" : "ltr",
-        "--pointer": url.searchParams.get("pointer") === "true" ? "pointer" : "default",
-      },
-      dark: {
-        ...theme.dark,
-        "--font-sans": ThemeCatalog.fontStack(font),
-        "--font-heading": ThemeCatalog.fontStack(heading === "inherit" ? font : heading),
-        "--direction": url.searchParams.get("rtl") === "true" ? "rtl" : "ltr",
-        "--pointer": url.searchParams.get("pointer") === "true" ? "pointer" : "default",
-      },
+      light: { ...theme.light, ...meta },
+      dark: { ...theme.dark, ...meta },
     };
     if (menu === "inverted" || menu === "inverted-translucent") {
       const lightSidebar = theme.dark["--sidebar"] ?? theme.dark["--background"];
@@ -128,6 +209,14 @@ export class ThemeOverride {
             !/^[a-zA-Z0-9\s#%.,()+*/'"_-]+$/.test(value) || /\/\*|\*\//.test(value)) {
           throw new Error(`Invalid value for ${name}`);
         }
+        const allowedMeta: Record<string, readonly string[]> = {
+          "--bearing-base": ThemeCatalog.options.base,
+          "--bearing-style": ThemeCatalog.options.style,
+          "--bearing-icon": ThemeCatalog.options.iconLibrary,
+          "--bearing-font": ThemeCatalog.options.font,
+          "--bearing-font-heading": ["inherit", ...ThemeCatalog.options.font],
+        };
+        if (allowedMeta[name] && !allowedMeta[name].includes(value)) throw new Error(`Unknown value for ${name}`);
         for (const match of value.matchAll(/([a-zA-Z_-][a-zA-Z0-9_-]*)\s*\(/g)) {
           if (!VALUE_FUNCTIONS.has(match[1].toLowerCase())) throw new Error(`Unsupported CSS function in ${name}`);
         }

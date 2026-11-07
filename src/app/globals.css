@@ -606,6 +606,7 @@ html.bearing-v1:not(.dark):not(:has(style[data-theme-override])) {
   --radius: 0.875rem;
   --page-mark-bg: color-mix(in oklab, #f0c779 32%, #fffaf0);
   --page-mark-fg: #6d5424;
+  --field-image: radial-gradient(ellipse at 100% -8%, #e1ebe2 0, transparent 46%);
 }
 
 html.dark.bearing-v1:not(:has(style[data-theme-override])) {
@@ -642,37 +643,27 @@ html.dark.bearing-v1:not(:has(style[data-theme-override])) {
   --radius: 0.875rem;
   --page-mark-bg: color-mix(in oklab, #f0c779 22%, #1b3330);
   --page-mark-fg: #f0c779;
+  --field-image: radial-gradient(ellipse 70% 55% at 88% 0%, #2d5c52 0%, transparent 62%), radial-gradient(ellipse 45% 40% at 0% 100%, #1a3c36 0%, transparent 70%);
 }
 
-html.dark.bearing-v1:not(:has(style[data-theme-override])) .bearing-app {
-  background-image:
-    radial-gradient(ellipse 70% 55% at 88% 0%, #2d5c52 0%, transparent 62%),
-    radial-gradient(ellipse 45% 40% at 0% 100%, #1a3c36 0%, transparent 70%);
-  background-attachment: fixed;
-}
-
-html.bearing-v1:not(.dark):not(:has(style[data-theme-override])) .bearing-app {
-  background-image: radial-gradient(ellipse at 100% -8%, #e1ebe2 0, transparent 46%);
+html.bearing-v1 .bearing-app {
+  background-image: var(--field-image, none);
   background-attachment: fixed;
 }
 
 html.bearing-v1 .bearing-eyebrow {
-  color: #776039;
-}
-
-html.dark.bearing-v1 .bearing-eyebrow {
-  color: #f0c779;
+  color: color-mix(in oklab, var(--sidebar-foreground) 78%, var(--sidebar-primary));
 }
 
 html.bearing-v1 [data-slot="metric-value"] {
-  font-family: var(--font-heading, Georgia, "Iowan Old Style", Palatino, serif);
+  font-family: var(--bearing-heading-family, var(--font-heading, Georgia, "Iowan Old Style", Palatino, serif));
   font-weight: 500;
   letter-spacing: -0.03em;
 }
 
 html.bearing-v1 [data-slot="page-header"] h1,
 html.bearing-v1 .bearing-dense :where(h1, h2, h3) {
-  font-family: var(--font-heading, Georgia, "Iowan Old Style", Palatino, serif);
+  font-family: var(--bearing-heading-family, var(--font-heading, Georgia, "Iowan Old Style", Palatino, serif));
   font-weight: 500;
   letter-spacing: -0.03em;
 }
@@ -685,7 +676,10 @@ html.bearing-v1 .bearing-dense :where(h1, h2, h3) {
 }
 
 html.bearing-v1 body {
-  font-family: var(--font-sans, var(--font-geist-sans)), sans-serif;
+  font-family: var(--bearing-font-family, var(--font-geist-sans)), var(--font-geist-sans), sans-serif;
+}
+html.bearing-v1[data-font-id="geist-mono"] body {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 html.bearing-v1 {
@@ -696,25 +690,25 @@ html.bearing-v1 .bearing-app :where(button, [role="button"], a[href], summary) {
   cursor: var(--pointer, revert);
 }
 
-html.bearing-v1 [data-slot="section-card"] {
+html.bearing-v1:not(:has(style[data-theme-override][data-create-style])) [data-slot="section-card"] {
   border-radius: min(var(--radius), 1.125rem);
   border-color: color-mix(in oklab, var(--foreground) 10%, transparent);
   background: color-mix(in oklab, var(--card) 88%, transparent);
   box-shadow: none;
 }
 
-html.bearing-v1 [data-slot="dialog-content"] {
+html.bearing-v1:not(:has(style[data-theme-override][data-create-style])) [data-slot="dialog-content"] {
   border-radius: min(var(--radius), 1.125rem);
   border-color: color-mix(in oklab, var(--foreground) 14%, transparent);
   background: var(--popover);
   box-shadow: 0 24px 60px #0000002e;
 }
 
-html.bearing-v1 [data-slot="button"] {
+html.bearing-v1:not(:has(style[data-theme-override][data-create-style])) [data-slot="button"] {
   border-radius: min(var(--radius), 0.75rem);
 }
 
-html.bearing-v1 [data-slot="page-mark"] {
+html.bearing-v1:not(:has(style[data-theme-override][data-create-style])) [data-slot="page-mark"] {
   border-radius: min(var(--radius), 0.75rem);
 }
 
@@ -736,10 +730,10 @@ html.bearing-v1 .bearing-dense .grid {
   gap: 0.75rem;
 }
 
-html.bearing-v1 .bearing-dense [data-slot="section-card"],
-html.bearing-v1 .bearing-dense [data-slot="metric"],
-html.bearing-v1 .bearing-dense [data-slot="journal-bar"],
-html.bearing-v1 .bearing-dense [data-slot="item-card"] {
+html.bearing-v1:not(:has(style[data-theme-override][data-create-style])) .bearing-dense [data-slot="section-card"],
+html.bearing-v1:not(:has(style[data-theme-override][data-create-style])) .bearing-dense [data-slot="metric"],
+html.bearing-v1:not(:has(style[data-theme-override][data-create-style])) .bearing-dense [data-slot="journal-bar"],
+html.bearing-v1:not(:has(style[data-theme-override][data-create-style])) .bearing-dense [data-slot="item-card"] {
   border-radius: min(var(--radius), 0.75rem);
 }
 
@@ -754,19 +748,18 @@ html.bearing-v1 [data-slot="checkbox"] {
 html.bearing-v1 input[type="checkbox"],
 html.bearing-v1 input[type="radio"] {
   appearance: none;
+  display: grid;
+  place-content: center;
   width: 1.15rem;
   height: 1.15rem;
   margin: 0;
   flex: 0 0 auto;
   border: 1.5px solid color-mix(in oklab, var(--foreground) 32%, var(--border));
   background-color: color-mix(in oklab, var(--background) 70%, transparent);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 0.75rem 0.75rem;
   vertical-align: middle;
 }
 
-html.bearing-v1 input[type="checkbox"] {
+html.bearing-v1:not(:has(style[data-theme-override][data-create-style])) input[type="checkbox"] {
   border-radius: 0.4rem;
 }
 
@@ -777,13 +770,26 @@ html.bearing-v1 input[type="radio"] {
 html.bearing-v1 input[type="checkbox"]:checked {
   border-color: var(--primary);
   background-color: var(--primary);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.2 8.3 6.4 11.4 12.8 4.6' fill='none' stroke='%23172c28' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+html.bearing-v1 input[type="checkbox"]:checked::after {
+  content: "";
+  width: 0.7rem;
+  height: 0.7rem;
+  background: var(--primary-foreground);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.2 8.3 6.4 11.4 12.8 4.6' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.2 8.3 6.4 11.4 12.8 4.6' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
 html.bearing-v1 input[type="radio"]:checked {
   border-color: var(--primary);
   background-color: var(--primary);
-  background-image: radial-gradient(circle, #172c28 0 38%, transparent 42%);
+}
+html.bearing-v1 input[type="radio"]:checked::after {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--primary-foreground);
 }
 
 html.bearing-v1 input[type="checkbox"]:focus-visible,
@@ -803,7 +809,7 @@ html.bearing-v1 input[type="radio"]:disabled {
     line-height: 1.25;
   }
 
-  html.bearing-v1 [data-slot="page-mark"] {
+  html.bearing-v1:not(:has(style[data-theme-override][data-create-style])) [data-slot="page-mark"] {
     width: 2rem;
     height: 2rem;
     border-radius: 0.65rem;

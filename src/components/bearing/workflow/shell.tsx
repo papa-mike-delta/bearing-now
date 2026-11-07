@@ -371,6 +371,7 @@ function Content({
               <Link
                 key={route}
                 href={`/app/${route}`}
+                data-slot="sidebar-link"
                 onClick={() => setMenu(false)}
                 aria-current={view === route ? "page" : undefined}
                 className={linkClass(view === route)}
@@ -386,6 +387,7 @@ function Content({
         <div className="flex flex-col gap-0.5">
           <Link
             href="/app/settings"
+            data-slot="sidebar-link"
             onClick={() => setMenu(false)}
             aria-current={view === "settings" ? "page" : undefined}
             className={linkClass(view === "settings")}
@@ -396,6 +398,7 @@ function Content({
           {me && (
             <Link
               href={`/app/library/${me.id}`}
+              data-slot="sidebar-link"
               onClick={() => setMenu(false)}
               aria-current={recordId === me.id ? "page" : undefined}
               className={linkClass(recordId === me.id)}
@@ -412,8 +415,8 @@ function Content({
     <WorkspaceContext.Provider
       value={{ userId, data, timezone: zone, refresh, mutate }}
     >
+      <StoredThemeOverride>
       <div className="bearing-app flex min-h-dvh min-w-0 bg-background text-foreground">
-        <StoredThemeOverride />
         <a href="#workspace-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-background focus:p-4">Skip to workspace</a>
         <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar/80 backdrop-blur-md md:flex">
           <Link
@@ -602,6 +605,7 @@ function Content({
           </DialogContent>
         </Dialog>
       </div>
+      </StoredThemeOverride>
     </WorkspaceContext.Provider>
   );
 }

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ThemeCatalog } from "./theme-catalog";
+import { ThemeChrome } from "./theme-chrome";
 import { ThemeOverride } from "./theme-override";
 
 const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8");
@@ -101,6 +102,8 @@ it("imports the Bearing preset into the override without a network request", asy
   expect(theme.light["--chart-2"]).toBe("#486b5c");
   expect(theme.dark["--background"]).toBe("#101e20");
   expect(theme.light["--font-heading"]).toContain("Georgia");
+  expect(theme.light["--field-image"]).toContain("radial-gradient");
+  expect(theme.dark["--field-image"]).toContain("#2d5c52");
   expect(await ThemeOverride.parse(ThemeOverride.serialize(theme))).toEqual(theme);
 });
 
@@ -114,7 +117,9 @@ it("imports a create preset through the same override parser", async () => {
   expect(url.searchParams.get("chartColor")).toBe("amber");
   expect(theme.light["--primary"]).toBe("oklch(0.488 0.243 264.376)");
   expect(theme.dark["--primary"]).toBe("oklch(0.424 0.199 265.638)");
-  expect(theme.light["--font-sans"]).toContain("var(--font-geist-sans)");
+  expect(theme.light["--font-sans"]).toContain(ThemeCatalog.fontFamily(url.searchParams.get("font")!));
+  expect(theme.light["--bearing-style"]).toBe(url.searchParams.get("style"));
+  expect(theme.light["--bearing-base"]).toBe(url.searchParams.get("base"));
   expect(ThemeOverride.serialize(theme)).toContain("--font-heading:");
 });
 
@@ -126,12 +131,20 @@ it("writes heading font, direction and inverted menu into the override", async (
     },
   })));
   const theme = await ThemeOverride.parse("https://ui.shadcn.com/create?theme=violet&font=inter&fontHeading=playfair-display&menuColor=inverted-translucent&rtl=true&pointer=true");
-  expect(theme.light["--font-heading"]).toContain("Georgia");
-  expect(theme.light["--font-sans"]).toContain("var(--font-geist-sans)");
+  expect(theme.light["--font-heading"]).toContain("Playfair Display Variable");
+  expect(theme.light["--font-sans"]).toContain("Inter Variable");
+  expect(theme.light["--bearing-base"]).toBe("radix");
+  expect(theme.light["--bearing-style"]).toBe("nova");
+  expect(theme.light["--bearing-icon"]).toBe("lucide");
+  expect(theme.light["--bearing-font"]).toBe("inter");
+  expect(theme.light["--bearing-font-heading"]).toBe("playfair-display");
   expect(theme.light["--direction"]).toBe("rtl");
   expect(theme.dark["--pointer"]).toBe("pointer");
   expect(theme.light["--sidebar"]).toBe("color-mix(in oklch, oklch(0.25 0 0) 72%, transparent)");
   expect(theme.dark["--sidebar"]).toBe("color-mix(in oklch, oklch(0.98 0 0) 72%, transparent)");
+  const again = await ThemeOverride.parse(ThemeOverride.serialize(theme));
+  expect(again.light["--sidebar"]).toBe(theme.light["--sidebar"]);
+  expect(again.dark["--sidebar"]).toBe(theme.dark["--sidebar"]);
 });
 
 it("rejects an unknown preset before fetching", async () => {
@@ -169,6 +182,48 @@ it("ships the create option set, expanded colors, and a preset collection", () =
   }
   expect(() => ThemeCatalog.createUrl({ ...ThemeCatalog.defaults(), theme: "nope" })).toThrow(/Unknown theme/);
   expect(() => ThemeCatalog.createUrl({ ...ThemeCatalog.defaults(), theme: "stone" })).toThrow(/base color stone/);
+});
+
+it("keeps create config from a pasted init export and refuses an unknown base", async () => {
+  const theme = await ThemeOverride.parse(JSON.stringify({
+    config: { style: "base-maia", iconLibrary: "hugeicons", menuColor: "default", rtl: true },
+    registryDependencies: ["utils", "font-figtree", "font-heading-playfair-display"],
+    cssVars: { light: { background: "white", primary: "teal" }, dark: { background: "black", primary: "teal" } },
+  }));
+  expect(theme.light["--bearing-base"]).toBe("base");
+  expect(theme.light["--bearing-style"]).toBe("maia");
+  expect(theme.light["--bearing-icon"]).toBe("hugeicons");
+  expect(theme.light["--bearing-font"]).toBe("figtree");
+  expect(theme.light["--bearing-font-heading"]).toBe("playfair-display");
+  expect(theme.light["--font-sans"]).toContain("Figtree Variable");
+  expect(theme.light["--font-heading"]).toContain("Playfair Display Variable");
+  expect(theme.light["--direction"]).toBe("rtl");
+  expect(await ThemeOverride.parse(ThemeOverride.serialize(theme))).toEqual(theme);
+  await expect(ThemeOverride.parse(JSON.stringify({ config: { style: "radix-gray", iconLibrary: "lucide" }, cssVars: { light: { primary: "red" }, dark: { primary: "black" } } }))).rejects.toThrow(/Unknown/);
+  expect(() => ThemeOverride.serialize({ light: { "--bearing-base": "nope", "--primary": "red" }, dark: { "--primary": "black" } })).toThrow(/Unknown value/);
+});
+
+it("gives every shipped style a distinct control treatment", () => {
+  const seen = new Set<string>();
+  for (const style of ThemeCatalog.options.style) {
+    const rules = ThemeChrome.rules(style);
+    expect(rules).toContain('[data-slot="button"]');
+    expect(rules).toContain('[data-slot="section-card"]');
+    expect(rules).toContain('[data-slot="dialog-content"]');
+    expect(rules).toContain('[data-slot="select-content"]');
+    expect(rules).toContain('[data-slot="sidebar-link"]');
+    seen.add(rules);
+  }
+  expect(seen.size).toBe(ThemeCatalog.options.style.length);
+  expect(ThemeChrome.rules("lyra")).toContain("border-radius: 0");
+  expect(ThemeChrome.rules("lyra")).toContain("font-size: 0.75rem");
+  expect(ThemeChrome.rules("maia")).toContain("border-radius: 2rem");
+  expect(ThemeChrome.rules("sera")).toContain("text-transform: uppercase");
+  expect(ThemeChrome.rules("mira")).toContain("height: 1.75rem");
+  expect(ThemeChrome.read(":root { --bearing-base: aria; --bearing-style: sera; --bearing-icon: tabler; --bearing-font: outfit; --bearing-font-heading: lora; }")).toMatchObject({
+    base: "aria", style: "sera", iconLibrary: "tabler", font: "outfit", fontHeading: "lora",
+  });
+  expect(ThemeChrome.read(":root { --bearing-base: evil; }").base).toBe("radix");
 });
 
 it("preserves optional semantic overrides, non-hex values and extended palette variables", async () => {
