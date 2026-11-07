@@ -116,7 +116,11 @@ test("People distinguish mentions, linked media and actual interaction; Me keeps
   await page
     .getByRole("button", { name: "Confirm interaction now", exact: true })
     .click();
-  await expect(page.getByText(/Spoke today/)).toBeVisible();
+  await expect(
+    page.locator("section").filter({
+      has: page.getByRole("heading", { name: "Confirmed interactions", exact: true }),
+    }).locator("p").filter({ hasText: "Spoke today" }),
+  ).toBeVisible();
   expect(
     (await activities(page)).filter(
       (a: any) => a.itemId === personId && a.kind === "interaction",

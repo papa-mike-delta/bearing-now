@@ -5,7 +5,7 @@ import { ConnectedFocus, ConnectedGraph } from "./perspectives";
 import { ConversationalCoach } from "./coach";
 import { DataSettings } from "./data-settings";
 import { Appearance } from "./appearance";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import { outbox, type OutboxEntry, type Identity } from "@/lib/v1/outbox";
 import { dateInZone } from "@/lib/v1/dates";
 import { localDate } from "@/lib/v1/contracts";
 import type { Workspace } from "@/lib/v1/client-model";
+import { LinkProposals } from "@/lib/v1/link-proposals";
 import { WorkspaceContext, useWorkspace, request, fieldClass } from "./context";
 import { CaptureComposer } from "./capture";
 import {
@@ -234,6 +235,7 @@ function Content({
     workspace.data?.preferences.timezone ||
     (identity as Identity & { timezone?: string })?.timezone ||
     "UTC";
+  const proposals = useMemo(() => workspace.data ? LinkProposals.infer(workspace.data) : [], [workspace.data]);
   const requested = params.get("date"),
     date =
       requested && localDate.safeParse(requested).success
@@ -413,7 +415,7 @@ function Content({
   );
   return (
     <WorkspaceContext.Provider
-      value={{ userId, data, timezone: zone, refresh, mutate }}
+      value={{ userId, data, proposals, timezone: zone, refresh, mutate }}
     >
       <StoredThemeOverride>
       <div className="bearing-app flex min-h-dvh min-w-0 bg-background text-foreground">
@@ -565,23 +567,27 @@ function Content({
           </main>
         </div>
         <Dialog open={menu} onOpenChange={setMenu}>
-          <DialogContent className="max-h-[85dvh] gap-3 overflow-y-auto p-4 sm:max-w-sm">
-            <DialogHeader className="gap-1">
-              <DialogTitle>Navigation</DialogTitle>
-              <DialogDescription>Open a view.</DialogDescription>
-            </DialogHeader>
-            {navigation}
-            <p className="truncate text-xs text-muted-foreground">{identity?.email}</p>
-            <Button
-              variant="ghost"
-              className="justify-start px-2 text-muted-foreground"
-              onClick={() => {
-                setMenu(false);
-                setLogout(true);
-              }}
-            >
-              Sign out
-            </Button>
+          <DialogContent className="max-h-[85dvh] overflow-hidden p-4 sm:max-w-sm">
+            <div className="flex h-[calc(85dvh-2rem)] min-h-0 flex-col gap-3">
+              <DialogHeader className="shrink-0 gap-1">
+                <DialogTitle>Navigation</DialogTitle>
+                <DialogDescription>Open a view.</DialogDescription>
+              </DialogHeader>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                {navigation}
+              </div>
+              <p className="shrink-0 truncate text-xs text-muted-foreground">{identity?.email}</p>
+              <Button
+                variant="ghost"
+                className="shrink-0 justify-start px-2 text-muted-foreground"
+                onClick={() => {
+                  setMenu(false);
+                  setLogout(true);
+                }}
+              >
+                Sign out
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
         <Dialog open={logout} onOpenChange={setLogout}>

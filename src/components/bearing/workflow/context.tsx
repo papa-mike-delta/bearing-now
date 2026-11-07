@@ -3,6 +3,7 @@ import { createContext, useContext } from "react";
 import { outbox } from "@/lib/v1/outbox";
 import { BrowserWriteError } from "@/lib/browser-writes";
 import type { Workspace } from "@/lib/v1/client-model";
+import type { LinkProposal } from "@/lib/v1/link-proposals";
 export async function request<T = any>(
   userId: string,
   path: string,
@@ -55,6 +56,7 @@ export async function request<T = any>(
 export const WorkspaceContext = createContext<{
   userId: string;
   data: Workspace;
+  proposals: readonly LinkProposal[];
   timezone: string;
   refresh(): Promise<void>;
   mutate<T = any>(path: string, body: unknown, method?: string): Promise<T>;
