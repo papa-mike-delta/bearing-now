@@ -51,10 +51,11 @@ async function loadFace(id: string): Promise<"loaded" | "failed"> {
     return (await matchingFace(family)) ? "loaded" : "failed";
   }
   const load = loaders[id];
-  if (!load) return "failed";
+  const family = ThemeCatalog.fontFamily(id);
+  if (!load || !family) return "failed";
   try {
     await load();
-    return (await matchingFace(ThemeCatalog.fontFamily(id))) ? "loaded" : "failed";
+    return (await matchingFace(family)) ? "loaded" : "failed";
   } catch (error) {
     console.error(`Unable to load font ${id}`, error);
     return "failed";
