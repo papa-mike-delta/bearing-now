@@ -62,20 +62,21 @@ export function LinkProposalCards({
     return assignArea(card);
   }
   async function assignArea(card: LinkProposal) {
-    if (card.accept.kind !== "area")
+    const accept = card.accept;
+    if (accept.kind !== "area")
       throw new Error("This suggestion is not an Area assignment");
-    const item = data.items.find((entry) => entry.id === card.accept.itemId);
+    const item = data.items.find((entry) => entry.id === accept.itemId);
     if (!item) throw new Error("This Item is no longer in the workspace");
     return mutate<{ receiptId: string }>(
       `items/${item.id}`,
       {
-        revision: card.accept.revision,
+        revision: accept.revision,
         data: {
           ...itemDto(itemSeed(item)),
           tagIds: [
             ...new Set([
               ...item.tags.map((entry) => entry.tagId),
-              card.accept.tagId,
+              accept.tagId,
             ]),
           ],
         },
