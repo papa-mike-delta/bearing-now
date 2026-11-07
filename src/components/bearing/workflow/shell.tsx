@@ -567,23 +567,27 @@ function Content({
           </main>
         </div>
         <Dialog open={menu} onOpenChange={setMenu}>
-          <DialogContent className="max-h-[85dvh] gap-3 overflow-y-auto p-4 sm:max-w-sm">
-            <DialogHeader className="gap-1">
-              <DialogTitle>Navigation</DialogTitle>
-              <DialogDescription>Open a view.</DialogDescription>
-            </DialogHeader>
-            {navigation}
-            <p className="truncate text-xs text-muted-foreground">{identity?.email}</p>
-            <Button
-              variant="ghost"
-              className="justify-start px-2 text-muted-foreground"
-              onClick={() => {
-                setMenu(false);
-                setLogout(true);
-              }}
-            >
-              Sign out
-            </Button>
+          <DialogContent className="max-h-[85dvh] overflow-hidden p-4 sm:max-w-sm">
+            <div className="flex h-[calc(85dvh-2rem)] min-h-0 flex-col gap-3">
+              <DialogHeader className="shrink-0 gap-1">
+                <DialogTitle>Navigation</DialogTitle>
+                <DialogDescription>Open a view.</DialogDescription>
+              </DialogHeader>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                {navigation}
+              </div>
+              <p className="shrink-0 truncate text-xs text-muted-foreground">{identity?.email}</p>
+              <Button
+                variant="ghost"
+                className="shrink-0 justify-start px-2 text-muted-foreground"
+                onClick={() => {
+                  setMenu(false);
+                  setLogout(true);
+                }}
+              >
+                Sign out
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
         <Dialog open={logout} onOpenChange={setLogout}>
