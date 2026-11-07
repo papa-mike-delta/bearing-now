@@ -34,6 +34,7 @@ import {
   CheckIn,
   HabitsToday,
 } from "./connections";
+import { LinkProposalCards } from "./link-proposals";
 import { typeNames } from "./structured-fields";
 import {
   localDate as validLocalDate,
@@ -354,9 +355,11 @@ export function MomentCard({
     draft,
     data: edit,
   } = useItemDraft(`moment:${moment.id}`, seed);
-  const refs = moment.items
-    .map((r) => data.items.find((i) => i.id === r.itemId))
-    .filter((i): i is ItemRecord => !!i);
+  const refs = [
+    ...new Map(moment.items.map((ref) => [ref.itemId, ref])).values(),
+  ]
+    .map((ref) => data.items.find((item) => item.id === ref.itemId))
+    .filter((item): item is ItemRecord => !!item);
   async function classify(item = false) {
     setBusy(true);
     setError("");
@@ -499,6 +502,7 @@ export function MomentCard({
       {refs.map((i) => (
         <ItemCard key={i.id} item={i} context="Linked Item" />
       ))}
+      <LinkProposalCards momentId={moment.id} />
       {organize && (
         <div className="space-y-3 border-t border-border pt-3">
           {!refs.length && (
@@ -775,6 +779,7 @@ export function Library({ recordId }: { recordId?: string }) {
           subtitle={`${item.type} · ${statusNames[item.status]}`}
           icon={typeIcons[item.type]}
         />
+        <LinkProposalCards itemId={item.id} />
         {item.type === "person" && <PersonProfile item={item} />}
         {item.type === "bookmark" && <BookmarkReference item={item} />}
         <ItemEditor key={item.id} item={item} />

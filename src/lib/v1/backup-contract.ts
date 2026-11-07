@@ -91,7 +91,7 @@ export const tableSchemas = {
   momentItems: z.strictObject({
     momentId: id,
     itemId: id,
-    relation: z.enum(["mention", "reference"]),
+    relation: z.enum(["mention", "reference", "located_at"]),
   }),
   reviews: z.strictObject({
     id,

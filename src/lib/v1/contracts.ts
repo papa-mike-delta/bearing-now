@@ -75,6 +75,7 @@ const bookmarkMeta = z.discriminatedUnion("category", [
       latitude: z.number().min(-90).max(90).optional(),
       longitude: z.number().min(-180).max(180).optional(),
       url: url.optional(),
+      capturedMomentId: id.optional(),
     })
     .refine(
       (m) => (m.latitude === undefined) === (m.longitude === undefined),
@@ -293,6 +294,8 @@ export const linkInput = z
       "located_at",
     ]),
     note: text.default(""),
+    fromRevision: z.number().int().nonnegative().optional(),
+    toRevision: z.number().int().nonnegative().optional(),
   })
   .refine((v) => v.fromId !== v.toId, "Self Links are not supported");
 export const recurrenceRule = z.discriminatedUnion("mode", [

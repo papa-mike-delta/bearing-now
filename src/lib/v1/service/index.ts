@@ -17,6 +17,7 @@ import { v1db } from "../db";
 import * as schema from "../contracts";
 import { dateInZone, nextOccurrence } from "../dates";
 import { validLinkEndpoints } from "../link-policy";
+import { LinkProposals } from "../link-proposals";
 
 export type Principal = {
   userId: string;
@@ -47,6 +48,15 @@ export function parse<T>(contract: z.ZodType<T>, raw: unknown): T {
 }
 const json = (value: unknown) =>
   JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+/** A revisioned retry of an existing Link. Caught inside the write transaction so it commits no new success receipt. */
+class LinkReplay<T> extends Error {
+  constructor(
+    readonly value: T,
+    readonly receiptId: string,
+  ) {
+    super("Link already recorded");
+  }
+}
 export async function write<T>(
   principal: Principal,
   operation: string,
@@ -61,18 +71,28 @@ export async function write<T>(
       throw new Fault(403, "Actor does not own this account");
     if (actor.startsWith("agent:") && !principal.approved)
       throw new Fault(403, "An approved change set is required");
-    const value = await work(tx);
-    const receipt = await tx.ledger.create({
-      data: {
-        userId,
-        actor,
-        operation,
-        payload: JSON.stringify(payload ?? null),
-        status: "success",
-        receipt: JSON.stringify({ ok: true, value }),
-      },
-    });
-    return { ok: true as const, value, receiptId: receipt.id };
+    try {
+      const value = await work(tx);
+      const receipt = await tx.ledger.create({
+        data: {
+          userId,
+          actor,
+          operation,
+          payload: JSON.stringify(payload ?? null),
+          status: "success",
+          receipt: JSON.stringify({ ok: true, value }),
+        },
+      });
+      return { ok: true as const, value, receiptId: receipt.id };
+    } catch (error) {
+      if (error instanceof LinkReplay)
+        return {
+          ok: true as const,
+          value: error.value as T,
+          receiptId: error.receiptId,
+        };
+      throw error;
+    }
   };
   // Composition shares writes and receipts; only the outer transaction records refusal.
   if (transaction) return run(transaction);
@@ -223,6 +243,24 @@ const occurrenceInput = z.strictObject({
 });
 
 const includeMoment = { items: { include: { item: true } } } as const;
+async function originalReceipt(
+  tx: Tx,
+  userId: string,
+  operation: string,
+  parts: string[],
+) {
+  const rows = await tx.ledger.findMany({
+    where: {
+      userId,
+      operation,
+      status: "success",
+      receipt: { contains: parts[0] },
+    },
+    orderBy: { createdAt: "asc" },
+    take: 50,
+  });
+  return rows.find((row) => parts.every((part) => row.receipt.includes(part)));
+}
 export class V1 {
   static mention(p: Principal, momentId: string, raw: unknown) {
     return write(
@@ -260,6 +298,103 @@ export class V1 {
         return reference;
       },
     );
+  }
+
+  static relateMoment(p: Principal, momentId: string, raw: unknown) {
+    return write(
+      p,
+      "v1.moment.relate",
+      { momentId, data: raw },
+      async (tx) => {
+        const value = parse(
+          z.strictObject({
+            itemId: schema.id,
+            revision,
+            relation: z.enum(["mention", "located_at"]),
+          }),
+          raw,
+        );
+        const moment = await owned(tx, p.userId, "journalMoment", momentId);
+        const item = await owned(tx, p.userId, "item", value.itemId);
+        if (value.relation === "mention" && item.type !== "person")
+          throw new Fault(400, "A Journal mention names a Person");
+        if (
+          value.relation === "located_at" &&
+          (item.type !== "bookmark" ||
+            !LinkProposals.capturedPlace(item.metadata, momentId))
+        )
+          throw new Fault(400, "This entry was not captured at that Place");
+        await guardOpen(tx, p, [value.itemId]);
+        const existing = await tx.momentItem.findUnique({
+          where: {
+            userId_momentId_itemId_relation: {
+              userId: p.userId,
+              momentId,
+              itemId: value.itemId,
+              relation: value.relation,
+            },
+          },
+        });
+        if (existing) {
+          const prior = await originalReceipt(tx, p.userId, "v1.moment.relate", [
+            existing.momentId,
+            existing.itemId,
+            `"relation":"${value.relation}"`,
+          ]);
+          if (!prior) throw new Fault(409, "Record already exists");
+          throw new LinkReplay(existing, prior.id);
+        }
+        if (moment.revision !== value.revision)
+          throw new Fault(409, "Journal entry changed", {
+            currentRevision: moment.revision,
+          });
+        const reference = await tx.momentItem.create({
+          data: {
+            userId: p.userId,
+            momentId,
+            itemId: value.itemId,
+            relation: value.relation,
+          },
+        });
+        await tx.journalMoment.update({
+          where: { userId_id: { userId: p.userId, id: momentId } },
+          data: { revision: { increment: 1 }, demoBatchId: null },
+        });
+        return reference;
+      },
+    );
+  }
+
+  static placeTask(p: Principal, itemId: string, raw: unknown) {
+    return write(p, "v1.task.place", { itemId, data: raw }, async (tx) => {
+      const value = parse(
+        z.strictObject({ projectId: schema.id, revision }),
+        raw,
+      );
+      const item = await owned(tx, p.userId, "item", itemId);
+      if (item.type !== "task") throw new Fault(400, "Choose a Task");
+      await owned(tx, p.userId, "project", value.projectId);
+      await guardOpen(tx, p, [itemId]);
+      if (item.projectId === value.projectId) {
+        const prior = await originalReceipt(tx, p.userId, "v1.task.place", [
+          `"id":"${item.id}"`,
+        ]);
+        if (!prior) throw new Fault(409, "Record already exists");
+        throw new LinkReplay(item, prior.id);
+      }
+      if (item.revision !== value.revision)
+        throw new Fault(409, "Item changed", {
+          currentRevision: item.revision,
+        });
+      return tx.item.update({
+        where: { userId_id: { userId: p.userId, id: itemId } },
+        data: {
+          projectId: value.projectId,
+          revision: { increment: 1 },
+          demoBatchId: null,
+        },
+      });
+    });
   }
 
   static habit(p: Principal, itemId: string, raw: unknown) {
@@ -394,11 +529,19 @@ export class V1 {
         tx,
       );
       if (intent.kind === "item") {
-        const { value: item } = await V1.createItem(
-          p,
-          { ...intent.item, timezone: value.timezone },
-          tx,
-        );
+        const itemInput = {
+          ...intent.item,
+          timezone: value.timezone,
+          ...(value.place
+            ? {
+                metadata: {
+                  ...intent.item.metadata,
+                  capturedMomentId: moment.id,
+                },
+              }
+            : {}),
+        };
+        const { value: item } = await V1.createItem(p, itemInput, tx);
         await tx.momentItem.create({
           data: {
             userId: p.userId,
@@ -539,7 +682,6 @@ export class V1 {
           type: "task",
           title: step.text.trim(),
           status: step.checked ? "done" : "todo",
-          projectId: parent.projectId,
           tagIds: tags.map((t) => t.tagId),
           timezone: parent.timezone,
         },
@@ -916,11 +1058,47 @@ export class V1 {
         const value = parse(schema.linkInput, raw),
           from = await owned(tx, p.userId, "item", value.fromId),
           to = await owned(tx, p.userId, "item", value.toId);
+        const { fromRevision, toRevision, ...link } = value;
+        const revisioned =
+          fromRevision !== undefined || toRevision !== undefined;
+        if (revisioned) {
+          const existing = await tx.link.findUnique({
+            where: {
+              userId_fromId_toId_type: {
+                userId: p.userId,
+                fromId: link.fromId,
+                toId: link.toId,
+                type: link.type,
+              },
+            },
+          });
+          if (existing) {
+            const prior = await tx.ledger.findFirst({
+              where: {
+                userId: p.userId,
+                operation: "v1.link.create",
+                status: "success",
+                receipt: { contains: `"id":"${existing.id}"` },
+              },
+              orderBy: { createdAt: "asc" },
+            });
+            if (!prior) throw new Fault(409, "Record already exists");
+            throw new LinkReplay(existing, prior.id);
+          }
+          if (fromRevision !== undefined && from.revision !== fromRevision)
+            throw new Fault(409, "Item changed", {
+              currentRevision: from.revision,
+            });
+          if (toRevision !== undefined && to.revision !== toRevision)
+            throw new Fault(409, "Item changed", {
+              currentRevision: to.revision,
+            });
+        }
         await guardOpen(tx, p, [value.fromId, value.toId]);
         await cap(tx, p, "link");
         if (!validLinkEndpoints(value.type, from, to))
           throw new Fault(400, "Invalid semantic Link endpoints");
-        return tx.link.create({ data: { ...value, userId: p.userId } });
+        return tx.link.create({ data: { ...link, userId: p.userId } });
       },
       transaction,
     );
