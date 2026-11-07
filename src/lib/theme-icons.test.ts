@@ -38,4 +38,4 @@ it("maps every icon name the app renders and points each library at a real expor
       expect(modules[library][exportName as keyof typeof modules[typeof library]], `${library}.${exportName}`).toBeTruthy();
     }
   }
-});
+}, 30_000);

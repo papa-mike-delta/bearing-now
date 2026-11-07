@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Dialog as BaseDialog } from "@base-ui/react/dialog"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { Dialog as AriaDialog, DialogTrigger as AriaDialogTrigger, Heading, Modal, ModalOverlay } from "react-aria-components"
+import { Button as AriaButton, Dialog as AriaDialog, DialogTrigger as AriaDialogTrigger, Heading, Modal, ModalOverlay } from "react-aria-components"
 
 import { Icon } from "@/components/bearing/icon"
 import { useThemeSelection } from "@/components/theme-selection"
@@ -53,7 +53,7 @@ function DialogClose({
 }: React.ComponentProps<typeof DialogPrimitive.Close>) {
   const { base } = useThemeSelection()
   if (base === "base") return <BaseDialog.Close data-slot="dialog-close" {...props} />
-  if (base === "aria") return <button slot="close" data-slot="dialog-close" {...props} />
+  if (base === "aria") return <AriaButton slot="close" data-slot="dialog-close" {...(props as React.ComponentProps<typeof AriaButton>)} />
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
@@ -92,10 +92,10 @@ function DialogContent({
           <AriaDialog className="grid gap-4 outline-none">
             {children}
             {showCloseButton && (
-              <button slot="close" data-slot="dialog-close" className="touch-target inline-flex items-center justify-center absolute top-4 right-4 rounded-xs opacity-70">
+              <AriaButton slot="close" data-slot="dialog-close" className="touch-target inline-flex items-center justify-center absolute top-4 right-4 rounded-xs opacity-70">
                 <Icon name="X" />
                 <span className="sr-only">Close</span>
-              </button>
+              </AriaButton>
             )}
           </AriaDialog>
         </Modal>

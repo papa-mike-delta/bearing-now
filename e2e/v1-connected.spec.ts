@@ -72,6 +72,9 @@ test("People distinguish mentions, linked media and actual interaction; Me keeps
   await page
     .getByRole("button", { name: "Capture moment", exact: true })
     .click();
+  await expect(
+    page.locator('article[id^="moment-"]').filter({ hasText: `Thought about ${name}` }),
+  ).toBeVisible();
   await open(page, `library/${personId}`);
   await expect(
     page.getByRole("link", { name: new RegExp(`Thought about ${name}`) }),
