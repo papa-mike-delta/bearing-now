@@ -299,3 +299,46 @@ test("a connection prompt refuses a stale source and retains the editable propos
     ),
   ).toHaveLength(0);
 });
+test("connection forms save under Base UI and React Aria", async ({ page }) => {
+  test.setTimeout(90_000);
+  for (const base of ["base", "aria"]) {
+    const id = unique();
+    const source = await create(page, "items", {
+      type: "note",
+      title: `Base ${base} source ${id}`,
+    });
+    const target = await create(page, "items", {
+      type: "note",
+      title: `Base ${base} target ${id}`,
+    });
+    const response = await page.request.post("/api/preferences/theme", {
+      data: {
+        input: `:root { --bearing-base: ${base}; } .dark { --bearing-base: ${base}; }`,
+      },
+    });
+    expect(response.ok()).toBeTruthy();
+    await page.goto("/app/graph");
+    await expect(
+      page.getByRole("button", { name: "Quick Capture", exact: true }),
+    ).toHaveAttribute("data-theme-base", base);
+    await page
+      .getByRole("button", { name: `Connect ${source.title}`, exact: true })
+      .click();
+    const dialog = page.getByRole("dialog");
+    await dialog
+      .getByRole("combobox", { name: "Connect to", exact: true })
+      .selectOption(target.id);
+    const save = dialog.getByRole("button", {
+      name: "Save connection",
+      exact: true,
+    });
+    await expect(save).toHaveAttribute("data-theme-base", base);
+    await save.click();
+    await receipt(page);
+    expect(
+      (await links(page)).filter(
+        (link: any) => link.fromId === source.id && link.toId === target.id,
+      ),
+    ).toHaveLength(1);
+  }
+});

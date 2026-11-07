@@ -305,6 +305,7 @@ export function RelationshipPrompts({
               )}
               <div className="flex flex-wrap gap-2">
                 <Button
+                  type="submit"
                   disabled={
                     busy ||
                     (moment && mode === "create" ? !title.trim() : !target)
