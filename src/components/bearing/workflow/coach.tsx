@@ -217,7 +217,7 @@ export function ConversationalCoach() {
     <div className="space-y-5">
       <PageHeader
         title="Coach"
-        subtitle="Find, clarify and organize your Bearing records. Changes wait for your approval."
+        subtitle="Find, clarify and organize your Bearing records. Changes wait for approval unless you opted in to a listed trust pattern in Settings."
         icon="Sparkles"
       />
       <SectionCard title="Model and privacy">
@@ -602,6 +602,7 @@ function ProposalCard({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [confirmation, setConfirmation] = useState(""),
+    [notice, setNotice] = useState(""),
     [result, setResult] = useState<any>(initial.result);
   function change(index: number, patch: any) {
     setOperations((previous) =>
@@ -618,6 +619,7 @@ function ProposalCard({
   async function action(kind: "review" | "approve" | "reject") {
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       if (kind === "review") {
         const next = await request<Draft>(userId, "coach/preview", {
@@ -997,6 +999,39 @@ function ProposalCard({
         {result && (
           <div role="status" className="space-y-2 text-sm">
             <p>Batch applied atomically. All views use these same records.</p>
+            {result.trust && (
+              <p>
+                Saved under trust pattern {result.trust.patternId}, policy
+                revision {result.trust.policyRevision}. Turning that pattern
+                off does not undo this save.
+                {result.applyReceiptId && (
+                  <>
+                    {" "}
+                    <a
+                      className="underline"
+                      href={`/api/v1/coach/receipts/${result.applyReceiptId}`}
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        try {
+                          const receipt = await request(
+                            userId,
+                            `coach/receipts/${result.applyReceiptId}`,
+                          );
+                          setNotice(
+                            `Receipt ${receipt.id}: ${receipt.status}. Pattern ${result.trust.patternId}, policy revision ${result.trust.policyRevision}.`,
+                          );
+                          setError("");
+                        } catch (err) {
+                          setError(message(err));
+                        }
+                      }}
+                    >
+                      Batch audit receipt
+                    </a>
+                  </>
+                )}
+              </p>
+            )}
             {result.changes.map((c: any, index: number) => (
               <p key={index}>
                 {["item", "project"].includes(c.kind) ? (
@@ -1020,7 +1055,8 @@ function ProposalCard({
                         userId,
                         `coach/receipts/${c.receiptId}`,
                       );
-                      setError(`Receipt ${receipt.id}: ${receipt.status}`);
+                      setNotice(`Receipt ${receipt.id}: ${receipt.status}`);
+                      setError("");
                     } catch (err) {
                       setError(message(err));
                     }
@@ -1031,6 +1067,11 @@ function ProposalCard({
               </p>
             ))}
           </div>
+        )}
+        {notice && (
+          <p role="status" className="text-sm">
+            {notice}
+          </p>
         )}
         {error && (
           <p role="alert" className="text-sm text-destructive">

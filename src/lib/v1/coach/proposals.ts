@@ -6,10 +6,12 @@ import {
   owned,
   parse,
   Fault,
+  TrustDeclined,
   guardOpen,
   type Principal,
   type Tx,
 } from "../service";
+import { CoachTrust } from "./trust";
 import { v1db } from "../db";
 import { itemInput, projectInput } from "../contracts";
 import { itemDto } from "../client-model";
@@ -27,6 +29,7 @@ const envelope = z.object({
   plan: z.unknown(),
   proposalId: z.string().optional(),
   revision: z.number().optional(),
+  settleNonce: z.string().optional(),
 });
 function secret() {
   const value = process.env.SESSION_SECRET;
@@ -208,6 +211,15 @@ export async function preparePlan(
     );
   return plan;
 }
+async function clearArms(tx: Tx, userId: string, proposalId: string) {
+  await tx.preference.deleteMany({
+    where: {
+      userId,
+      key: { startsWith: "coach.arm." },
+      value: { path: ["proposalId"], equals: proposalId },
+    },
+  });
+}
 export async function preview(
   userId: string,
   raw: unknown,
@@ -216,6 +228,8 @@ export async function preview(
     id?: string;
     revision?: number;
     draftKey?: string;
+    /** Server-only. HTTP preview never sets this. */
+    arm?: boolean;
   } = {},
 ): Promise<Draft> {
   return v1db.$transaction(async (tx) => {
@@ -224,6 +238,7 @@ export async function preview(
       await owned(tx, userId, "conversation", context.conversationId);
     const plan = await preparePlan(userId, raw, tx);
     let record;
+    let fresh = false;
     if (context.id) {
       record = await tx.proposal.findFirst({
         where: { userId, id: context.id },
@@ -231,6 +246,7 @@ export async function preview(
       if (!record) throw new Fault(404, "Not found");
       if (record.status !== "pending" || record.revision !== context.revision)
         throw new Fault(409, "Proposal changed. Reload the conversation.");
+      await clearArms(tx, userId, record.id);
       record = await tx.proposal.update({
         where: { id: record.id },
         data: {
@@ -259,7 +275,7 @@ export async function preview(
             409,
             "A proposal already exists for this message. Review that proposal before retrying.",
           );
-      } else
+      } else {
         record = await tx.proposal.create({
           data: {
             ...(stableId ? { id: stableId } : {}),
@@ -268,6 +284,23 @@ export async function preview(
             operations: JSON.parse(JSON.stringify(plan)),
           },
         });
+        fresh = true;
+      }
+    } else fresh = true;
+    let settleNonce: string | undefined;
+    if (context.arm && fresh) {
+      settleNonce = crypto.randomUUID();
+      await tx.preference.create({
+        data: {
+          userId,
+          key: `coach.arm.${settleNonce}`,
+          value: {
+            digest: canonicalJson(plan),
+            proposalId: record?.id ?? null,
+            revision: record?.revision ?? null,
+          },
+        },
+      });
     }
     const value = {
       userId,
@@ -281,12 +314,13 @@ export async function preview(
         : crypto.randomUUID(),
       plan,
       ...(record ? { proposalId: record.id, revision: record.revision } : {}),
+      ...(settleNonce ? { settleNonce } : {}),
     };
     return {
       plan,
       token: sign(value),
       ...(record ? { id: record.id, revision: record.revision } : {}),
-      status: "pending",
+      status: "pending" as const,
     };
   });
 }
@@ -296,12 +330,25 @@ export async function proposalDraft(
 ): Promise<Draft> {
   const stored = row.operations as any,
     plan = stored.plan || stored;
+  let result = stored.result;
+  if (row.status === "applied" && result) {
+    const receipt = await v1db.ledger.findFirst({
+      where: {
+        userId,
+        operation: "v1.coach.apply",
+        status: "success",
+        payload: { contains: `"proposalId":"${row.id}"` },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    if (receipt) result = { ...result, applyReceiptId: receipt.id };
+  }
   return {
     id: row.id,
     revision: row.revision,
     status: row.status,
     plan,
-    result: stored.result,
+    result,
     token:
       row.status === "pending"
         ? sign({
@@ -327,6 +374,7 @@ export async function reject(userId: string, token: string) {
     if (row.status === "rejected") return { status: "rejected" };
     if (row.status !== "pending" || row.revision !== value.revision)
       throw new Fault(409, "Proposal changed");
+    await clearArms(tx, userId, row.id);
     await tx.proposal.update({
       where: { id: row.id },
       data: { status: "rejected", revision: { increment: 1 } },
@@ -334,14 +382,35 @@ export async function reject(userId: string, token: string) {
     return { status: "rejected" };
   });
 }
-export async function approve(
+function publicToken(value: z.infer<typeof envelope>) {
+  const { settleNonce: _nonce, plan, ...rest } = value;
+  return sign({ ...rest, plan });
+}
+function pendingDraft(
+  value: z.infer<typeof envelope> & { plan: Plan },
+): Draft {
+  return {
+    plan: value.plan,
+    token: publicToken(value),
+    ...(value.proposalId
+      ? { id: value.proposalId, revision: value.revision }
+      : {}),
+    status: "pending",
+  };
+}
+async function commit(
   user: Principal,
   token: string,
   confirmation: string,
+  mode: "approval" | "trust",
 ) {
   const value = verify(token, user.userId);
   const plan = value.plan;
-  if (plan.destructive && confirmation !== "APPLY DESTRUCTIVE CHANGES")
+  if (
+    mode === "approval" &&
+    plan.destructive &&
+    confirmation !== "APPLY DESTRUCTIVE CHANGES"
+  )
     throw new Fault(400, "Type APPLY DESTRUCTIVE CHANGES to confirm");
   const p: Principal = {
     userId: user.userId,
@@ -349,11 +418,18 @@ export async function approve(
     approved: true,
   };
   const key = `coach.applied.${value.proposalId ? `${value.proposalId}_${value.revision}` : value.nonce}`;
-  return write(
-    p,
-    "v1.coach.apply",
-    { proposalId: value.proposalId, operations: plan.operations },
-    async (tx) => {
+  const audit: {
+    proposalId: string | null;
+    nonce: string;
+    operations: Plan["operations"];
+    trust: null | { patternId: string; policyRevision: number };
+  } = {
+    proposalId: value.proposalId ?? null,
+    nonce: value.nonce,
+    operations: plan.operations,
+    trust: null,
+  };
+  return write(p, "v1.coach.apply", audit, async (tx) => {
       const replay = await tx.preference.findUnique({
         where: { userId_key: { userId: p.userId, key } },
       });
@@ -364,21 +440,58 @@ export async function approve(
             409,
             "Approval key already used for different changes",
           );
+        if (value.settleNonce)
+          await tx.preference.deleteMany({
+            where: { userId: p.userId, key: `coach.arm.${value.settleNonce}` },
+          });
+        audit.trust = saved.outcome?.trust ?? null;
         return saved.outcome;
       }
       if (value.proposalId) {
         const row = await tx.proposal.findFirst({
           where: { userId: p.userId, id: value.proposalId },
         });
-        if (!row) throw new Fault(404, "Not found");
-        if (
-          row.status !== "pending" ||
-          row.revision !== value.revision ||
-          canonicalJson(row.operations) !== canonicalJson(plan)
-        )
+        const current =
+          !!row &&
+          row.status === "pending" &&
+          row.revision === value.revision &&
+          canonicalJson(row.operations) === canonicalJson(plan);
+        if (!current) {
+          if (mode === "trust") throw new TrustDeclined();
+          if (!row) throw new Fault(404, "Not found");
           throw new Fault(409, "Proposal changed; no changes were saved");
+        }
+      }
+      if (mode === "trust") {
+        if (!value.settleNonce) throw new TrustDeclined();
+        const arm = await tx.preference.findUnique({
+          where: {
+            userId_key: { userId: p.userId, key: `coach.arm.${value.settleNonce}` },
+          },
+        });
+        const marker = arm?.value as
+          | { digest?: string; proposalId?: string | null; revision?: number | null }
+          | undefined;
+        if (
+          !marker ||
+          marker.digest !== canonicalJson(plan) ||
+          (marker.proposalId ?? null) !== (value.proposalId ?? null) ||
+          (marker.revision ?? null) !== (value.revision ?? null)
+        )
+          throw new TrustDeclined();
       }
       const checked = await preparePlan(p.userId, plan.operations, tx);
+      if (mode === "trust") {
+        const decision = await CoachTrust.decide(tx, p.userId, checked);
+        if (!decision) throw new TrustDeclined();
+        audit.trust = {
+          patternId: decision.patternId,
+          policyRevision: decision.policyRevision,
+        };
+        await tx.preference.deleteMany({
+          where: { userId: p.userId, key: `coach.arm.${value.settleNonce}` },
+        });
+      }
       if (checked.destructive && confirmation !== "APPLY DESTRUCTIVE CHANGES")
         throw new Fault(400, "Type APPLY DESTRUCTIVE CHANGES to confirm");
       const ids = new Map<string, string>();
@@ -485,7 +598,7 @@ export async function approve(
           receiptId: result.receiptId,
         });
       }
-      const outcome = { changes, atomic: true };
+      const outcome = { changes, atomic: true, trust: audit.trust };
       await tx.preference.create({
         data: {
           userId: p.userId,
@@ -505,4 +618,76 @@ export async function approve(
       return outcome;
     },
   );
+}
+export function approve(user: Principal, token: string, confirmation: string) {
+  return commit(user, token, confirmation, "approval");
+}
+export async function releaseDraft(userId: string, token: string) {
+  const value = verify(token, userId);
+  await CoachTrust.disarm(userId, value.settleNonce);
+  return pendingDraft(value);
+}
+async function appliedReplay(
+  userId: string,
+  value: z.infer<typeof envelope> & { plan: Plan },
+): Promise<Draft | null> {
+  const key = `coach.applied.${value.proposalId ? `${value.proposalId}_${value.revision}` : value.nonce}`;
+  const row = await v1db.preference.findUnique({
+    where: { userId_key: { userId, key } },
+  });
+  const saved = row?.value as { digest?: string; outcome?: any } | undefined;
+  if (!saved || saved.digest !== canonicalJson(value.plan)) return null;
+  const receipt = await v1db.ledger.findFirst({
+    where: {
+      userId,
+      operation: "v1.coach.apply",
+      status: "success",
+      payload: { contains: `"nonce":"${value.nonce}"` },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+  return {
+    plan: value.plan,
+    token: "",
+    ...(value.proposalId
+      ? { id: value.proposalId, revision: value.revision }
+      : {}),
+    status: "applied",
+    result: { ...saved.outcome, applyReceiptId: receipt?.id },
+  };
+}
+export async function settle(userId: string, token: string): Promise<Draft> {
+  const value = verify(token, userId);
+  const replayed = await appliedReplay(userId, value);
+  if (replayed) return replayed;
+  if (!value.settleNonce) return pendingDraft(value);
+  const policy = await CoachTrust.read(v1db, userId);
+  const shape = CoachTrust.patternFor(value.plan);
+  if (!shape || !policy.patterns.includes(shape)) {
+    await CoachTrust.disarm(userId, value.settleNonce);
+    return pendingDraft(value);
+  }
+  try {
+    const applied = await commit(
+      { userId, actor: `user:${userId}` },
+      token,
+      "",
+      "trust",
+    );
+    return {
+      plan: value.plan,
+      token: "",
+      ...(value.proposalId
+        ? { id: value.proposalId, revision: value.revision }
+        : {}),
+      status: "applied",
+      result: { ...applied.value, applyReceiptId: applied.receiptId },
+    };
+  } catch (error) {
+    if (error instanceof TrustDeclined) {
+      await CoachTrust.disarm(userId, value.settleNonce);
+      return pendingDraft(value);
+    }
+    throw error;
+  }
 }

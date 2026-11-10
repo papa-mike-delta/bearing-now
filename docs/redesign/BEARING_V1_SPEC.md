@@ -130,8 +130,8 @@ Replace the manual JSON tool panel with conversational reading and organization 
 - Build on **Vercel AI SDK** with pluggable OpenRouter or Vercel AI Gateway provider; credentials live server-side.
 - Internal search/reads, follow-up clarification and source-grounded answers in V1; external research is a later phase.
 - For vague captures propose a classification, titles, Area/Tag/Project, Person connections and related records. Ask for missing high-value titles instead of guessing.
-- When unresolved, retain the original and optionally **propose** a research Task; never auto-create it.
-- Batch logically related proposed writes in one editable approval card. **No writes without approval.** Apply transactionally or present clear partial-failure reconciliation; do not silently claim success.
+- When unresolved, retain the original and optionally **propose** a research Task. It is saved immediately only when this account has opted in to the create-one-open-Task trust pattern; otherwise it waits for approval.
+- Batch logically related proposed writes in one editable approval card. A fresh Coach proposal is saved without that card only when the whole batch is exactly one opted-in trust pattern. Restoring a backup turns those patterns off until the account opts in again. Apply transactionally or present clear partial-failure reconciliation; do not silently claim success.
 - Allow proposing create/update/archive/link; show and double-check especially destructive changes.
 - Conversations persist by default, with temporary mode. Chat history is not implicitly Journal content.
 - Bearing structured records are authoritative. Additional remembered preferences are inspectable, editable and deletable.

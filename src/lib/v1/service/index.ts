@@ -35,6 +35,12 @@ export class Fault extends Error {
     super(message, options);
   }
 }
+/** A Coach batch is not covered at write time. Canonical rows stay unchanged and no apply receipt is written. */
+export class TrustDeclined extends Error {
+  constructor() {
+    super("Trust does not cover this batch");
+  }
+}
 export function parse<T>(contract: z.ZodType<T>, raw: unknown): T {
   const result = contract.safeParse(raw);
   if (!result.success)
@@ -99,6 +105,7 @@ export async function write<T>(
   try {
     return await v1db.$transaction(run, { timeout: 30_000 });
   } catch (error) {
+    if (error instanceof TrustDeclined) throw error;
     const fault =
       error instanceof Fault
         ? error

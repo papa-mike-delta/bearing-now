@@ -25,6 +25,7 @@ import { dateInZone } from "@/lib/v1/dates";
 import { localDate } from "@/lib/v1/contracts";
 import type { Workspace } from "@/lib/v1/client-model";
 import { LinkProposals } from "@/lib/v1/link-proposals";
+import { trustPatterns } from "@/lib/v1/coach/trust-catalog";
 import { WorkspaceContext, useWorkspace, request, fieldClass } from "./context";
 import { CaptureComposer } from "./capture";
 import {
@@ -615,6 +616,105 @@ function Content({
     </WorkspaceContext.Provider>
   );
 }
+function CoachTrustSettings() {
+  const { data } = useWorkspace(),
+    trust = data.trust ?? { version: 1 as const, revision: 0, patterns: [] },
+    [saved, setSaved] = useState(false),
+    [error, setError] = useState("");
+  return (
+    <CoachTrustForm
+      key={`${trust.revision}:${trust.patterns.join(",")}`}
+      revision={trust.revision}
+      patterns={trust.patterns}
+      saved={saved}
+      error={error}
+      onSaved={() => setSaved(true)}
+      onEdit={() => setSaved(false)}
+      onError={setError}
+    />
+  );
+}
+function CoachTrustForm({
+  revision,
+  patterns,
+  saved,
+  error,
+  onSaved,
+  onEdit,
+  onError,
+}: {
+  revision: number;
+  patterns: string[];
+  saved: boolean;
+  error: string;
+  onSaved(): void;
+  onEdit(): void;
+  onError(message: string): void;
+}) {
+  const { mutate } = useWorkspace(),
+    [selected, setSelected] = useState(patterns);
+  return (
+    <SectionCard title="Coach trust">
+      <form
+        className="space-y-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onError("");
+          onEdit();
+          void mutate(
+            "coach/trust",
+            { revision, patterns: selected },
+            "PUT",
+          )
+            .then(() => onSaved())
+            .catch((err: Error) => onError(err.message));
+        }}
+      >
+        <p className="text-sm text-muted-foreground">
+          Off until you opt in. Each choice lets a fresh Coach proposal save
+          exactly one matching operation, and only that effect. An edited
+          proposal, an older pending card, and every other change still wait
+          for approval. Restoring a backup turns these off until you opt in
+          again. Your other preferences come back. Turning a choice off does
+          not undo a change already saved.
+        </p>
+        {trustPatterns.map((pattern) => (
+          <label
+            key={pattern.id}
+            className="flex min-h-11 items-start gap-2 text-sm"
+          >
+            <input
+              className="mt-1"
+              type="checkbox"
+              checked={selected.includes(pattern.id)}
+              onChange={(e) => {
+                onEdit();
+                setSelected((current) =>
+                  e.target.checked
+                    ? [...current, pattern.id]
+                    : current.filter((id) => id !== pattern.id),
+                );
+              }}
+            />
+            <span>
+              <span className="font-medium">{pattern.title}</span>
+              <span className="mt-1 block text-muted-foreground">
+                {pattern.effect}
+              </span>
+            </span>
+          </label>
+        ))}
+        <Button>Save Coach trust</Button>
+        {saved && <p role="status">Coach trust saved for this account.</p>}
+        {error && (
+          <p role="alert" className="text-destructive">
+            {error}
+          </p>
+        )}
+      </form>
+    </SectionCard>
+  );
+}
 function Settings({ onSignOut }: { onSignOut(): void }) {
   const { data, timezone, mutate } = useWorkspace(),
     [startup, setStartup] = useState(data.preferences.startup || "today"),
@@ -722,6 +822,7 @@ function Settings({ onSignOut }: { onSignOut(): void }) {
           <Button>Create label</Button>
         </form>
       </SectionCard>
+      <CoachTrustSettings />
       <DataSettings />
       {error && (
         <p role="alert" className="text-destructive">

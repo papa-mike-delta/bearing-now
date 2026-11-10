@@ -116,6 +116,11 @@ export function DataSettings() {
           >
             Export V1 backup
           </Button>
+          <p className="text-sm text-muted-foreground">
+            Restore keeps this account&apos;s other preferences. Coach trust
+            choices saved in the file stay off until you opt in again in
+            Settings.
+          </p>
           <label className="block text-sm">
             Backup file
             <input
@@ -149,7 +154,7 @@ export function DataSettings() {
                     );
                   const backup: unknown = JSON.parse(await file.text());
                   await maintenance("backup", { backup, confirmation });
-                  return "Backup restored to this account.";
+                  return "Backup restored to this account. Coach trust stays off until you opt in again.";
                 })
               }
             >

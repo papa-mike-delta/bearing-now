@@ -1,6 +1,7 @@
 import { Prisma } from "@bearing/v1-client";
 import { v1db } from "./db";
 import { V1, parse, write, type Principal } from "./service";
+import { CoachTrust } from "./coach/trust";
 import { preferencesInput, searchInput } from "./workflow-contracts";
 const includeMoment = { items: { include: { item: true } } } as const;
 export class Workflow {
@@ -33,6 +34,7 @@ export class Workflow {
       preferences,
       links,
       habitOccurrences,
+      trust,
     ] = await Promise.all([
       V1.items(userId),
       v1db.project.findMany({
@@ -56,6 +58,7 @@ export class Workflow {
         where: { userId, key: { startsWith: "habit." } },
         select: { key: true, value: true },
       }),
+      CoachTrust.read(v1db, userId),
     ]);
     return {
       items,
@@ -65,6 +68,7 @@ export class Workflow {
       activities,
       reviews,
       preferences,
+      trust,
       links,
       habitOccurrences,
     };

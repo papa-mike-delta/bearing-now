@@ -5,7 +5,7 @@ import { V1, type Principal } from "@/lib/v1/service";
 import { V1Backup } from "@/lib/v1/service/backup";
 import { v1db } from "@/lib/v1/db";
 import { createSession } from "@/lib/session";
-import { POST, GET } from "@/app/api/v1/[...path]/route";
+import { POST, PUT, GET } from "@/app/api/v1/[...path]/route";
 const userId = "workflow-alice",
   other = "workflow-bob",
   p: Principal = { userId, actor: `user:${userId}` },
@@ -65,6 +65,13 @@ it("captures once under retries/concurrency and keeps original text, capture tim
     needsOrganization: true,
   });
   expect(a.value.capturedAt.toISOString()).toBe(value.capturedAt);
+  expect(a.receiptId).toBeTruthy();
+  expect(
+    await v1db.ledger.count({
+      where: { userId, operation: "v1.capture", status: "success" },
+    }),
+  ).toBeGreaterThan(0);
+  expect(await v1db.proposal.count({ where: { userId } })).toBe(0);
   await expect(
     V1.capture(p, { ...value, text: "Different" }),
   ).rejects.toMatchObject({ status: 409 });
@@ -491,4 +498,56 @@ it("revision-checks Journal mentions and refuses foreign or unapproved writes wi
   expect(
     await v1db.momentItem.count({ where: { userId, momentId: moment.id } }),
   ).toBe(1);
+});
+it("saves capture, Journal typing, and Inbox filing through the user routes with receipts and no approval proposal", async () => {
+  const headers = {
+    cookie: `lifeos-session=${createSession(userId, `${userId}@example.test`, true)}`,
+    "content-type": "application/json",
+    "X-Bearing-Account": userId,
+  };
+  const call = (path: string[], method: "POST" | "PUT", body: unknown) =>
+    (method === "POST" ? POST : PUT)(
+      new Request(`http://localhost/api/v1/${path.join("/")}`, {
+        method,
+        headers,
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ path }) },
+    );
+  const captured = await call(["capture"], "POST", input({ text: "Route capture" }));
+  expect(captured.status).toBe(200);
+  const saved = await captured.json();
+  expect(saved.value.text).toBe("Route capture");
+  expect(saved.receiptId).toBeTruthy();
+  const edited = await call(["journal", saved.value.id], "PUT", {
+    revision: saved.value.revision,
+    text: "Typed in the Journal",
+    occurredAt: saved.value.occurredAt,
+    timezone: saved.value.timezone,
+  });
+  expect(edited.status).toBe(200);
+  const typed = await edited.json();
+  expect(typed.value.text).toBe("Typed in the Journal");
+  const filed = await call(["journal", saved.value.id, "organize"], "POST", {
+    revision: typed.value.revision,
+    item: { type: "task", title: "Filed from Inbox", status: "todo" },
+  });
+  expect(filed.status).toBe(200);
+  const organized = await filed.json();
+  expect(organized.value.needsOrganization).toBe(false);
+  expect(await v1db.proposal.count({ where: { userId } })).toBe(0);
+  const operations = (
+    await v1db.ledger.findMany({
+      where: { userId, status: "success" },
+      select: { operation: true },
+    })
+  ).map((row) => row.operation);
+  expect(operations).toEqual(
+    expect.arrayContaining([
+      "v1.capture",
+      "v1.moment.update",
+      "v1.moment.organize",
+      "v1.item.create",
+    ]),
+  );
 });

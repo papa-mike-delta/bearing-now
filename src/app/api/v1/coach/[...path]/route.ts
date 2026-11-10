@@ -2,13 +2,14 @@ import { v1Enabled } from "@/lib/v1-enabled";
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { v1db } from "@/lib/v1/db";
-import { Fault, parse } from "@/lib/v1/service";
+import { Fault, parse, type Principal } from "@/lib/v1/service";
 import { id } from "@/lib/v1/contracts";
 import { z } from "zod";
 import { chatInput } from "@/lib/v1/coach/contracts";
 import { configuration, answerStream } from "@/lib/v1/coach/model";
 import { CoachStore } from "@/lib/v1/coach/store";
 import { preview, approve, reject } from "@/lib/v1/coach/proposals";
+import { CoachTrust } from "@/lib/v1/coach/trust";
 export const dynamic = "force-dynamic";
 export const maxDuration = 90;
 async function handle(
@@ -64,6 +65,10 @@ async function handle(
       result = await CoachStore.memory(userId, body);
     else if (resource === "memory" && recordId && req.method === "DELETE")
       result = await CoachStore.deleteMemory(userId, recordId);
+    else if (resource === "trust" && !recordId && req.method === "PUT") {
+      const principal: Principal = { userId, actor: `user:${userId}` };
+      result = await CoachTrust.save(principal, body);
+    }
     else if (resource === "preview" && req.method === "POST") {
       const value = parse(
         z.strictObject({

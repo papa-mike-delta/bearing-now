@@ -91,6 +91,18 @@ canonical results. Repeating an approval may append a replay audit receipt, but
 never repeats the underlying data writes. Rejecting changes only the proposal's
 control status; it writes no Bearing Item, Link, Activity or execution receipt.
 
+Settings can opt this account into three trust patterns, all off by default:
+file one raw Journal or Inbox entry as one open Task or Note, create one open
+Task, or connect two existing records with a legal relationship. A pattern
+matches only a fresh server-side Coach proposal of that single operation after
+the prepared DTO is checked, including open status, no delegate, ownership, and
+link endpoint rules. Edited previews, reloaded pending cards, and every other
+shape keep the approval card. The decision is read again under the write lock.
+A revoke that commits first prevents the save and leaves no canonical rows. A
+save that already committed stays. The apply receipt records the pattern id and
+trust policy revision. Restore drops `coach.trust` and unspent settle markers
+and keeps other preferences, so a backup cannot turn trust back on.
+
 ## Conversations, temporary mode and preference memory
 
 Conversations/messages use the existing V1 tables and persist by default. A saved
