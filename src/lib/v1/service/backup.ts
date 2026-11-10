@@ -17,6 +17,7 @@ import {
 import { linkInput, momentInput } from "../contracts";
 import { dateInZone } from "../dates";
 import { validLinkEndpoints } from "../link-policy";
+import { CoachTrust } from "../coach/trust";
 
 // Dynamic iteration is limited to this audited manifest; callers never choose a Prisma delegate.
 type Row = Record<string, unknown>;
@@ -336,6 +337,14 @@ export class V1Backup {
                   ) as unknown as Prisma.LedgerCreateInput,
                 });
             }
+          } else if (name === "preferences") {
+            const rows = backup.tables.preferences.filter((row) =>
+              CoachTrust.restorable(row.key),
+            );
+            if (rows.length)
+              await table(tx, name).createMany({
+                data: rows.map((row) => rehydrate(row, p.userId)),
+              });
           } else if (backup.tables[name].length)
             await table(tx, name).createMany({
               data: backup.tables[name].map((row) => rehydrate(row, p.userId)),

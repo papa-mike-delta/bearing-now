@@ -63,6 +63,15 @@ export type Workspace = {
     note: string;
   }[];
   habitOccurrences: { key: string; value: HabitOccurrence }[];
+  trust?: {
+    version: 1;
+    revision: number;
+    patterns: (
+      | "file_raw_moment"
+      | "create_open_task"
+      | "link_existing"
+    )[];
+  };
   preferences: {
     startup?: string;
     timezone?: string;

@@ -4,7 +4,8 @@ import { beforeAll, afterAll, beforeEach, it, expect, vi } from "vitest";
 import { v1db } from "@/lib/v1/db";
 import { V1, type Principal } from "@/lib/v1/service";
 import { V1Backup } from "@/lib/v1/service/backup";
-import { preview, approve, reject } from "@/lib/v1/coach/proposals";
+import { preview, approve, reject, settle, proposalDraft } from "@/lib/v1/coach/proposals";
+import { CoachTrust } from "@/lib/v1/coach/trust";
 import { CoachReads } from "@/lib/v1/coach/reads";
 import { CoachStore } from "@/lib/v1/coach/store";
 import { Workflow } from "@/lib/v1/workflow";
@@ -442,6 +443,7 @@ it("model proposals create no Items before approval and failed-turn retries reus
 import {
   GET as coachGet,
   POST as coachPost,
+  PUT as coachPut,
 } from "@/app/api/v1/coach/[...path]/route";
 import { createSession } from "@/lib/session";
 it("requires verified sessions, account binding and explicit consent/approval at the HTTP boundary", async () => {
@@ -942,3 +944,443 @@ it.each(["journal", "activities", "capture"])(
     ).rejects.toMatchObject({ status: 403 });
   },
 );
+const taskCount = () => v1db.item.count({ where: { userId, type: "task" } });
+const applyReceipts = () =>
+  v1db.ledger.count({
+    where: { userId, operation: "v1.coach.apply" },
+  });
+const coachCall = (
+  method: "POST" | "PUT",
+  path: string,
+  body: unknown,
+  account = userId,
+) =>
+  (method === "POST" ? coachPost : coachPut)(
+    new Request(`http://localhost/api/v1/coach/${path}`, {
+      method,
+      headers: {
+        cookie: `lifeos-session=${createSession(account, `${account}@example.test`, true)}`,
+        "content-type": "application/json",
+        "X-Bearing-Account": account,
+      },
+      body: JSON.stringify(body),
+    }),
+    { params: Promise.resolve({ path: path.split("/") }) },
+  );
+it("leaves a fresh Coach batch editable when trust is off, unknown, or the shape is not granted", async () => {
+  const before = await applyReceipts();
+  const plain = await preview(userId, [create("Needs a card")], { arm: true });
+  expect((await settle(userId, plain.token)).status).toBe("pending");
+  await v1db.preference.create({
+    data: {
+      userId,
+      key: "coach.trust",
+      value: { version: 1, revision: 9, patterns: ["not-a-pattern"] },
+    },
+  });
+  const corrupt = await preview(userId, [create("Corrupt policy")], {
+    arm: true,
+  });
+  expect((await settle(userId, corrupt.token)).status).toBe("pending");
+  await v1db.preference.deleteMany({ where: { userId, key: "coach.trust" } });
+  await CoachTrust.save(p, {
+    revision: 0,
+    patterns: ["file_raw_moment"],
+  });
+  const mismatched = await preview(userId, [create("Wrong pattern")], {
+    arm: true,
+  });
+  expect((await settle(userId, mismatched.token)).status).toBe("pending");
+  expect(await taskCount()).toBe(0);
+  expect(await applyReceipts()).toBe(before);
+});
+it("applies one normalized open Task under an explicit grant and records the pattern and policy revision", async () => {
+  const grant = await CoachTrust.save(p, {
+    revision: 0,
+    patterns: ["create_open_task"],
+  });
+  const conversation = await v1db.conversation.create({
+    data: { userId, title: "Trusted" },
+  });
+  const draft = await preview(
+    userId,
+    [{ op: "create_item", key: "new_task", data: { type: "task", title: "Research" } }],
+    { arm: true, conversationId: conversation.id },
+  );
+  const settled = await settle(userId, draft.token);
+  expect(settled.status).toBe("applied");
+  expect(settled.result.trust).toEqual({
+    patternId: "create_open_task",
+    policyRevision: grant.value.revision,
+  });
+  const item = await v1db.item.findFirstOrThrow({
+    where: { userId, title: "Research" },
+  });
+  expect(item.status).toBe("inbox");
+  expect(item.delegateId).toBeNull();
+  const receipt = await v1db.ledger.findUniqueOrThrow({
+    where: { id: settled.result.applyReceiptId },
+  });
+  expect(JSON.parse(receipt.payload).trust).toEqual(settled.result.trust);
+  expect(receipt.status).toBe("success");
+  const loaded = await proposalDraft(
+    userId,
+    await v1db.proposal.findUniqueOrThrow({ where: { id: draft.id } }),
+  );
+  expect(loaded.status).toBe("applied");
+  expect(loaded.token).toBe("");
+  expect(loaded.result.trust).toEqual(settled.result.trust);
+  expect(loaded.result.applyReceiptId).toBe(settled.result.applyReceiptId);
+  const temporary = await preview(
+    userId,
+    [{ op: "create_item", key: "new_temp", data: { type: "task", title: "Temporary" } }],
+    { arm: true, draftKey: "temp-trust" },
+  );
+  expect((await settle(userId, temporary.token)).status).toBe("applied");
+  expect(await v1db.conversation.count({ where: { userId } })).toBe(1);
+  expect(await v1db.proposal.count({ where: { userId } })).toBe(1);
+  expect(await v1db.message.count({ where: { userId } })).toBe(0);
+  await CoachTrust.save(p, { revision: grant.value.revision, patterns: [] });
+  const receipts = await applyReceipts();
+  const again = await settle(userId, draft.token);
+  expect(again.status).toBe("applied");
+  expect(again.result.changes).toEqual(settled.result.changes);
+  expect(await taskCount()).toBe(2);
+  expect(await applyReceipts()).toBe(receipts);
+});
+it("files one raw moment and links existing legal endpoints, and refuses delegates, extra effects, and illegal links", async () => {
+  const moment = (
+    await V1.capture(p, {
+      clientId: "trust-moment",
+      text: "Raw inbox line",
+      capturedAt: new Date().toISOString(),
+      occurredAt: new Date().toISOString(),
+      timezone: "UTC",
+    })
+  ).value;
+  const person = (await V1.createItem(p, { type: "person", title: "Alex" }))
+    .value;
+  const note = (await V1.createItem(p, { type: "note", title: "Notes" })).value;
+  await CoachTrust.save(p, {
+    revision: 0,
+    patterns: ["file_raw_moment", "create_open_task", "link_existing"],
+  });
+  const filed = await settle(
+    userId,
+    (
+      await preview(
+        userId,
+        [
+          {
+            op: "organize_moment",
+            key: "new_filed",
+            id: moment.id,
+            revision: moment.revision,
+            data: { type: "note", title: "Filed note" },
+          },
+        ],
+        { arm: true },
+      )
+    ).token,
+  );
+  expect(filed.status).toBe("applied");
+  expect(filed.result.trust.patternId).toBe("file_raw_moment");
+  const delegated = await settle(
+    userId,
+    (
+      await preview(
+        userId,
+        [
+          {
+            op: "create_item",
+            key: "new_delegated",
+            data: {
+              type: "task",
+              title: "Delegated",
+              status: "todo",
+              delegateId: person.id,
+            },
+          },
+        ],
+        { arm: true },
+      )
+    ).token,
+  );
+  expect(delegated.status).toBe("pending");
+  const batch = await settle(
+    userId,
+    (
+      await preview(
+        userId,
+        [
+          create("And a link"),
+          {
+            op: "link",
+            fromId: "new_task",
+            toId: person.id,
+            type: "related_to",
+          },
+        ],
+        { arm: true },
+      )
+    ).token,
+  );
+  expect(batch.status).toBe("pending");
+  const linked = await settle(
+    userId,
+    (
+      await preview(
+        userId,
+        [
+          {
+            op: "link",
+            fromId: note.id,
+            toId: person.id,
+            type: "related_to",
+          },
+        ],
+        { arm: true },
+      )
+    ).token,
+  );
+  expect(linked.status).toBe("applied");
+  expect(
+    await v1db.link.count({
+      where: { userId, fromId: note.id, toId: person.id, type: "related_to" },
+    }),
+  ).toBe(1);
+  const illegal = await settle(
+    userId,
+    (
+      await preview(
+        userId,
+        [
+          {
+            op: "link",
+            fromId: note.id,
+            toId: person.id,
+            type: "located_at",
+          },
+        ],
+        { arm: true },
+      )
+    ).token,
+  );
+  expect(illegal.status).toBe("pending");
+  expect(
+    await v1db.link.count({ where: { userId, type: "located_at" } }),
+  ).toBe(0);
+  expect(await v1db.item.count({ where: { userId, title: "Delegated" } })).toBe(
+    0,
+  );
+  expect(await v1db.item.count({ where: { userId, title: "And a link" } })).toBe(
+    0,
+  );
+});
+it("does not settle a rejected, edited, reloaded, or cross-account proposal, and ignores forged grant metadata", async () => {
+  await CoachTrust.save(
+    { userId: other, actor: `user:${other}` },
+    { revision: 0, patterns: ["create_open_task", "link_existing", "file_raw_moment"] },
+  );
+  await CoachTrust.save(p, { revision: 0, patterns: ["create_open_task"] });
+  const conversation = await v1db.conversation.create({
+    data: { userId, title: "Trust" },
+  });
+  const armed = await preview(userId, [create("Reject me")], {
+    arm: true,
+    conversationId: conversation.id,
+  });
+  await reject(userId, armed.token);
+  expect((await settle(userId, armed.token)).status).toBe("pending");
+  expect(await applyReceipts()).toBe(0);
+  expect(
+    await v1db.proposal.findUniqueOrThrow({ where: { id: armed.id } }),
+  ).toMatchObject({ status: "rejected" });
+  let editable = await preview(userId, [create("Edit me")], {
+    arm: true,
+    conversationId: conversation.id,
+    draftKey: "edit-me",
+  });
+  const armedToken = editable.token;
+  const ops = structuredClone(editable.plan.operations);
+  (ops[0] as { data: { title: string } }).data.title = "Edited title";
+  editable = await preview(userId, ops, {
+    id: editable.id,
+    revision: editable.revision,
+  });
+  expect((await settle(userId, armedToken)).status).toBe("pending");
+  expect((await settle(userId, editable.token)).status).toBe("pending");
+  const stored = await v1db.proposal.findUniqueOrThrow({
+    where: { id: editable.id },
+  });
+  const reloaded = await proposalDraft(userId, stored);
+  expect((await settle(userId, reloaded.token)).status).toBe("pending");
+  expect(await taskCount()).toBe(0);
+  await approve(p, editable.token, "");
+  expect(
+    await v1db.item.findFirst({ where: { userId, title: "Edited title" } }),
+  ).toBeTruthy();
+  const foreign = await preview(userId, [create("Not Bob's grant")], {
+    arm: true,
+  });
+  await expect(settle(other, foreign.token)).rejects.toMatchObject({
+    status: 404,
+  });
+  expect(await taskCount()).toBe(1);
+  expect(await v1db.item.count({ where: { userId: other, type: "task" } })).toBe(
+    0,
+  );
+  const forged = await coachCall("POST", "approve", {
+    token: editable.token,
+    confirmation: "",
+    approved: true,
+    trust: true,
+    actor: "agent:coach",
+  });
+  expect(forged.status).toBe(400);
+  const forgedGrant = await coachCall("PUT", "trust", {
+    revision: 1,
+    patterns: ["create_open_task"],
+    actor: "agent:coach",
+    approved: true,
+  });
+  expect(forgedGrant.status).toBe(400);
+  const forgedPreview = await coachCall("POST", "preview", {
+    operations: [create("Hidden arm")],
+    arm: true,
+  });
+  expect(forgedPreview.status).toBe(400);
+  expect(await taskCount()).toBe(1);
+});
+it("serializes revoke-before-apply, stale trust revisions, duplicate settles, and backup restore", async () => {
+  const grant = await CoachTrust.save(p, {
+    revision: 0,
+    patterns: ["create_open_task"],
+  });
+  await expect(
+    CoachTrust.save(p, { revision: 0, patterns: [] }),
+  ).rejects.toMatchObject({ status: 409 });
+  expect((await CoachTrust.read(v1db, userId)).patterns).toEqual([
+    "create_open_task",
+  ]);
+  const prepared = await preview(userId, [create("Revoked first")], {
+    arm: true,
+  });
+  await CoachTrust.save(p, { revision: grant.value.revision, patterns: [] });
+  const blocked = await settle(userId, prepared.token);
+  expect(blocked.status).toBe("pending");
+  expect(await taskCount()).toBe(0);
+  expect(await applyReceipts()).toBe(0);
+  const again = await CoachTrust.save(p, {
+    revision: grant.value.revision + 1,
+    patterns: ["create_open_task"],
+  });
+  const racing = await preview(userId, [create("Race the revoke")], {
+    arm: true,
+  });
+  const [settled, revocation] = await Promise.allSettled([
+    settle(userId, racing.token),
+    CoachTrust.save(p, { revision: again.value.revision, patterns: [] }),
+  ]);
+  expect(settled.status).toBe("fulfilled");
+  const outcome = settled.status === "fulfilled" ? settled.value : null;
+  const tasks = await taskCount();
+  expect(tasks === 0 || tasks === 1).toBe(true);
+  if (tasks === 0) {
+    expect(outcome?.status).toBe("pending");
+    expect(await applyReceipts()).toBe(0);
+  } else {
+    expect(outcome?.status).toBe("applied");
+    expect(
+      await v1db.ledger.count({
+        where: { userId, operation: "v1.coach.apply", status: "refused" },
+      }),
+    ).toBe(0);
+  }
+  expect(["fulfilled", "rejected"]).toContain(revocation.status);
+  const enabled = await CoachTrust.save(p, {
+    revision: (await CoachTrust.read(v1db, userId)).revision,
+    patterns: ["create_open_task"],
+  });
+  const duplicate = await preview(userId, [create("Once")], { arm: true });
+  const [first, second] = await Promise.all([
+    settle(userId, duplicate.token),
+    settle(userId, duplicate.token),
+  ]);
+  expect(first.status).toBe("applied");
+  expect(second.status).toBe("applied");
+  expect(first.result.changes[0].id).toBe(second.result.changes[0].id);
+  expect(await taskCount()).toBe(tasks + 1);
+  await CoachStore.memory(userId, { text: "Keep the other preference" });
+  const backup = await V1Backup.export(userId);
+  const trustRow = backup.tables.preferences.find(
+    (row) => row.key === "coach.trust",
+  );
+  expect(trustRow).toBeTruthy();
+  trustRow!.value = {
+    version: 1,
+    revision: 50,
+    patterns: ["create_open_task", "file_raw_moment", "link_existing"],
+  };
+  const restored = await uiPost(
+    new Request("http://localhost/api/v1/backup", {
+      method: "POST",
+      headers: {
+        cookie: `lifeos-session=${createSession(userId, `${userId}@example.test`, true)}`,
+        "content-type": "application/json",
+        "X-Bearing-Account": userId,
+      },
+      body: JSON.stringify({ confirmation: "RESTORE V1 DATA", backup }),
+    }),
+    { params: Promise.resolve({ path: ["backup"] }) },
+  );
+  expect(restored.status).toBe(200);
+  expect(await v1db.preference.findUnique({
+    where: { userId_key: { userId, key: "coach.trust" } },
+  })).toBeNull();
+  expect(
+    await v1db.preference.findFirst({
+      where: { userId, key: { startsWith: "coach.memory." } },
+    }),
+  ).toBeTruthy();
+  await expect(
+    CoachTrust.save(p, {
+      revision: 50,
+      patterns: ["create_open_task"],
+    }),
+  ).rejects.toMatchObject({ status: 409 });
+  expect((await CoachTrust.read(v1db, userId)).patterns).toEqual([]);
+  const historical = structuredClone(backup);
+  historical.tables.preferences = historical.tables.preferences.filter(
+    (row) => row.key !== "coach.trust",
+  );
+  expect(
+    (
+      await uiPost(
+        new Request("http://localhost/api/v1/backup", {
+          method: "POST",
+          headers: {
+            cookie: `lifeos-session=${createSession(userId, `${userId}@example.test`, true)}`,
+            "content-type": "application/json",
+            "X-Bearing-Account": userId,
+          },
+          body: JSON.stringify({
+            confirmation: "RESTORE V1 DATA",
+            backup: historical,
+          }),
+        }),
+        { params: Promise.resolve({ path: ["backup"] }) },
+      )
+    ).status,
+  ).toBe(200);
+  expect((await CoachTrust.read(v1db, userId)).patterns).toEqual([]);
+  await CoachTrust.save(p, { revision: 0, patterns: ["create_open_task"] });
+  const [restoreResult, revokeResult] = await Promise.allSettled([
+    V1Backup.restore(p, historical, "RESTORE V1 DATA"),
+    CoachTrust.save(p, { revision: 1, patterns: [] }),
+  ]);
+  expect(restoreResult.status).toBe("fulfilled");
+  expect(["fulfilled", "rejected"]).toContain(revokeResult.status);
+  expect((await CoachTrust.read(v1db, userId)).patterns).toEqual([]);
+  expect(enabled.value.revision).toBeGreaterThan(0);
+});
