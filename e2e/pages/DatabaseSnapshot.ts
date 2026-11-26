@@ -27,16 +27,6 @@ export class DatabaseSnapshot {
   }
 
   async restore() {
-    try {
-      await execute("pg_restore", ["--clean", "--if-exists", "--no-owner", "--dbname", this.environment().PGDATABASE, this.path], { env: this.environment() });
-    } catch (error) {
-      // pg_dump 17 writes SET transaction_timeout, which Postgres 16 rejects.
-      // The restore still applies; that single statement is the only error.
-      const detail = `${error instanceof Error ? error.message : ""}\n${(error as { stderr?: string }).stderr ?? ""}`;
-      const onlyNewerClientSetting =
-        detail.includes('unrecognized configuration parameter "transaction_timeout"') &&
-        /errors ignored on restore: 1\b/.test(detail);
-      if (!onlyNewerClientSetting) throw error;
-    }
+    await execute("pg_restore", ["--clean", "--if-exists", "--no-owner", "--dbname", this.environment().PGDATABASE, this.path], { env: this.environment() });
   }
 }
