@@ -1,5 +1,5 @@
 {
-  "buildCommand": "bun run build:vercel",
+  "buildCommand": "npm run build:vercel",
   "git": {
     "deploymentEnabled": {
       "cursor/unify-runtime-b846": false

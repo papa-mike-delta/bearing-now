@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { loadEnvConfig } from "@next/env";
-import { PrismaClient } from "@bearing/v1-client";
+import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 async function main() {
   loadEnvConfig(process.cwd());
@@ -22,7 +22,7 @@ async function main() {
 }
 void main().catch(() => {
   console.error(
-    "Invitation creation failed. Check the email, database configuration and applied V1 migrations.",
+    "Invitation creation failed. Check the email, database configuration and applied migrations.",
   );
   process.exitCode = 1;
 });

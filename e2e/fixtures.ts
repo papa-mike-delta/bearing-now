@@ -12,8 +12,8 @@ export const test = base.extend<{ isolatedDatabase: void }>({
     try {
       // Each test starts with its own hourly create allowance. Restore the
       // original ledger along with all data after the browser context closes.
-      const demo = await db.user.findUniqueOrThrow({ where: { email: "demo@gmail.com" } });
-      await db.operationLedger.deleteMany({ where: { actor: `user:${demo.id}` } });
+      const demo = await db.account.findUniqueOrThrow({ where: { email: "demo@gmail.com" } });
+      await db.ledger.deleteMany({ where: { actor: `user:${demo.id}` } });
       await runTest();
     } finally {
       await db.$disconnect();

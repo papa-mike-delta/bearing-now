@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { itemInput } from "../contracts";
 import { validLinkEndpoints } from "../link-policy";
-import { v1db } from "../db";
+import { db } from "@/lib/db";
 import {
   Fault,
   owned,
@@ -27,7 +27,7 @@ export type TrustPolicy = {
   revision: number;
   patterns: TrustPatternId[];
 };
-type Prefs = Tx | typeof v1db;
+type Prefs = Tx | typeof db;
 const EMPTY: TrustPolicy = { version: 1, revision: 0, patterns: [] };
 const OPEN = new Set(["inbox", "todo"]);
 
@@ -125,7 +125,7 @@ export class CoachTrust {
   }
   static async disarm(userId: string, nonce: string | undefined) {
     if (!nonce) return;
-    await v1db.$transaction(async (tx) => {
+    await db.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(731909)::text`;
       await tx.preference.deleteMany({
         where: { userId, key: `coach.arm.${nonce}` },

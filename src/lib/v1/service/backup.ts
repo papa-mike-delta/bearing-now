@@ -1,5 +1,5 @@
-import { Prisma } from "@bearing/v1-client";
-import { v1db } from "../db";
+import { Prisma } from "@prisma/client";
+import { db } from "@/lib/db";
 import {
   write,
   parse,
@@ -240,7 +240,7 @@ function validateGraph(b: Backup) {
 }
 export class V1Backup {
   static export(userId: string) {
-    return v1db.$transaction((tx) => snapshot(tx, userId), {
+    return db.$transaction((tx) => snapshot(tx, userId), {
       isolationLevel: "RepeatableRead",
     });
   }

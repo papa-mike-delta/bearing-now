@@ -12,7 +12,7 @@ export async function PATCH(req: NextRequest) {
   const body = await parseBody(req);
   const { name } = body;
 
-  await db.user.update({
+  await db.account.update({
     where: { id: session.userId },
     data: { name: name || null },
   });

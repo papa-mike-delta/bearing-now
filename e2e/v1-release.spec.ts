@@ -58,7 +58,7 @@ test("release demo setup reports readiness, refuses false success and preserves 
         headers: { "X-Bearing-Account": identity.userId },
       })
     ).status(),
-  ).toBe(410);
+  ).toBe(404);
 });
 
 test("Settings exports, clears and restores a complete V1 account through reviewed controls", async ({

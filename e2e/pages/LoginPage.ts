@@ -11,6 +11,6 @@ export class LoginPage {
     await this.page.locator('input[type="email"]').fill(email);
     await this.page.locator('input[type="password"]').fill(password);
     await this.page.locator('form button[type="submit"]').click();
-    await expect(this.page).toHaveURL(/\/app$/);
+    await expect(this.page).toHaveURL(/\/app\/today$/);
   }
 }

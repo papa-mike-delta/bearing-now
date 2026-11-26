@@ -10,16 +10,20 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_os
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/bearing
       SESSION_SECRET: github-actions-ci-secret-at-least-32-characters
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v1
-      - run: bun install
-      - run: bun run lint
-      - run: bun run build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit --incremental false
+      - run: npm run build
 
-  restore-integration:
+  integration:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -27,7 +31,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: bearing_restore_test
+          POSTGRES_DB: bearing_test
         ports:
           - 5432:5432
         options: >-
@@ -36,8 +40,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      RESTORE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/bearing_restore_test
-      V1_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/bearing_restore_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/bearing_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -48,9 +51,8 @@ jobs:
       - run: npm run db:generate
       - run: npm test
       - run: npm run test:integration
-      - run: npm run test:v1
 
-  v1-release-browser:
+  release-browser:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -68,9 +70,8 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/bearing_browser_test
-      V1_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/bearing_browser_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/bearing_browser_test
       SESSION_SECRET: github-actions-browser-secret-at-least-32-characters
-      BEARING_V1_ENABLED: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -80,11 +81,11 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run build
-      - run: npm run test:e2e:release
+      - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: v1-browser-evidence
+          name: browser-evidence
           path: |
             test-results/**/*.png
             test-results/**/error-context.md

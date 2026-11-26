@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
   if (typeof email !== "string" || typeof password !== "string" || !email || !password) return bad("Email and password are required");
 
-  const user = await db.user.findUnique({ where: { email: email.toLowerCase() } });
+  const user = await db.account.findUnique({ where: { email: email.toLowerCase() } });
   if (!user) return bad("Invalid email or password", 401);
 
   const valid = await verifyPassword(password, user.passwordHash);

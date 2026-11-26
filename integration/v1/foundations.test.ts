@@ -1,15 +1,14 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { beforeAll, afterAll, beforeEach, expect, it } from "vitest";
-import { v1db } from "@/lib/v1/db";
-import { Prisma } from "@bearing/v1-client";
-import { db as legacyDb } from "@/lib/db";
+import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { V1, type Principal } from "@/lib/v1/service";
 import { V1Backup } from "@/lib/v1/service/backup";
 import { V1Demo } from "@/lib/v1/service/demo";
 import { registerInvited, invitationHash } from "@/lib/v1/invitations";
 import { itemInput } from "@/lib/v1/contracts";
-import { createSession } from "@/lib/session";
+import { SESSION_COOKIE, createSession } from "@/lib/session";
 import { generateTOTPCode } from "@/lib/auth";
 import { GET, POST, PUT, DELETE } from "@/app/api/v1/[...path]/route";
 import { POST as qrPost, GET as qrGet } from "@/app/api/auth/qr-login/route";
@@ -46,7 +45,7 @@ function req(
     method,
     headers: {
       "content-type": "application/json",
-      cookie: `lifeos-session=${createSession(userId, `${userId}@example.test`, verified)}`,
+      cookie: `${SESSION_COOKIE}=${createSession(userId, `${userId}@example.test`, verified)}`,
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
@@ -120,25 +119,14 @@ beforeAll(async () => {
       { env: process.env, stdio: "pipe" },
     );
   migrate("prisma/schema.prisma");
-  await v1db.account.create({
+  await db.account.create({
     data: {
       id: "legacy-before-v1",
       email: "legacy@example.test",
       passwordHash: "not-used",
     },
   });
-  await legacyDb.item.create({
-    data: {
-      id: "legacy-finance",
-      userId: "legacy-before-v1",
-      title: "Existing data",
-      type: "finance",
-      priority: 4,
-      metadata: '{"amount":100}',
-    },
-  });
-  migrate("prisma/v1/schema.prisma");
-  await v1db.account.createMany({
+  await db.account.createMany({
     data: [owner, other].map((id) => ({
       id,
       email: `${id}@example.test`,
@@ -150,34 +138,31 @@ afterAll(async () => {
   const schema = new URL(process.env.DATABASE_URL!).searchParams.get("schema")!;
   if (!/^v1_test_[a-f0-9]+$/.test(schema))
     throw new Error("Refusing to drop a non-V1-test schema");
-  await v1db.$executeRawUnsafe(`DROP SCHEMA "${schema}" CASCADE`);
-  await v1db.$disconnect();
-  await legacyDb.$disconnect();
+  await db.$executeRawUnsafe(`DROP SCHEMA "${schema}" CASCADE`);
+  await db.$disconnect();
 });
 beforeEach(async () => {
   for (const principal of [p, q]) {
     await V1Backup.reset(principal, "RESET V1 DATA");
-    await v1db.ledger.deleteMany({ where: { userId: principal.userId } });
+    await db.ledger.deleteMany({ where: { userId: principal.userId } });
   }
 });
 
-it("migrates additively and creates exactly one protected Me for each account", async () => {
+it("creates exactly one protected Me for each account and has no legacy Item table", async () => {
   expect((await V1.me("legacy-before-v1")).type).toBe("person");
-  expect(
-    await legacyDb.item.findUnique({ where: { id: "legacy-finance" } }),
-  ).toMatchObject({ type: "finance", priority: 4, metadata: '{"amount":100}' });
+  await expect(db.$queryRaw`SELECT count(*)::int AS count FROM "Item"`).rejects.toThrow();
   const me = await V1.me(owner);
   expect(me.type).toBe("person");
   expect(me.title).toBe("Me");
-  expect(await v1db.selfProfile.count({ where: { userId: owner } })).toBe(1);
+  expect(await db.selfProfile.count({ where: { userId: owner } })).toBe(1);
   await expect(
-    v1db.selfProfile.create({ data: { userId: owner, itemId: me.id } }),
+    db.selfProfile.create({ data: { userId: owner, itemId: me.id } }),
   ).rejects.toThrow();
   await expect(
-    v1db.selfProfile.delete({ where: { userId: owner } }),
+    db.selfProfile.delete({ where: { userId: owner } }),
   ).rejects.toThrow();
   await expect(
-    v1db.item.update({ where: { id: me.id }, data: { type: "note" } }),
+    db.item.update({ where: { id: me.id }, data: { type: "note" } }),
   ).rejects.toThrow();
   await expect(
     V1.updateItem(
@@ -187,9 +172,6 @@ it("migrates additively and creates exactly one protected Me for each account", 
       await payload(me.id, { status: "archived" }),
     ),
   ).rejects.toMatchObject({ status: 400 });
-  expect(
-    await v1db.$queryRaw`SELECT count(*)::int AS count FROM "Item"`,
-  ).toEqual([{ count: 1 }]);
 });
 it("shares typed validation through HTTP and domain and never accepts userId/nested writes", async () => {
   for (const data of [
@@ -207,7 +189,7 @@ it("shares typed validation through HTTP and domain and never accepts userId/nes
     priority: 0,
     status: "todo",
   });
-  const receipts = await v1db.ledger.findMany({ where: { userId: owner } });
+  const receipts = await db.ledger.findMany({ where: { userId: owner } });
   expect(receipts.filter((r) => r.status === "refused")).toHaveLength(4);
 });
 it("distinguishes direct/inherited Areas and updates inheritance without copying assignments", async () => {
@@ -226,7 +208,7 @@ it("distinguishes direct/inherited Areas and updates inheritance without copying
   expect(item.directAreas.map((a) => a.id)).toEqual([direct.id]);
   expect(item.inheritedAreas.map((a) => a.id)).toEqual([area.id]);
   expect(
-    await v1db.itemTag.count({
+    await db.itemTag.count({
       where: { userId: owner, itemId: item.id, tagId: area.id },
     }),
   ).toBe(0);
@@ -299,15 +281,15 @@ it("rejects every cross-account relationship in services and in database foreign
   ).rejects.toMatchObject({ status: 404 });
   for (const query of [
     () =>
-      v1db.itemTag.create({
+      db.itemTag.create({
         data: { userId: owner, itemId: local.id, tagId: tag.id },
       }),
     () =>
-      v1db.projectTag.create({
+      db.projectTag.create({
         data: { userId: owner, projectId: project.id, tagId: tag.id },
       }),
     () =>
-      v1db.link.create({
+      db.link.create({
         data: {
           userId: owner,
           fromId: local.id,
@@ -316,7 +298,7 @@ it("rejects every cross-account relationship in services and in database foreign
         },
       }),
     () =>
-      v1db.item.update({
+      db.item.update({
         where: { id: local.id },
         data: { projectId: project.id },
       }),
@@ -361,7 +343,7 @@ it("guards revisions, open editor ownership and agent approval with durable rece
     ),
   ).resolves.toMatchObject({ ok: true });
   expect(
-    await v1db.ledger.count({ where: { userId: owner, status: "refused" } }),
+    await db.ledger.count({ where: { userId: owner, status: "refused" } }),
   ).toBe(3);
 });
 it("preserves occurred vs created time, idempotent capture and mention vs interaction facts", async () => {
@@ -385,7 +367,7 @@ it("preserves occurred vs created time, idempotent capture and mention vs intera
     Date.parse(input.occurredAt),
   );
   expect(
-    await v1db.activity.count({
+    await db.activity.count({
       where: { userId: owner, kind: "interaction" },
     }),
   ).toBe(0);
@@ -401,7 +383,7 @@ it("preserves occurred vs created time, idempotent capture and mention vs intera
     data: { note: "Actually called" },
   });
   expect(
-    await v1db.activity.count({
+    await db.activity.count({
       where: { userId: owner, kind: "interaction" },
     }),
   ).toBe(1);
@@ -451,12 +433,12 @@ it("allows multiple check-ins, separate Reviews and independent routine occurren
     prompts: { notes: "Month" },
   });
   expect(
-    await v1db.activity.count({ where: { userId: owner, kind: "check_in" } }),
+    await db.activity.count({ where: { userId: owner, kind: "check_in" } }),
   ).toBe(2);
   expect(
-    await v1db.activity.count({ where: { userId: owner, kind: "focus" } }),
+    await db.activity.count({ where: { userId: owner, kind: "focus" } }),
   ).toBe(1);
-  expect(await v1db.review.count({ where: { userId: owner } })).toBe(1);
+  expect(await db.review.count({ where: { userId: owner } })).toBe(1);
   expect((await V1.item(owner, habit.id)).content).toBe("- [ ] Stretch");
 });
 it.each(["calendar", "completion"])(
@@ -489,7 +471,7 @@ it.each(["calendar", "completion"])(
     if (attempts.every((r) => r.status === "rejected"))
       throw (attempts[0] as PromiseRejectedResult).reason;
     expect(attempts.filter((r) => r.status === "fulfilled")).toHaveLength(1);
-    const occurrences = await v1db.taskOccurrence.findMany({
+    const occurrences = await db.taskOccurrence.findMany({
       where: { userId: owner },
       orderBy: { scheduledAt: "asc" },
     });
@@ -518,10 +500,10 @@ it.each(["calendar", "completion"])(
 it("backup/reset/restore round trips all durable tables and keeps the other account untouched", async () => {
   await V1Demo.seed(p);
   const otherItem = (await V1.createItem(q, note("Private"))).value;
-  const conversation = await v1db.conversation.create({
+  const conversation = await db.conversation.create({
     data: { userId: owner, title: "Planning" },
   });
-  await v1db.message.create({
+  await db.message.create({
     data: {
       userId: owner,
       conversationId: conversation.id,
@@ -529,7 +511,7 @@ it("backup/reset/restore round trips all durable tables and keeps the other acco
       content: "Hello",
     },
   });
-  await v1db.proposal.create({
+  await db.proposal.create({
     data: {
       userId: owner,
       conversationId: conversation.id,
@@ -537,10 +519,10 @@ it("backup/reset/restore round trips all durable tables and keeps the other acco
       status: "rejected",
     },
   });
-  await v1db.preference.create({
+  await db.preference.create({
     data: { userId: owner, key: "timezone", value: "America/New_York" },
   });
-  await v1db.preference.create({
+  await db.preference.create({
     data: { userId: owner, key: "nullable", value: Prisma.JsonNull },
   });
   const recurring = (
@@ -563,7 +545,7 @@ it("backup/reset/restore round trips all durable tables and keeps the other acco
   const backup = await V1Backup.export(owner),
     auditCount = backup.tables.ledger.length;
   await V1Backup.reset(p, "RESET V1 DATA");
-  expect(await v1db.item.count({ where: { userId: owner } })).toBe(1);
+  expect(await db.item.count({ where: { userId: owner } })).toBe(1);
   await V1Backup.restore(p, backup, "RESTORE V1 DATA");
   const restored = await V1Backup.export(owner);
   const normalize = (rows: unknown[]) =>
@@ -578,7 +560,7 @@ it("backup/reset/restore round trips all durable tables and keeps the other acco
   expect(restored.tables.ledger.length).toBeGreaterThan(auditCount);
   expect((await V1.item(other, otherItem.id)).title).toBe("Private");
   await V1Backup.restore(p, backup, "RESTORE V1 DATA"); // replay does not duplicate histories
-  expect(await v1db.journalMoment.count({ where: { userId: owner } })).toBe(1);
+  expect(await db.journalMoment.count({ where: { userId: owner } })).toBe(1);
 });
 it("invalid, foreign and colliding backups roll back without deleting existing data", async () => {
   const local = (await V1.createItem(p, note("Keep"))).value,
@@ -604,8 +586,8 @@ it("removes opt-in demo data only, refuses removal if personal data references i
   const personal = (await V1.createItem(p, note("Real"))).value;
   await V1Demo.seed(p);
   await V1Demo.seed(p);
-  expect(await v1db.item.count({ where: { userId: owner } })).toBe(9);
-  const demo = await v1db.item.findFirstOrThrow({
+  expect(await db.item.count({ where: { userId: owner } })).toBe(9);
+  const demo = await db.item.findFirstOrThrow({
     where: { userId: owner, demoBatchId: { not: null } },
   });
   await V1.createMoment(p, {
@@ -618,17 +600,17 @@ it("removes opt-in demo data only, refuses removal if personal data references i
   await expect(V1Demo.remove(p, "REMOVE DEMO DATA")).rejects.toMatchObject({
     status: 409,
   });
-  await v1db.journalMoment.deleteMany({
+  await db.journalMoment.deleteMany({
     where: { userId: owner, demoBatchId: null },
   });
   await V1Demo.remove(p, "REMOVE DEMO DATA");
   expect((await V1.item(owner, personal.id)).title).toBe("Real");
-  expect(await v1db.item.count({ where: { userId: owner } })).toBe(2);
+  expect(await db.item.count({ where: { userId: owner } })).toBe(2);
 });
 it("enforces invite email, expiry, single-use consumption and canonical Me creation", async () => {
   const token = ids() + ids(),
     email = `${ids()}@example.test`;
-  await v1db.invitation.create({
+  await db.invitation.create({
     data: {
       email,
       tokenHash: invitationHash(token),
@@ -651,7 +633,7 @@ it("enforces invite email, expiry, single-use consumption and canonical Me creat
   if (success.status === "fulfilled")
     expect((await V1.me(success.value.id)).type).toBe("person");
   const expired = ids() + ids();
-  await v1db.invitation.create({
+  await db.invitation.create({
     data: {
       email: "expired@example.test",
       tokenHash: invitationHash(expired),
@@ -680,7 +662,7 @@ it("pending 2FA cannot access V1/legacy data, replace a secret, disable 2FA or c
   expect((await api("items", "GET", undefined, owner, false)).status).toBe(401);
   expect(
     proxy(new NextRequest("http://localhost/api/items")).status,
-  ).toBe(410);
+  ).toBe(401);
   expect(
     (await setup2fa(req("/api/auth/setup-2fa", "POST", {}, owner, false)))
       .status,
@@ -699,7 +681,7 @@ it("pending 2FA cannot access V1/legacy data, replace a secret, disable 2FA or c
     ).status,
   ).toBe(401);
   const secret = "JBSWY3DPEHPK3PXP";
-  await v1db.account.update({
+  await db.account.update({
     where: { id: owner },
     data: { totpSecret: secret, totpVerified: true },
   });
@@ -800,7 +782,7 @@ it("enforces owner composites on every history and conversation association", as
       prompts: {},
     })
   ).value;
-  const conversation = await v1db.conversation.create({
+  const conversation = await db.conversation.create({
     data: { userId: other, title: "Private conversation" },
   });
   const rule = {
@@ -817,23 +799,23 @@ it("enforces owner composites on every history and conversation association", as
   ).value;
   const queries = [
     () =>
-      v1db.momentItem.create({
+      db.momentItem.create({
         data: { userId: owner, momentId: foreignMoment.id, itemId: local.id },
       }),
     () =>
-      v1db.momentItem.create({
+      db.momentItem.create({
         data: { userId: owner, momentId: localMoment.id, itemId: foreign.id },
       }),
     () =>
-      v1db.reviewItem.create({
+      db.reviewItem.create({
         data: { userId: owner, reviewId: foreignReview.id, itemId: local.id },
       }),
     () =>
-      v1db.reviewItem.create({
+      db.reviewItem.create({
         data: { userId: owner, reviewId: localReview.id, itemId: foreign.id },
       }),
     () =>
-      v1db.activity.create({
+      db.activity.create({
         data: {
           userId: owner,
           clientId: ids(),
@@ -846,7 +828,7 @@ it("enforces owner composites on every history and conversation association", as
         },
       }),
     () =>
-      v1db.message.create({
+      db.message.create({
         data: {
           userId: owner,
           conversationId: conversation.id,
@@ -855,7 +837,7 @@ it("enforces owner composites on every history and conversation association", as
         },
       }),
     () =>
-      v1db.proposal.create({
+      db.proposal.create({
         data: {
           userId: owner,
           conversationId: conversation.id,
@@ -863,7 +845,7 @@ it("enforces owner composites on every history and conversation association", as
         },
       }),
     () =>
-      v1db.lease.create({
+      db.lease.create({
         data: {
           userId: owner,
           itemId: foreign.id,
@@ -872,11 +854,11 @@ it("enforces owner composites on every history and conversation association", as
         },
       }),
     () =>
-      v1db.recurrence.create({
+      db.recurrence.create({
         data: { userId: owner, itemId: foreign.id, rule },
       }),
     () =>
-      v1db.taskOccurrence.create({
+      db.taskOccurrence.create({
         data: {
           userId: owner,
           recurrenceId: foreignRecurrence.id,
@@ -885,7 +867,7 @@ it("enforces owner composites on every history and conversation association", as
         },
       }),
     () =>
-      v1db.taskOccurrence.updateMany({
+      db.taskOccurrence.updateMany({
         where: { userId: owner, recurrenceId: localRecurrence.id },
         data: { nextItemId: foreign.id },
       }),
@@ -899,7 +881,7 @@ it("enforces owner composites on every history and conversation association", as
     expect((await api(`${resource}/${id}`)).status).toBe(404);
 });
 it("combines legacy and V1 create allowances and does not count failed transactions", async () => {
-  await v1db.ledger.createMany({
+  await db.ledger.createMany({
     data: Array.from({ length: 20 }, (_, i) => ({
       userId: owner,
       actor: p.actor,
@@ -912,9 +894,9 @@ it("combines legacy and V1 create allowances and does not count failed transacti
   await expect(V1.createItem(p, note("Over cap"))).rejects.toMatchObject({
     status: 429,
   });
-  expect(await v1db.item.count({ where: { userId: owner } })).toBe(1);
+  expect(await db.item.count({ where: { userId: owner } })).toBe(1);
   expect(
-    await v1db.ledger.count({ where: { userId: owner, status: "refused" } }),
+    await db.ledger.count({ where: { userId: owner, status: "refused" } }),
   ).toBe(1);
 });
 it("reclassification preserves identity but refuses incompatible history and Links", async () => {
@@ -960,10 +942,10 @@ it("rolls back the clear when a later restore insert fails", async () => {
   const backup = await V1Backup.export(owner);
   backup.tables.items.find((i) => i.id === item.id)!.title =
     "Inject restore failure";
-  await v1db.$executeRawUnsafe(
+  await db.$executeRawUnsafe(
     `CREATE FUNCTION v1_test_restore_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.title = 'Inject restore failure' THEN RAISE EXCEPTION 'Test insert failure'; END IF; RETURN NEW; END; $$`,
   );
-  await v1db.$executeRawUnsafe(
+  await db.$executeRawUnsafe(
     `CREATE TRIGGER v1_test_restore_failure BEFORE INSERT ON "V1Item" FOR EACH ROW EXECUTE FUNCTION v1_test_restore_failure()`,
   );
   try {
@@ -971,15 +953,15 @@ it("rolls back the clear when a later restore insert fails", async () => {
       V1Backup.restore(p, backup, "RESTORE V1 DATA"),
     ).rejects.toMatchObject({ status: 500 });
     expect((await V1.item(owner, item.id)).title).toBe("Keep after failure");
-    expect(await v1db.selfProfile.count({ where: { userId: owner } })).toBe(1);
+    expect(await db.selfProfile.count({ where: { userId: owner } })).toBe(1);
     expect(
-      await v1db.ledger.count({ where: { userId: owner, status: "refused" } }),
+      await db.ledger.count({ where: { userId: owner, status: "refused" } }),
     ).toBe(1);
   } finally {
-    await v1db.$executeRawUnsafe(
+    await db.$executeRawUnsafe(
       `DROP TRIGGER v1_test_restore_failure ON "V1Item"`,
     );
-    await v1db.$executeRawUnsafe(`DROP FUNCTION v1_test_restore_failure()`);
+    await db.$executeRawUnsafe(`DROP FUNCTION v1_test_restore_failure()`);
   }
 });
 it("recurrence preserves date-only deadline offsets in the configured timezone", async () => {
@@ -1007,7 +989,7 @@ it("recurrence preserves date-only deadline offsets in the configured timezone",
     current.revision,
     await payload(first.id, { status: "done" }),
   );
-  const next = await v1db.item.findFirstOrThrow({
+  const next = await db.item.findFirstOrThrow({
     where: { userId: owner, id: { not: first.id }, type: "task" },
   });
   expect(next.timezone).toBe("America/New_York");
@@ -1021,23 +1003,23 @@ it("concurrent explicit demo setup is idempotent and preserves both accounts' re
   const results = await Promise.all([V1Demo.seed(p), V1Demo.seed(p)]);
   expect(results.filter(r => "seeded" in r.value)).toHaveLength(1);
   expect(results.filter(r => "alreadySeeded" in r.value)).toHaveLength(1);
-  expect(await v1db.item.count({ where: { userId: owner, demoBatchId: { not: null } } })).toBe(7);
+  expect(await db.item.count({ where: { userId: owner, demoBatchId: { not: null } } })).toBe(7);
   await V1Demo.remove(p, "REMOVE DEMO DATA");
   expect((await V1.item(owner, real.value.id)).title).toBe("Keep my real note");
   expect((await V1.item(other, foreign.value.id)).title).toBe("Other account private note");
-  expect(await v1db.item.count({ where: { userId: owner, demoBatchId: { not: null } } })).toBe(0);
+  expect(await db.item.count({ where: { userId: owner, demoBatchId: { not: null } } })).toBe(0);
 });
 
 it("failed demo setup rolls back partial examples and a later explicit retry succeeds", async () => {
-  await v1db.$executeRawUnsafe(`CREATE FUNCTION fail_demo_review() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fixture seed failure'; END $$`);
-  await v1db.$executeRawUnsafe(`CREATE TRIGGER fail_demo_review BEFORE INSERT ON "V1Review" FOR EACH ROW EXECUTE FUNCTION fail_demo_review()`);
+  await db.$executeRawUnsafe(`CREATE FUNCTION fail_demo_review() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fixture seed failure'; END $$`);
+  await db.$executeRawUnsafe(`CREATE TRIGGER fail_demo_review BEFORE INSERT ON "V1Review" FOR EACH ROW EXECUTE FUNCTION fail_demo_review()`);
   try {
     await expect(V1Demo.seed(p)).rejects.toThrow("no changes were saved");
-    expect(await v1db.item.count({ where: { userId: owner, demoBatchId: { not: null } } })).toBe(0);
-    expect(await v1db.preference.findUnique({ where: { userId_key: { userId: owner, key: "system.demo" } } })).toBeNull();
+    expect(await db.item.count({ where: { userId: owner, demoBatchId: { not: null } } })).toBe(0);
+    expect(await db.preference.findUnique({ where: { userId_key: { userId: owner, key: "system.demo" } } })).toBeNull();
   } finally {
-    await v1db.$executeRawUnsafe(`DROP TRIGGER fail_demo_review ON "V1Review"`);
-    await v1db.$executeRawUnsafe(`DROP FUNCTION fail_demo_review()`);
+    await db.$executeRawUnsafe(`DROP TRIGGER fail_demo_review ON "V1Review"`);
+    await db.$executeRawUnsafe(`DROP FUNCTION fail_demo_review()`);
   }
   expect((await V1Demo.seed(p)).value).toMatchObject({ seeded: true });
 });

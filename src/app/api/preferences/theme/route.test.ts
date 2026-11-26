@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createSession } from "@/lib/auth";
+import { SESSION_COOKIE } from "@/lib/session";
 import { DELETE, GET, POST } from "./route";
 
 const settings = vi.hoisted(() => new Map<string, { id: string; value: string; userId?: string }>());
@@ -16,7 +17,7 @@ vi.mock("@/lib/db", () => ({ db: { setting: {
 const fixture = (name: string) => readFileSync(new URL(`../../../../lib/fixtures/${name}`, import.meta.url), "utf8");
 const request = (method = "GET", body?: unknown, userId: string | null = "user-1") => new Request("http://localhost/api/preferences/theme", {
   method,
-  headers: userId ? { cookie: `lifeos-session=${createSession(userId, `${userId}@example.com`, true)}` } : {},
+  headers: userId ? { cookie: `${SESSION_COOKIE}=${createSession(userId, `${userId}@example.com`, true)}` } : {},
   ...(body === undefined ? {} : { body: JSON.stringify(body) }),
 });
 
@@ -94,7 +95,7 @@ it("isolates themes by authenticated user and resets only the current user's imp
 it("requires a verified session for loading, importing, and resetting", async () => {
   for (const handler of [GET, POST, DELETE]) {
     expect((await handler(request("POST", { input: fixture("theme.css") }, null))).status).toBe(401);
-    expect((await handler(new Request("http://localhost/api/preferences/theme", { headers: { cookie: "lifeos-session=forged" } }))).status).toBe(401);
+    expect((await handler(new Request("http://localhost/api/preferences/theme", { headers: { cookie: `${SESSION_COOKIE}=forged` } }))).status).toBe(401);
   }
   expect(fetch).not.toHaveBeenCalled();
 });

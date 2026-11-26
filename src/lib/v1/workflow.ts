@@ -1,5 +1,5 @@
-import { Prisma } from "@bearing/v1-client";
-import { v1db } from "./db";
+import { Prisma } from "@prisma/client";
+import { db } from "@/lib/db";
 import { V1, parse, write, type Principal } from "./service";
 import { CoachTrust } from "./coach/trust";
 import { preferencesInput, searchInput } from "./workflow-contracts";
@@ -18,7 +18,7 @@ export class Workflow {
     });
   }
   static async preferences(userId: string) {
-    const rows = await v1db.preference.findMany({
+    const rows = await db.preference.findMany({
       where: { userId, key: { startsWith: "workflow." } },
     });
     return Object.fromEntries(rows.map((r) => [r.key.slice(9), r.value]));
@@ -37,28 +37,28 @@ export class Workflow {
       trust,
     ] = await Promise.all([
       V1.items(userId),
-      v1db.project.findMany({
+      db.project.findMany({
         where: { userId },
         include: { tags: { include: { tag: true } } },
       }),
-      v1db.tag.findMany({ where: { userId } }),
-      v1db.journalMoment.findMany({
+      db.tag.findMany({ where: { userId } }),
+      db.journalMoment.findMany({
         where: { userId },
         include: includeMoment,
         orderBy: { occurredAt: "desc" },
       }),
-      v1db.activity.findMany({
+      db.activity.findMany({
         where: { userId },
         orderBy: { occurredAt: "desc" },
       }),
-      v1db.review.findMany({ where: { userId } }),
+      db.review.findMany({ where: { userId } }),
       Workflow.preferences(userId),
-      v1db.link.findMany({ where: { userId } }),
-      v1db.preference.findMany({
+      db.link.findMany({ where: { userId } }),
+      db.preference.findMany({
         where: { userId, key: { startsWith: "habit." } },
         select: { key: true, value: true },
       }),
-      CoachTrust.read(v1db, userId),
+      CoachTrust.read(db, userId),
     ]);
     return {
       items,
@@ -111,12 +111,12 @@ export class Workflow {
       }));
     const pattern = `%${q}%`;
     const metadataMatches = wants("item")
-      ? await v1db.$queryRaw<{ id: string }[]>(
+      ? await db.$queryRaw<{ id: string }[]>(
           Prisma.sql`SELECT "id" FROM "V1Item" WHERE "userId" = ${userId} AND "metadata"::text ILIKE ${pattern}`,
         )
       : [];
     if (wants("item"))
-      for (const row of await v1db.item.findMany({
+      for (const row of await db.item.findMany({
         where: {
           ...itemWhere,
           AND: [
@@ -139,7 +139,7 @@ export class Workflow {
         });
     const recordsFilter = !!(value.areaId || value.projectId || value.type);
     if (wants("project") && !value.type)
-      for (const row of await v1db.project.findMany({
+      for (const row of await db.project.findMany({
         where: {
           userId,
           ...(value.projectId ? { id: value.projectId } : {}),
@@ -158,7 +158,7 @@ export class Workflow {
           href: `/app/projects/${row.id}`,
         });
     if (wants("journal"))
-      for (const row of await v1db.journalMoment.findMany({
+      for (const row of await db.journalMoment.findMany({
         where: {
           userId,
           text: { contains: q, mode: "insensitive" },
@@ -174,10 +174,10 @@ export class Workflow {
           href: `/app/journal?date=${row.localDate}&moment=${row.id}`,
         });
     if (wants("review")) {
-      const matches = await v1db.$queryRaw<{ id: string }[]>(
+      const matches = await db.$queryRaw<{ id: string }[]>(
         Prisma.sql`SELECT "id" FROM "V1Review" WHERE "userId" = ${userId} AND ("prompts"::text ILIKE ${pattern} OR "period" ILIKE ${pattern})`,
       );
-      const rows = await v1db.review.findMany({
+      const rows = await db.review.findMany({
         where: {
           userId,
           id: { in: matches.map((r) => r.id) },
@@ -195,10 +195,10 @@ export class Workflow {
         });
     }
     if (wants("activity")) {
-      const matches = await v1db.$queryRaw<{ id: string }[]>(
+      const matches = await db.$queryRaw<{ id: string }[]>(
         Prisma.sql`SELECT "id" FROM "V1Activity" WHERE "userId" = ${userId} AND ("data"::text ILIKE ${pattern} OR "kind" ILIKE ${pattern})`,
       );
-      for (const row of await v1db.activity.findMany({
+      for (const row of await db.activity.findMany({
         where: {
           userId,
           id: { in: matches.map((r) => r.id) },
@@ -215,7 +215,7 @@ export class Workflow {
         });
     }
     if (wants("tag") && !recordsFilter)
-      for (const row of await v1db.tag.findMany({
+      for (const row of await db.tag.findMany({
         where: { userId, name: { contains: q, mode: "insensitive" } },
         take: 50,
       }))

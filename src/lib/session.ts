@@ -1,19 +1,20 @@
 // Database-free signed sessions, shared by the proxy and server handlers.
 import crypto from "node:crypto";
 
+export const SESSION_COOKIE = "bearing-session";
+const DEV_SESSION_SECRET = "dev-session-secret-change-in-production";
+
 function secret() {
   const value = process.env.SESSION_SECRET;
   if (
     (process.env.NODE_ENV === "production" ||
       process.env.VERCEL_ENV === "production") &&
-    (!value ||
-      value.length < 32 ||
-      value === "lifeos-dev-secret-change-in-production")
+    (!value || value.length < 32 || value === DEV_SESSION_SECRET)
   )
     throw new Error(
       "Production requires a unique SESSION_SECRET of at least 32 characters",
     );
-  return value || "lifeos-dev-secret-change-in-production";
+  return value || DEV_SESSION_SECRET;
 }
 export interface SessionData {
   userId: string;
@@ -22,8 +23,15 @@ export interface SessionData {
   createdAt: number;
   expiresAt: number;
 }
+export function sessionTokenFromCookie(header: string | null | undefined) {
+  if (!header) return "";
+  const match = header.match(
+    new RegExp(`(?:^|;\\s*)${SESSION_COOKIE}=([^;]+)`),
+  );
+  return match?.[1] ?? "";
+}
 export function sessionCookie(token: string, maxAge = 604800) {
-  return `lifeos-session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${process.env.NODE_ENV === "production" ? "; Secure" : ""}`;
+  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${process.env.NODE_ENV === "production" ? "; Secure" : ""}`;
 }
 export function createSession(
   userId: string,

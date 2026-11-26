@@ -1,32 +1,15 @@
-# V1 browser verification
+# Browser tests
 
-Use Node 22+, PostgreSQL 16 client tools (`pg_dump`/`pg_restore`) on PATH, installed
-Playwright Chromium (`npx playwright install chromium`) and a **disposable** database.
-Build first with `npm run build`. Then:
+One Playwright config (`playwright.config.ts`) runs the release journey on
+desktop and phone, plus the landing page and the login checks that still apply.
 
 ```bash
-V1_TEST_DATABASE_URL=postgresql://... npm run test:e2e:release
+TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/bearing npm run test:e2e
 ```
 
-The release config applies both migration sets to the supplied disposable DB,
-provisions a test-only account, starts the production build and deterministic local
-Coach provider, signs in, and runs V1 suites on desktop and emulated phone Chromium.
-Do not point this command at live data. Tests snapshot/restore the full disposable
-DB around each test and reset fixture account allowances. Test-only credentials are
-not advertised or provisioned by the application. Use a fresh DB for each release.
+The command migrates that disposable database, starts the deterministic Coach
+fixture, and signs in the fixture account. Never point `TEST_DATABASE_URL` at a
+database you need to keep.
 
-`RELEASE_CHROMIUM_PATH` optionally selects a portable Chromium executable for
-restricted CI. `RELEASE_BASE_URL` skips local server provisioning and targets an
-already provisioned isolated test deployment; use only with a disposable DB that
-matches that deployment and the fixture provider configuration. It is not a command
-to reset a production deployment. Hosted live-provider smoke tests must be performed
-separately with fictional records and approval/refusal checks.
-
-`test:e2e:coach` runs only Coach browser journeys. `test:e2e` uses the general
-config. With `BEARING_V1_ENABLED=true` it selects V1 workflow tests. Without the
-flag it runs landing and auth only. The pre-V1 shell suite is gone
-([ADR 0005](../docs/adr/0005-sunset-legacy-domain-and-coach.md)).
-`INVENTORY.md` is a historical snapshot of controls that have been removed.
-
-See [release matrix and preview checklist](../docs/RELEASE.md). Screenshot assets
-must come from actual V1 pages with fictional data; never publish private accounts.
+`RELEASE_BASE_URL` runs the same projects against an already-running server and
+does not start one.

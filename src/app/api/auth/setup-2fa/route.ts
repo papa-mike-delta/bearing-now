@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { sessionTokenFromCookie } from "@/lib/session";
 import { ok, bad, parseBody, generateTOTPSecret, generateOTPAuthURL, verifySession, verifyTOTP } from "@/lib/auth-utils";
 import type { NextRequest } from "next/server";
 
@@ -7,14 +8,10 @@ export const dynamic = "force-dynamic";
 // POST /api/auth/setup-2fa — generate TOTP secret and return QR code URL
 export async function POST(req: NextRequest) {
   // Get session from cookie
-  const cookie = req.headers.get("cookie") || "";
-  const match = cookie.match(/lifeos-session=([^;]+)/);
-  if (!match) return bad("No active session", 401);
-
-  const session = verifySession(match[1]);
+  const session = verifySession(sessionTokenFromCookie(req.headers.get("cookie")));
   if (!session?.twoFactorVerified) return bad("Invalid or expired session", 401);
 
-  const user = await db.user.findUnique({ where: { id: session.userId } });
+  const user = await db.account.findUnique({ where: { id: session.userId } });
   if (!user) return bad("User not found", 401);
 
   const body = await parseBody(req);
@@ -31,7 +28,7 @@ export async function POST(req: NextRequest) {
     if (!valid) return bad("Invalid code. Please try again.", 401);
 
     // Mark TOTP as verified
-    await db.user.update({
+    await db.account.update({
       where: { id: user.id },
       data: { totpVerified: true },
     });
@@ -41,7 +38,7 @@ export async function POST(req: NextRequest) {
 
   // Generate new TOTP secret
   const secret = generateTOTPSecret();
-  await db.user.update({
+  await db.account.update({
     where: { id: user.id },
     data: { totpSecret: secret, totpVerified: false },
   });

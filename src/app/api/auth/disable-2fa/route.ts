@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const session = await getUserFromRequest(req);
   if (!session) return bad("Unauthorized", 401);
 
-  await db.user.update({
+  await db.account.update({
     where: { id: session.userId },
     data: { totpSecret: null, totpVerified: false },
   });

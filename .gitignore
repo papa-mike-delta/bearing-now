@@ -53,3 +53,7 @@ screenshot-*.png
 /e2e/.auth/
 /test-results/
 /playwright-report/
+
+# Local scratch and TypeScript incremental output
+.scratch/
+*.tsbuildinfo

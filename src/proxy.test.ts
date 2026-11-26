@@ -1,11 +1,10 @@
 import { expect, it } from "vitest";
 import { NextRequest } from "next/server";
-import { createSession } from "@/lib/session";
-import { LegacyApi } from "@/lib/legacy-api";
+import { SESSION_COOKIE, createSession } from "@/lib/session";
 import { proxy } from "./proxy";
 
 const request = (path: string, token?: string) => new NextRequest(`http://localhost${path}`, {
-  headers: token ? { cookie: `lifeos-session=${token}` } : {},
+  headers: token ? { cookie: `${SESSION_COOKIE}=${token}` } : {},
 });
 
 it.each(["/", "/login"])("redirects a signed-in visit to %s to /app", (path) => {
@@ -20,12 +19,10 @@ it.each([
   "/api/coach",
   "/api/seed",
   "/api/preferences",
-])("returns 410 for retired %s before any session check", async (path) => {
-  const response = proxy(request(path, createSession("u1", "a@example.com", true)));
-  expect(response.status).toBe(410);
-  expect(await response.json()).toMatchObject({
-    error: expect.stringContaining(LegacyApi.dropTablesOn),
-  });
+])("does not tombstone retired %s", (path) => {
+  const authed = proxy(request(path, createSession("u1", "a@example.com", true)));
+  expect(authed.status).toBe(200);
+  expect(proxy(request(path)).status).toBe(401);
 });
 
 it("leaves theme, receipts and V1 on their own handlers", () => {

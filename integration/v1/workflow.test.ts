@@ -3,8 +3,8 @@ import { beforeAll, afterAll, beforeEach, expect, it } from "vitest";
 import { Workflow } from "@/lib/v1/workflow";
 import { V1, type Principal } from "@/lib/v1/service";
 import { V1Backup } from "@/lib/v1/service/backup";
-import { v1db } from "@/lib/v1/db";
-import { createSession } from "@/lib/session";
+import { db } from "@/lib/db";
+import { SESSION_COOKIE, createSession } from "@/lib/session";
 import { POST, PUT, GET } from "@/app/api/v1/[...path]/route";
 const userId = "workflow-alice",
   other = "workflow-bob",
@@ -19,7 +19,7 @@ const input = (extra: object = {}) => ({
   ...extra,
 });
 beforeAll(async () => {
-  for (const schema of ["prisma/schema.prisma", "prisma/v1/schema.prisma"])
+  for (const schema of ["prisma/schema.prisma"])
     execFileSync(
       process.execPath,
       [
@@ -31,7 +31,7 @@ beforeAll(async () => {
       ],
       { env: process.env, stdio: "pipe" },
     );
-  await v1db.account.createMany({
+  await db.account.createMany({
     data: [userId, other].map((id) => ({
       id,
       email: `${id}@example.test`,
@@ -43,13 +43,13 @@ afterAll(async () => {
   const schema = new URL(process.env.DATABASE_URL!).searchParams.get("schema")!;
   if (!/^v1_test_[a-f0-9]+$/.test(schema))
     throw new Error("Unsafe test schema");
-  await v1db.$executeRawUnsafe(`DROP SCHEMA "${schema}" CASCADE`);
-  await v1db.$disconnect();
+  await db.$executeRawUnsafe(`DROP SCHEMA "${schema}" CASCADE`);
+  await db.$disconnect();
 });
 beforeEach(async () => {
   for (const person of [p, q]) {
     await V1Backup.reset(person, "RESET V1 DATA");
-    await v1db.ledger.deleteMany({ where: { userId: person.userId } });
+    await db.ledger.deleteMany({ where: { userId: person.userId } });
   }
 });
 it("captures once under retries/concurrency and keeps original text, capture time and local date", async () => {
@@ -67,15 +67,15 @@ it("captures once under retries/concurrency and keeps original text, capture tim
   expect(a.value.capturedAt.toISOString()).toBe(value.capturedAt);
   expect(a.receiptId).toBeTruthy();
   expect(
-    await v1db.ledger.count({
+    await db.ledger.count({
       where: { userId, operation: "v1.capture", status: "success" },
     }),
   ).toBeGreaterThan(0);
-  expect(await v1db.proposal.count({ where: { userId } })).toBe(0);
+  expect(await db.proposal.count({ where: { userId } })).toBe(0);
   await expect(
     V1.capture(p, { ...value, text: "Different" }),
   ).rejects.toMatchObject({ status: 409 });
-  expect(await v1db.item.count({ where: { userId } })).toBe(1);
+  expect(await db.item.count({ where: { userId } })).toBe(1);
 });
 it("creates one canonical Task from an explicit shortcut and reflects its edits in Journal references", async () => {
   const value = input({ text: "/task Call Alex" });
@@ -92,7 +92,7 @@ it("creates one canonical Task from an explicit shortcut and reflects its edits 
   const state = await Workflow.workspace(userId);
   expect(state.items.find((i) => i.id === item.id)?.status).toBe("done");
   expect(state.moments[0].items[0].item.status).toBe("done");
-  expect(await v1db.item.count({ where: { userId, type: "task" } })).toBe(1);
+  expect(await db.item.count({ where: { userId, type: "task" } })).toBe(1);
 });
 it("promotes a raw entry atomically and retry after organization/edit never duplicates the source", async () => {
   const value = input();
@@ -105,7 +105,7 @@ it("promotes a raw entry atomically and retry after organization/edit never dupl
     V1.organize(p, moment.id, body),
     V1.organize(p, moment.id, body),
   ]);
-  const current = await v1db.journalMoment.findUniqueOrThrow({
+  const current = await db.journalMoment.findUniqueOrThrow({
     where: { id: moment.id },
   });
   await V1.editMoment(p, moment.id, {
@@ -115,7 +115,7 @@ it("promotes a raw entry atomically and retry after organization/edit never dupl
     timezone: value.timezone,
   });
   await V1.capture(p, value);
-  expect(await v1db.item.count({ where: { userId, type: "task" } })).toBe(1);
+  expect(await db.item.count({ where: { userId, type: "task" } })).toBe(1);
   expect((await Workflow.workspace(userId)).moments[0].text).toBe(
     "Clarified Journal context",
   );
@@ -128,7 +128,7 @@ it("separates check-ins from Journal records, preserves incomplete commands for 
   const state = await Workflow.workspace(userId);
   expect(state.activities).toHaveLength(1);
   expect(state.moments.filter((m) => m.needsOrganization)).toHaveLength(1);
-  expect(await v1db.item.count({ where: { userId, type: "task" } })).toBe(0);
+  expect(await db.item.count({ where: { userId, type: "task" } })).toBe(0);
 });
 it("promotes a Markdown checkbox once with an atomic parent update", async () => {
   const parent = (
@@ -145,7 +145,7 @@ it("promotes a Markdown checkbox once with an atomic parent update", async () =>
   expect((await V1.item(userId, parent.id)).content).toContain(
     `/app/library/${a.value.itemId}`,
   );
-  expect(await v1db.item.count({ where: { userId, type: "task" } })).toBe(2);
+  expect(await db.item.count({ where: { userId, type: "task" } })).toBe(2);
 });
 it("universal keyword search finds every supported record kind and respects Area inheritance and ownership", async () => {
   const area = (await V1.createTag(p, { name: "Needle Area", kind: "area" }))
@@ -209,7 +209,7 @@ it("refuses cross-account classification, preferences and sync under a switched 
   const req = new Request("http://localhost/api/v1/capture", {
     method: "POST",
     headers: {
-      cookie: `lifeos-session=${createSession(other, "other@example.test", true)}`,
+      cookie: `${SESSION_COOKIE}=${createSession(other, "other@example.test", true)}`,
       "X-Bearing-Account": userId,
       "Content-Type": "application/json",
     },
@@ -219,7 +219,7 @@ it("refuses cross-account classification, preferences and sync under a switched 
     params: Promise.resolve({ path: ["capture"] }),
   });
   expect(result.status).toBe(409);
-  expect(await v1db.journalMoment.count({ where: { userId: other } })).toBe(0);
+  expect(await db.journalMoment.count({ where: { userId: other } })).toBe(0);
   await Workflow.setPreferences(p, {
     startup: "journal",
     timezone: "America/New_York",
@@ -228,7 +228,7 @@ it("refuses cross-account classification, preferences and sync under a switched 
   const search = await GET(
     new Request("http://localhost/api/v1/search?q=Needle", {
       headers: {
-        cookie: `lifeos-session=${createSession(other, "other@example.test", false)}`,
+        cookie: `${SESSION_COOKIE}=${createSession(other, "other@example.test", false)}`,
       },
     }),
     { params: Promise.resolve({ path: ["search"] }) },
@@ -246,7 +246,7 @@ it("organizing an explicit Task capture clears both Inbox flags without another 
   });
   expect(organized.value.needsOrganization).toBe(false);
   expect((await V1.item(userId, itemId)).status).toBe("todo");
-  expect(await v1db.item.count({ where: { userId, type: "task" } })).toBe(1);
+  expect(await db.item.count({ where: { userId, type: "task" } })).toBe(1);
 });
 
 // #46: connected life contracts over the same canonical records.
@@ -286,12 +286,12 @@ it("keeps Person mentions, confirmed interactions, follow-ups and linked referen
     revision: moment.revision,
   });
   expect(
-    await v1db.momentItem.count({
+    await db.momentItem.count({
       where: { userId, momentId: moment.id, itemId: person.id },
     }),
   ).toBe(1);
   expect(
-    await v1db.activity.count({ where: { userId, kind: "interaction" } }),
+    await db.activity.count({ where: { userId, kind: "interaction" } }),
   ).toBe(0);
   const task = (
     await V1.createItem(p, {
@@ -316,7 +316,7 @@ it("keeps Person mentions, confirmed interactions, follow-ups and linked referen
   await V1.createActivity(p, contact);
   await V1.createActivity(p, contact);
   expect(
-    await v1db.activity.count({ where: { userId, kind: "interaction" } }),
+    await db.activity.count({ where: { userId, kind: "interaction" } }),
   ).toBe(1);
   await expect(
     V1.mention(q, moment.id, { itemId: person.id, revision: moment.revision }),
@@ -364,7 +364,7 @@ it("saves routine steps independently and resets the next occurrence while prese
   const draft = (await V1.habit(p, habit.id, payload)).value;
   expect(draft.completed).toBe(false);
   expect(
-    await v1db.activity.count({ where: { userId, kind: "habit_completion" } }),
+    await db.activity.count({ where: { userId, kind: "habit_completion" } }),
   ).toBe(0);
   const complete = { ...payload, revision: draft.revision, complete: true };
   const [a, b] = await Promise.all([
@@ -372,7 +372,7 @@ it("saves routine steps independently and resets the next occurrence while prese
     V1.habit(p, habit.id, complete),
   ]);
   expect(a.value).toEqual(b.value);
-  const history = await v1db.activity.findMany({
+  const history = await db.activity.findMany({
     where: { userId, kind: "habit_completion" },
   });
   expect(history).toHaveLength(1);
@@ -413,7 +413,7 @@ it("records one Focus Activity per session while mood check-ins and Reviews rema
     data: { minutes: 25 },
   };
   await Promise.all([V1.createActivity(p, focus), V1.createActivity(p, focus)]);
-  expect(await v1db.activity.count({ where: { userId, kind: "focus" } })).toBe(
+  expect(await db.activity.count({ where: { userId, kind: "focus" } })).toBe(
     1,
   );
   const mood = {
@@ -437,9 +437,9 @@ it("records one Focus Activity per session while mood check-ins and Reviews rema
     prompts: { notes: "A separate reflection" },
   });
   expect(
-    await v1db.activity.count({ where: { userId, kind: "check_in" } }),
+    await db.activity.count({ where: { userId, kind: "check_in" } }),
   ).toBe(2);
-  expect(await v1db.review.count({ where: { userId } })).toBe(1);
+  expect(await db.review.count({ where: { userId } })).toBe(1);
   expect((await V1.item(userId, task.id)).status).toBe("inbox");
   await expect(V1.createActivity(q, focus)).rejects.toMatchObject({
     status: 404,
@@ -460,7 +460,7 @@ it("captures Place coordinates once without venue lookup or visit Activity", asy
     latitude: 40.7,
     longitude: -73.9,
   });
-  expect(await v1db.activity.count({ where: { userId } })).toBe(0);
+  expect(await db.activity.count({ where: { userId } })).toBe(0);
 });
 
 it("revision-checks Journal mentions and refuses foreign or unapproved writes without partial associations", async () => {
@@ -480,28 +480,28 @@ it("revision-checks Journal mentions and refuses foreign or unapproved writes wi
     V1.mention({ userId, actor: "agent:coach" }, moment.id, mention),
   ).rejects.toMatchObject({ status: 403 });
   expect(
-    await v1db.momentItem.count({ where: { userId, momentId: moment.id } }),
+    await db.momentItem.count({ where: { userId, momentId: moment.id } }),
   ).toBe(0);
   expect(
-    await v1db.journalMoment.findUnique({ where: { id: moment.id } }),
+    await db.journalMoment.findUnique({ where: { id: moment.id } }),
   ).toMatchObject({ revision: moment.revision });
   const result = await V1.mention(p, moment.id, mention);
   expect(
-    await v1db.ledger.findUnique({ where: { id: result.receiptId } }),
+    await db.ledger.findUnique({ where: { id: result.receiptId } }),
   ).toMatchObject({ operation: "v1.moment.mention", status: "success" });
   await expect(V1.mention(p, moment.id, mention)).rejects.toMatchObject({
     status: 409,
   });
   expect(
-    await v1db.journalMoment.findUnique({ where: { id: moment.id } }),
+    await db.journalMoment.findUnique({ where: { id: moment.id } }),
   ).toMatchObject({ revision: moment.revision + 1 });
   expect(
-    await v1db.momentItem.count({ where: { userId, momentId: moment.id } }),
+    await db.momentItem.count({ where: { userId, momentId: moment.id } }),
   ).toBe(1);
 });
 it("saves capture, Journal typing, and Inbox filing through the user routes with receipts and no approval proposal", async () => {
   const headers = {
-    cookie: `lifeos-session=${createSession(userId, `${userId}@example.test`, true)}`,
+    cookie: `${SESSION_COOKIE}=${createSession(userId, `${userId}@example.test`, true)}`,
     "content-type": "application/json",
     "X-Bearing-Account": userId,
   };
@@ -535,9 +535,9 @@ it("saves capture, Journal typing, and Inbox filing through the user routes with
   expect(filed.status).toBe(200);
   const organized = await filed.json();
   expect(organized.value.needsOrganization).toBe(false);
-  expect(await v1db.proposal.count({ where: { userId } })).toBe(0);
+  expect(await db.proposal.count({ where: { userId } })).toBe(0);
   const operations = (
-    await v1db.ledger.findMany({
+    await db.ledger.findMany({
       where: { userId, status: "success" },
       select: { operation: true },
     })

@@ -1,6 +1,6 @@
 import { test, expect } from "./fixtures";
 import type { Page } from "@playwright/test";
-import { PrismaClient } from "@bearing/v1-client";
+import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 async function open(page: Page, path = "today") {
   await page.goto(`/app/${path}`);

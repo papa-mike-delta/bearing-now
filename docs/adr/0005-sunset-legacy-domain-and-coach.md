@@ -1,6 +1,6 @@
 # Sunset the legacy domain and Coach
 
-Date: 2026-10-26. Status: accepted. Supersedes product use of ADR 0001, ADR 0002 and ADR 0004.
+Date: 2026-10-26. Status: superseded by [ADR 0006](0006-one-schema-one-runtime.md) on 2026-11-26. The 410 shim, setup gate, second schema, and legacy content tables are gone. This record stays as the history of that decision. Supersedes product use of ADR 0001, ADR 0002 and ADR 0004.
 
 ## Decision
 

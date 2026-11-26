@@ -11,9 +11,9 @@ import {
   momentEditInput,
 } from "../workflow-contracts";
 import { canonicalJson } from "../json";
-import { Prisma, type Item } from "@bearing/v1-client";
+import { Prisma, type Item } from "@prisma/client";
 import { z } from "zod";
-import { v1db } from "../db";
+import { db } from "@/lib/db";
 import * as schema from "../contracts";
 import { dateInZone, nextOccurrence } from "../dates";
 import { validLinkEndpoints } from "../link-policy";
@@ -103,7 +103,7 @@ export async function write<T>(
   // Composition shares writes and receipts; only the outer transaction records refusal.
   if (transaction) return run(transaction);
   try {
-    return await v1db.$transaction(run, { timeout: 30_000 });
+    return await db.$transaction(run, { timeout: 30_000 });
   } catch (error) {
     if (error instanceof TrustDeclined) throw error;
     const fault =
@@ -121,7 +121,7 @@ export async function write<T>(
                 {},
                 { cause: error },
               );
-    const receipt = await v1db.ledger.create({
+    const receipt = await db.ledger.create({
       data: {
         userId,
         actor,
@@ -760,7 +760,7 @@ export class V1 {
       limit?: number;
     } = {},
   ) {
-    const rows = await v1db.item.findMany({
+    const rows = await db.item.findMany({
       where: {
         userId,
         ...(filters.type ? { type: filters.type } : {}),
@@ -801,7 +801,7 @@ export class V1 {
     return rows.map(withAreas);
   }
   static async item(userId: string, id: string) {
-    const row = await v1db.item.findFirst({
+    const row = await db.item.findFirst({
       where: { userId, id },
       include: itemInclude,
     });
@@ -971,7 +971,7 @@ export class V1 {
     );
   }
   static async me(userId: string) {
-    const self = await v1db.selfProfile.findUniqueOrThrow({
+    const self = await db.selfProfile.findUniqueOrThrow({
       where: { userId },
     });
     return V1.item(userId, self.itemId);

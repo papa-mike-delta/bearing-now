@@ -1,4 +1,4 @@
-import type { Item } from "@bearing/v1-client";
+import type { Item } from "@prisma/client";
 import crypto from "node:crypto";
 import { V1, write, Fault, type Principal } from "./index";
 import { snapshot } from "./backup";

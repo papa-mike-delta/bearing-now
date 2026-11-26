@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
-import { v1db } from "./db";
+import { db } from "@/lib/db";
 import { invitationInput } from "./contracts";
 import { parse, Fault } from "./service";
 export const invitationHash = (token: string) =>
@@ -8,7 +8,7 @@ export const invitationHash = (token: string) =>
 export async function registerInvited(raw: unknown) {
   const data = parse(invitationInput, raw),
     passwordHash = await bcrypt.hash(data.password, 12);
-  return v1db.$transaction(async (tx) => {
+  return db.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(731909)::text`;
     const invitation = await tx.invitation.findFirst({
       where: {

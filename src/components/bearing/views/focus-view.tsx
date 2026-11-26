@@ -71,26 +71,26 @@ export function FocusTimer({tasks,habits,loading=false,onNewTask,onComplete,stat
     setLoaded(true);
     try {
       const today = new Date().toISOString().slice(0, 10);
-      const stored = localStorage.getItem(`lifeos-focus-${today}`);
+      const stored = localStorage.getItem(`bearing-focus-${today}`);
       if (stored && !onComplete) {
         const { sessions, minutes } = JSON.parse(stored);
         setCompletedSessions(sessions || 0);
         setTodayMinutes(minutes || 0);
       }
-      const soundPref = localStorage.getItem("lifeos-focus-sound");
+      const soundPref = localStorage.getItem("bearing-focus-sound");
       if (soundPref !== null) setSoundEnabled(soundPref === "true");
     } catch {}
   }
 
   function persist(sessions: number, minutes: number) {
     const today = new Date().toISOString().slice(0, 10);
-    localStorage.setItem(`lifeos-focus-${today}`, JSON.stringify({ sessions, minutes }));
+    localStorage.setItem(`bearing-focus-${today}`, JSON.stringify({ sessions, minutes }));
   }
 
   function toggleSound() {
     const v = !soundEnabled;
     setSoundEnabled(v);
-    localStorage.setItem("lifeos-focus-sound", String(v));
+    localStorage.setItem("bearing-focus-sound", String(v));
     if (v) playChime(); // test sound
   }
 

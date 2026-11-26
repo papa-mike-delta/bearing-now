@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { appDestination, loginDestination } from "@/lib/app-destination";
-import { LegacyApi } from "@/lib/legacy-api";
-import { verifySession } from "@/lib/session";
+import { SESSION_COOKIE, verifySession } from "@/lib/session";
 
 // Routes that don't require authentication
 const PUBLIC_ROUTES = ["/", "/login", "/help", "/api/auth"];
@@ -13,7 +12,7 @@ export function proxy(req: NextRequest) {
   // navigation (e.g. iOS swipe-back) from /app lands in /app again.
   // Verify the signature so a stale cookie can't loop /login <-> /app.
   if (pathname === "/" || pathname === "/login") {
-    const token = req.cookies.get("lifeos-session")?.value;
+    const token = req.cookies.get(SESSION_COOKIE)?.value;
     if (token && verifySession(token)?.twoFactorVerified && !req.nextUrl.searchParams.has("qr")) return NextResponse.redirect(new URL(appDestination(req.nextUrl.searchParams.get("next")), req.url));
     // no-store keeps these pages out of the back/forward cache, so going back
     // after signing in re-requests them and hits the redirect above.
@@ -21,7 +20,6 @@ export function proxy(req: NextRequest) {
     res.headers.set("Cache-Control", "no-store");
     return res;
   }
-  if (LegacyApi.matches(pathname)) return LegacyApi.response();
 
   // Allow public routes
   if (PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(route + "/"))) {
@@ -34,7 +32,7 @@ export function proxy(req: NextRequest) {
   }
 
   // Check if session cookie exists (full verification happens server-side)
-  const token = req.cookies.get("lifeos-session")?.value;
+  const token = req.cookies.get(SESSION_COOKIE)?.value;
   const hasSession = token && verifySession(token)?.twoFactorVerified;
 
   if (!hasSession) {
