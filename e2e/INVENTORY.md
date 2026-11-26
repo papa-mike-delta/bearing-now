@@ -329,7 +329,6 @@ Generated with `node e2e/scripts/inventory.mjs`. Every JSX button/link/form (inc
 | src/components/bearing/views/settings-view.tsx:284 | SelectTrigger |   |
 | src/components/bearing/views/settings-view.tsx:326 | SelectTrigger |   |
 | src/components/bearing/views/settings-view.tsx:335 | Button | Enable size="sm" variant="outline" onClick={async () => { const g = await requestNotificationPermission(); if (g) { notify.success("Notifications enabled"); sendNotification("bearing.now", "Enabled!"); } else notify.error("Permission denied"); }} |
-| src/components/bearing/views/settings-view.tsx:355 | a | Neon href="https://neon.tech" target="_blank" |
 | src/components/bearing/views/settings-view.tsx:355 | a | Supabase href="https://supabase.com" target="_blank" |
 | src/components/bearing/views/settings-view.tsx:364 | Button |  Seed test data variant="outline" size="sm" onClick={seedData} |
 | src/components/bearing/views/settings-view.tsx:369 | AlertDialogTrigger |  asChild |
@@ -397,7 +396,6 @@ src/components/bearing/views/settings-view.tsx:129 const res = await fetch(`/api
 src/components/bearing/views/settings-view.tsx:148 const res = await fetch("/api/seed", { method: "POST" });
 src/components/bearing/views/settings-view.tsx:150 if (res.ok) { notify.success("Seed data created!"); setTimeout(() => window.location.reload(), 1500); }
 src/components/bearing/views/settings-view.tsx:214 const res = await fetch("/api/auth/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
-src/components/bearing/views/settings-view.tsx:355 <li>1. Create a free database on <a href="https://neon.tech" target="_blank" className="text-blue-500 hover:underline">Neon</a> or <a href="https://supabase.com" target="_blank" className="text-blue-500 hover:underline">Supabase</a></li>
 src/components/bearing/views/settings-view.tsx:382 const res = await fetch("/api/reset-db", { method: "POST" });
 src/components/bearing/views/settings-view.tsx:384 if (res.ok) { notify.success("Database reset. Reloading…"); setTimeout(() => window.location.reload(), 1500); }
 src/components/bearing/views/settings-view.tsx:395 <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.open("/api/export?type=items", "_blank")}><Icon name="Download" className="h-3.5 w-3.5" /> Export CSV</Button>
