@@ -1,7 +1,7 @@
 import { POST as uiPost, PUT as uiPut } from "@/app/api/v1/[...path]/route";
 import { execFileSync } from "node:child_process";
 import { beforeAll, afterAll, beforeEach, it, expect, vi } from "vitest";
-import { v1db } from "@/lib/v1/db";
+import { db } from "@/lib/db";
 import { V1, type Principal } from "@/lib/v1/service";
 import { V1Backup } from "@/lib/v1/service/backup";
 import { preview, approve, reject, settle, proposalDraft } from "@/lib/v1/coach/proposals";
@@ -15,7 +15,7 @@ const userId = "coach-alice",
   other = "coach-bob",
   p: Principal = { userId, actor: `user:${userId}` };
 beforeAll(async () => {
-  for (const schema of ["prisma/schema.prisma", "prisma/v1/schema.prisma"])
+  for (const schema of ["prisma/schema.prisma"])
     execFileSync(
       process.execPath,
       [
@@ -27,7 +27,7 @@ beforeAll(async () => {
       ],
       { env: process.env, stdio: "pipe" },
     );
-  await v1db.account.createMany({
+  await db.account.createMany({
     data: [userId, other].map((id) => ({
       id,
       email: `${id}@example.test`,
@@ -38,14 +38,14 @@ beforeAll(async () => {
 beforeEach(async () => {
   for (const id of [userId, other]) {
     await V1Backup.reset({ userId: id, actor: `user:${id}` }, "RESET V1 DATA");
-    await v1db.ledger.deleteMany({ where: { userId: id } });
+    await db.ledger.deleteMany({ where: { userId: id } });
   }
 });
 afterAll(async () => {
   const schema = new URL(process.env.DATABASE_URL!).searchParams.get("schema")!;
   if (!/^v1_test_[a-f0-9]+$/.test(schema)) throw new Error("Unsafe schema");
-  await v1db.$executeRawUnsafe(`DROP SCHEMA "${schema}" CASCADE`);
-  await v1db.$disconnect();
+  await db.$executeRawUnsafe(`DROP SCHEMA "${schema}" CASCADE`);
+  await db.$disconnect();
 });
 const create = (title = "A Task") => ({
   op: "create_item",
@@ -62,21 +62,21 @@ const input = (extra: object = {}) => ({
   ...extra,
 });
 it("previews and rejects without writing Bearing data or execution receipts", async () => {
-  const c = await v1db.conversation.create({
+  const c = await db.conversation.create({
     data: { userId, title: "Organize" },
   });
   const draft = await preview(userId, [create()], { conversationId: c.id });
-  expect(await v1db.item.count({ where: { userId, type: "task" } })).toBe(0);
-  const receipts = await v1db.ledger.count({ where: { userId } });
+  expect(await db.item.count({ where: { userId, type: "task" } })).toBe(0);
+  const receipts = await db.ledger.count({ where: { userId } });
   await reject(userId, draft.token);
-  expect(await v1db.item.count({ where: { userId, type: "task" } })).toBe(0);
-  expect(await v1db.ledger.count({ where: { userId } })).toBe(receipts);
+  expect(await db.item.count({ where: { userId, type: "task" } })).toBe(0);
+  expect(await db.ledger.count({ where: { userId } })).toBe(receipts);
   await expect(approve(p, draft.token, "")).rejects.toMatchObject({
     status: 409,
   });
 });
 it("edits, approves and retries a related multi-record batch exactly once", async () => {
-  const c = await v1db.conversation.create({
+  const c = await db.conversation.create({
     data: { userId, title: "Batch" },
   });
   let draft = await preview(
@@ -110,8 +110,8 @@ it("edits, approves and retries a related multi-record batch exactly once", asyn
     approve(p, draft.token, ""),
   ]);
   expect(a.value).toEqual(b.value);
-  expect(await v1db.item.count({ where: { userId, type: "task" } })).toBe(1);
-  expect(await v1db.link.count({ where: { userId } })).toBe(1);
+  expect(await db.item.count({ where: { userId, type: "task" } })).toBe(1);
+  expect(await db.link.count({ where: { userId } })).toBe(1);
   expect((a.value as any).changes).toHaveLength(3);
 });
 it("rolls back an entire batch on stale revisions and retains a retryable proposal", async () => {
@@ -134,7 +134,7 @@ it("rolls back an entire batch on stale revisions and retains a retryable propos
     status: 409,
   });
   expect(
-    await v1db.item.count({ where: { userId, title: "Must roll back" } }),
+    await db.item.count({ where: { userId, title: "Must roll back" } }),
   ).toBe(0);
   expect((await V1.item(userId, item.id)).title).toBe("Concurrent");
 });
@@ -161,7 +161,7 @@ it("honors editor leases, destructive confirmation, self identity and create lim
   await expect(
     approve(p, self.token, "APPLY DESTRUCTIVE CHANGES"),
   ).rejects.toMatchObject({ status: 400 });
-  await v1db.ledger.createMany({
+  await db.ledger.createMany({
     data: Array.from({ length: 20 }, () => ({
       userId,
       actor: "agent:coach",
@@ -276,7 +276,7 @@ it("persists conversations by default, replays lost acknowledgements and keeps t
     model(textChunks("duplicate")),
   );
   expect(await response.text()).not.toContain("duplicate");
-  expect(await v1db.message.count({ where: { userId } })).toBe(2);
+  expect(await db.message.count({ where: { userId } })).toBe(2);
   response = await answerStream(
     other,
     input({ text: "TEMPORARY_SECRET", temporary: true }),
@@ -284,11 +284,11 @@ it("persists conversations by default, replays lost acknowledgements and keeps t
     model(textChunks("Temporary response")),
   );
   await response.text();
-  expect(await v1db.conversation.count({ where: { userId: other } })).toBe(0);
-  expect(await v1db.message.count({ where: { userId: other } })).toBe(0);
+  expect(await db.conversation.count({ where: { userId: other } })).toBe(0);
+  expect(await db.message.count({ where: { userId: other } })).toBe(0);
   expect(
     JSON.stringify(
-      await v1db.preference.findMany({ where: { userId: other } }),
+      await db.preference.findMany({ where: { userId: other } }),
     ),
   ).not.toContain("TEMPORARY_SECRET");
 });
@@ -316,7 +316,7 @@ it("retains a provider failure for retry without duplicating the user message", 
   );
   body = await response.text();
   expect(body).toContain("Recovered");
-  expect(await v1db.message.count({ where: { userId, role: "user" } })).toBe(1);
+  expect(await db.message.count({ where: { userId, role: "user" } })).toBe(1);
 });
 
 const toolChunks = (toolName: string, args: unknown, id = "tool-one") => [
@@ -382,7 +382,7 @@ it("grounds a natural-language answer with real owned sources through AI SDK too
   expect(JSON.stringify(provider.doStreamCalls)).not.toContain(
     "OWN_UNRELATED_SECRET",
   );
-  const latest = await v1db.message.findFirst({
+  const latest = await db.message.findFirst({
     where: { userId, role: "assistant" },
   });
   expect(JSON.parse(latest!.content).sources[0].id).toBe(note.id);
@@ -407,8 +407,8 @@ it("clarifies duplicate identities and refuses a model edit until identity is se
   const final = lines.find((l) => l.type === "done").answer;
   expect(final.clarification.candidates).toHaveLength(2);
   expect(final.text).toContain("more than one");
-  expect(await v1db.item.count({ where: { userId, type: "task" } })).toBe(0);
-  expect(await v1db.proposal.count({ where: { userId } })).toBe(0);
+  expect(await db.item.count({ where: { userId, type: "task" } })).toBe(0);
+  expect(await db.proposal.count({ where: { userId } })).toBe(0);
 });
 it("model proposals create no Items before approval and failed-turn retries reuse the same proposal", async () => {
   const value = input({ text: "Create a research Task" });
@@ -423,9 +423,9 @@ it("model proposals create no Items before approval and failed-turn retries reus
   );
   const output = await response.text();
   expect(output).toContain("proposal");
-  expect(await v1db.item.count({ where: { userId, type: "task" } })).toBe(0);
-  expect(await v1db.proposal.count({ where: { userId } })).toBe(1);
-  const row = await v1db.message.findFirst({
+  expect(await db.item.count({ where: { userId, type: "task" } })).toBe(0);
+  expect(await db.proposal.count({ where: { userId } })).toBe(1);
+  const row = await db.message.findFirst({
     where: { userId, role: "assistant" },
   });
   expect(row!.content).not.toContain("token");
@@ -437,7 +437,7 @@ it("model proposals create no Items before approval and failed-turn retries reus
     model(textChunks("unused")),
   );
   expect(await replay.text()).toContain("Research missing facts");
-  expect(await v1db.proposal.count({ where: { userId } })).toBe(1);
+  expect(await db.proposal.count({ where: { userId } })).toBe(1);
 });
 
 import {
@@ -445,7 +445,7 @@ import {
   POST as coachPost,
   PUT as coachPut,
 } from "@/app/api/v1/coach/[...path]/route";
-import { createSession } from "@/lib/session";
+import { SESSION_COOKIE, createSession } from "@/lib/session";
 it("requires verified sessions, account binding and explicit consent/approval at the HTTP boundary", async () => {
   const call = (
     path: string,
@@ -456,7 +456,7 @@ it("requires verified sessions, account binding and explicit consent/approval at
     const req = new Request(`http://localhost/api/v1/coach/${path}`, {
       method: body ? "POST" : "GET",
       headers: {
-        cookie: `lifeos-session=${createSession(userId, "coach@example.test", verified)}`,
+        cookie: `${SESSION_COOKIE}=${createSession(userId, "coach@example.test", verified)}`,
         "X-Bearing-Account": account,
         ...(body ? { "Content-Type": "application/json" } : {}),
       },
@@ -474,7 +474,7 @@ it("requires verified sessions, account binding and explicit consent/approval at
   ).toBe(400);
   const d = await preview(userId, [create()]);
   expect((await call("approve", { token: d.token })).status).toBe(400);
-  expect(await v1db.item.count({ where: { userId, type: "task" } })).toBe(0);
+  expect(await db.item.count({ where: { userId, type: "task" } })).toBe(0);
 });
 it("rolls back earlier creates when the last semantic Link fails and never duplicates a failed-turn draft", async () => {
   const invalid = await preview(userId, [
@@ -490,12 +490,12 @@ it("rolls back earlier creates when the last semantic Link fails and never dupli
     status: 400,
   });
   expect(
-    await v1db.item.count({
+    await db.item.count({
       where: { userId, type: { in: ["task", "note"] } },
     }),
   ).toBe(0);
   expect(
-    await v1db.ledger.count({
+    await db.ledger.count({
       where: { userId, status: "success", actor: "agent:coach" },
     }),
   ).toBe(0);
@@ -508,7 +508,7 @@ it("rolls back earlier creates when the last semantic Link fails and never dupli
     steps([propose, [{ type: "error", error: new Error("stream failed") }]]),
   );
   await response.text();
-  expect(await v1db.proposal.count({ where: { userId } })).toBe(1);
+  expect(await db.proposal.count({ where: { userId } })).toBe(1);
   response = await answerStream(
     userId,
     value,
@@ -516,7 +516,7 @@ it("rolls back earlier creates when the last semantic Link fails and never dupli
     steps([propose, textChunks("Review the retained proposal.")]),
   );
   await response.text();
-  expect(await v1db.proposal.count({ where: { userId } })).toBe(1);
+  expect(await db.proposal.count({ where: { userId } })).toBe(1);
 });
 it("lists work status through bounded canonical filters and protects Project edits with open Items", async () => {
   const project = (await V1.createProject(p, { name: "Project" })).value;
@@ -592,19 +592,19 @@ it("organizes raw Inbox text into one canonical linked Task only after approval"
       type: "related_to",
     },
   ]);
-  expect(await v1db.item.count({ where: { userId, type: "task" } })).toBe(0);
+  expect(await db.item.count({ where: { userId, type: "task" } })).toBe(0);
   await approve(p, draft.token, "");
   await approve(p, draft.token, "");
-  const moment = await v1db.journalMoment.findUniqueOrThrow({
+  const moment = await db.journalMoment.findUniqueOrThrow({
     where: { id: captured.value.id },
     include: { items: true },
   });
   expect(moment.text).toBe("  Buy milk after work\n");
   expect(moment.needsOrganization).toBe(false);
   expect(moment.items).toHaveLength(1);
-  expect(await v1db.item.count({ where: { userId, type: "task" } })).toBe(1);
+  expect(await db.item.count({ where: { userId, type: "task" } })).toBe(1);
   expect(
-    await v1db.link.count({
+    await db.link.count({
       where: { userId, fromId: moment.items[0].itemId, toId: person.id },
     }),
   ).toBe(1);
@@ -675,7 +675,7 @@ async function uiWrite(path: string, method: "POST" | "PUT", body: unknown) {
       headers: {
         "content-type": "application/json",
         "X-Bearing-Account": userId,
-        cookie: `lifeos-session=${createSession(userId, `${userId}@example.test`, true)}`,
+        cookie: `${SESSION_COOKIE}=${createSession(userId, `${userId}@example.test`, true)}`,
       },
       body: JSON.stringify(body),
     }),
@@ -829,7 +829,7 @@ it.each([
         ),
       );
     const receipt = async (id: string) => {
-      const row = await v1db.ledger.findUniqueOrThrow({ where: { id } });
+      const row = await db.ledger.findUniqueOrThrow({ where: { id } });
       expect(row.operation).toBe(c.operation);
       expect(row.status).toBe("success");
       return JSON.parse(row.receipt);
@@ -867,22 +867,22 @@ it("rolls back earlier service operations and their success receipts when a late
     },
   ]);
   await V1.setLease(p, item.id, "editor", true);
-  const successes = await v1db.ledger.count({
+  const successes = await db.ledger.count({
     where: { userId, status: "success" },
   });
   await expect(approve(p, draft.token, "")).rejects.toMatchObject({
     status: 423,
   });
-  expect(await v1db.tag.count({ where: { userId } })).toBe(0);
+  expect(await db.tag.count({ where: { userId } })).toBe(0);
   expect(await V1.item(userId, item.id)).toMatchObject({
     title: "Locked",
     revision: item.revision,
   });
   expect(
-    await v1db.ledger.count({ where: { userId, status: "success" } }),
+    await db.ledger.count({ where: { userId, status: "success" } }),
   ).toBe(successes);
   expect(
-    await v1db.ledger.count({
+    await db.ledger.count({
       where: { userId, status: "refused", operation: "v1.coach.apply" },
     }),
   ).toBe(1);
@@ -919,10 +919,10 @@ it.each(["journal", "activities", "capture"])(
           : V1.capture;
     const coach = await service(agent, raw);
     expect(JSON.parse(JSON.stringify(coach.value))).toEqual(ui.value);
-    const uiReceipt = await v1db.ledger.findUniqueOrThrow({
+    const uiReceipt = await db.ledger.findUniqueOrThrow({
       where: { id: ui.receiptId },
     });
-    const coachReceipt = await v1db.ledger.findUniqueOrThrow({
+    const coachReceipt = await db.ledger.findUniqueOrThrow({
       where: { id: coach.receiptId },
     });
     expect(coachReceipt.receipt).toBe(uiReceipt.receipt);
@@ -944,9 +944,9 @@ it.each(["journal", "activities", "capture"])(
     ).rejects.toMatchObject({ status: 403 });
   },
 );
-const taskCount = () => v1db.item.count({ where: { userId, type: "task" } });
+const taskCount = () => db.item.count({ where: { userId, type: "task" } });
 const applyReceipts = () =>
-  v1db.ledger.count({
+  db.ledger.count({
     where: { userId, operation: "v1.coach.apply" },
   });
 const coachCall = (
@@ -959,7 +959,7 @@ const coachCall = (
     new Request(`http://localhost/api/v1/coach/${path}`, {
       method,
       headers: {
-        cookie: `lifeos-session=${createSession(account, `${account}@example.test`, true)}`,
+        cookie: `${SESSION_COOKIE}=${createSession(account, `${account}@example.test`, true)}`,
         "content-type": "application/json",
         "X-Bearing-Account": account,
       },
@@ -971,7 +971,7 @@ it("leaves a fresh Coach batch editable when trust is off, unknown, or the shape
   const before = await applyReceipts();
   const plain = await preview(userId, [create("Needs a card")], { arm: true });
   expect((await settle(userId, plain.token)).status).toBe("pending");
-  await v1db.preference.create({
+  await db.preference.create({
     data: {
       userId,
       key: "coach.trust",
@@ -982,7 +982,7 @@ it("leaves a fresh Coach batch editable when trust is off, unknown, or the shape
     arm: true,
   });
   expect((await settle(userId, corrupt.token)).status).toBe("pending");
-  await v1db.preference.deleteMany({ where: { userId, key: "coach.trust" } });
+  await db.preference.deleteMany({ where: { userId, key: "coach.trust" } });
   await CoachTrust.save(p, {
     revision: 0,
     patterns: ["file_raw_moment"],
@@ -999,7 +999,7 @@ it("applies one normalized open Task under an explicit grant and records the pat
     revision: 0,
     patterns: ["create_open_task"],
   });
-  const conversation = await v1db.conversation.create({
+  const conversation = await db.conversation.create({
     data: { userId, title: "Trusted" },
   });
   const draft = await preview(
@@ -1013,19 +1013,19 @@ it("applies one normalized open Task under an explicit grant and records the pat
     patternId: "create_open_task",
     policyRevision: grant.value.revision,
   });
-  const item = await v1db.item.findFirstOrThrow({
+  const item = await db.item.findFirstOrThrow({
     where: { userId, title: "Research" },
   });
   expect(item.status).toBe("inbox");
   expect(item.delegateId).toBeNull();
-  const receipt = await v1db.ledger.findUniqueOrThrow({
+  const receipt = await db.ledger.findUniqueOrThrow({
     where: { id: settled.result.applyReceiptId },
   });
   expect(JSON.parse(receipt.payload).trust).toEqual(settled.result.trust);
   expect(receipt.status).toBe("success");
   const loaded = await proposalDraft(
     userId,
-    await v1db.proposal.findUniqueOrThrow({ where: { id: draft.id } }),
+    await db.proposal.findUniqueOrThrow({ where: { id: draft.id } }),
   );
   expect(loaded.status).toBe("applied");
   expect(loaded.token).toBe("");
@@ -1037,9 +1037,9 @@ it("applies one normalized open Task under an explicit grant and records the pat
     { arm: true, draftKey: "temp-trust" },
   );
   expect((await settle(userId, temporary.token)).status).toBe("applied");
-  expect(await v1db.conversation.count({ where: { userId } })).toBe(1);
-  expect(await v1db.proposal.count({ where: { userId } })).toBe(1);
-  expect(await v1db.message.count({ where: { userId } })).toBe(0);
+  expect(await db.conversation.count({ where: { userId } })).toBe(1);
+  expect(await db.proposal.count({ where: { userId } })).toBe(1);
+  expect(await db.message.count({ where: { userId } })).toBe(0);
   await CoachTrust.save(p, { revision: grant.value.revision, patterns: [] });
   const receipts = await applyReceipts();
   const again = await settle(userId, draft.token);
@@ -1145,7 +1145,7 @@ it("files one raw moment and links existing legal endpoints, and refuses delegat
   );
   expect(linked.status).toBe("applied");
   expect(
-    await v1db.link.count({
+    await db.link.count({
       where: { userId, fromId: note.id, toId: person.id, type: "related_to" },
     }),
   ).toBe(1);
@@ -1168,12 +1168,12 @@ it("files one raw moment and links existing legal endpoints, and refuses delegat
   );
   expect(illegal.status).toBe("pending");
   expect(
-    await v1db.link.count({ where: { userId, type: "located_at" } }),
+    await db.link.count({ where: { userId, type: "located_at" } }),
   ).toBe(0);
-  expect(await v1db.item.count({ where: { userId, title: "Delegated" } })).toBe(
+  expect(await db.item.count({ where: { userId, title: "Delegated" } })).toBe(
     0,
   );
-  expect(await v1db.item.count({ where: { userId, title: "And a link" } })).toBe(
+  expect(await db.item.count({ where: { userId, title: "And a link" } })).toBe(
     0,
   );
 });
@@ -1183,7 +1183,7 @@ it("does not settle a rejected, edited, reloaded, or cross-account proposal, and
     { revision: 0, patterns: ["create_open_task", "link_existing", "file_raw_moment"] },
   );
   await CoachTrust.save(p, { revision: 0, patterns: ["create_open_task"] });
-  const conversation = await v1db.conversation.create({
+  const conversation = await db.conversation.create({
     data: { userId, title: "Trust" },
   });
   const armed = await preview(userId, [create("Reject me")], {
@@ -1194,7 +1194,7 @@ it("does not settle a rejected, edited, reloaded, or cross-account proposal, and
   expect((await settle(userId, armed.token)).status).toBe("pending");
   expect(await applyReceipts()).toBe(0);
   expect(
-    await v1db.proposal.findUniqueOrThrow({ where: { id: armed.id } }),
+    await db.proposal.findUniqueOrThrow({ where: { id: armed.id } }),
   ).toMatchObject({ status: "rejected" });
   let editable = await preview(userId, [create("Edit me")], {
     arm: true,
@@ -1210,7 +1210,7 @@ it("does not settle a rejected, edited, reloaded, or cross-account proposal, and
   });
   expect((await settle(userId, armedToken)).status).toBe("pending");
   expect((await settle(userId, editable.token)).status).toBe("pending");
-  const stored = await v1db.proposal.findUniqueOrThrow({
+  const stored = await db.proposal.findUniqueOrThrow({
     where: { id: editable.id },
   });
   const reloaded = await proposalDraft(userId, stored);
@@ -1218,7 +1218,7 @@ it("does not settle a rejected, edited, reloaded, or cross-account proposal, and
   expect(await taskCount()).toBe(0);
   await approve(p, editable.token, "");
   expect(
-    await v1db.item.findFirst({ where: { userId, title: "Edited title" } }),
+    await db.item.findFirst({ where: { userId, title: "Edited title" } }),
   ).toBeTruthy();
   const foreign = await preview(userId, [create("Not Bob's grant")], {
     arm: true,
@@ -1227,7 +1227,7 @@ it("does not settle a rejected, edited, reloaded, or cross-account proposal, and
     status: 404,
   });
   expect(await taskCount()).toBe(1);
-  expect(await v1db.item.count({ where: { userId: other, type: "task" } })).toBe(
+  expect(await db.item.count({ where: { userId: other, type: "task" } })).toBe(
     0,
   );
   const forged = await coachCall("POST", "approve", {
@@ -1260,7 +1260,7 @@ it("serializes revoke-before-apply, stale trust revisions, duplicate settles, an
   await expect(
     CoachTrust.save(p, { revision: 0, patterns: [] }),
   ).rejects.toMatchObject({ status: 409 });
-  expect((await CoachTrust.read(v1db, userId)).patterns).toEqual([
+  expect((await CoachTrust.read(db, userId)).patterns).toEqual([
     "create_open_task",
   ]);
   const prepared = await preview(userId, [create("Revoked first")], {
@@ -1292,14 +1292,14 @@ it("serializes revoke-before-apply, stale trust revisions, duplicate settles, an
   } else {
     expect(outcome?.status).toBe("applied");
     expect(
-      await v1db.ledger.count({
+      await db.ledger.count({
         where: { userId, operation: "v1.coach.apply", status: "refused" },
       }),
     ).toBe(0);
   }
   expect(["fulfilled", "rejected"]).toContain(revocation.status);
   const enabled = await CoachTrust.save(p, {
-    revision: (await CoachTrust.read(v1db, userId)).revision,
+    revision: (await CoachTrust.read(db, userId)).revision,
     patterns: ["create_open_task"],
   });
   const duplicate = await preview(userId, [create("Once")], { arm: true });
@@ -1326,7 +1326,7 @@ it("serializes revoke-before-apply, stale trust revisions, duplicate settles, an
     new Request("http://localhost/api/v1/backup", {
       method: "POST",
       headers: {
-        cookie: `lifeos-session=${createSession(userId, `${userId}@example.test`, true)}`,
+        cookie: `${SESSION_COOKIE}=${createSession(userId, `${userId}@example.test`, true)}`,
         "content-type": "application/json",
         "X-Bearing-Account": userId,
       },
@@ -1335,11 +1335,11 @@ it("serializes revoke-before-apply, stale trust revisions, duplicate settles, an
     { params: Promise.resolve({ path: ["backup"] }) },
   );
   expect(restored.status).toBe(200);
-  expect(await v1db.preference.findUnique({
+  expect(await db.preference.findUnique({
     where: { userId_key: { userId, key: "coach.trust" } },
   })).toBeNull();
   expect(
-    await v1db.preference.findFirst({
+    await db.preference.findFirst({
       where: { userId, key: { startsWith: "coach.memory." } },
     }),
   ).toBeTruthy();
@@ -1349,7 +1349,7 @@ it("serializes revoke-before-apply, stale trust revisions, duplicate settles, an
       patterns: ["create_open_task"],
     }),
   ).rejects.toMatchObject({ status: 409 });
-  expect((await CoachTrust.read(v1db, userId)).patterns).toEqual([]);
+  expect((await CoachTrust.read(db, userId)).patterns).toEqual([]);
   const historical = structuredClone(backup);
   historical.tables.preferences = historical.tables.preferences.filter(
     (row) => row.key !== "coach.trust",
@@ -1360,7 +1360,7 @@ it("serializes revoke-before-apply, stale trust revisions, duplicate settles, an
         new Request("http://localhost/api/v1/backup", {
           method: "POST",
           headers: {
-            cookie: `lifeos-session=${createSession(userId, `${userId}@example.test`, true)}`,
+            cookie: `${SESSION_COOKIE}=${createSession(userId, `${userId}@example.test`, true)}`,
             "content-type": "application/json",
             "X-Bearing-Account": userId,
           },
@@ -1373,7 +1373,7 @@ it("serializes revoke-before-apply, stale trust revisions, duplicate settles, an
       )
     ).status,
   ).toBe(200);
-  expect((await CoachTrust.read(v1db, userId)).patterns).toEqual([]);
+  expect((await CoachTrust.read(db, userId)).patterns).toEqual([]);
   await CoachTrust.save(p, { revision: 0, patterns: ["create_open_task"] });
   const [restoreResult, revokeResult] = await Promise.allSettled([
     V1Backup.restore(p, historical, "RESTORE V1 DATA"),
@@ -1381,6 +1381,6 @@ it("serializes revoke-before-apply, stale trust revisions, duplicate settles, an
   ]);
   expect(restoreResult.status).toBe("fulfilled");
   expect(["fulfilled", "rejected"]).toContain(revokeResult.status);
-  expect((await CoachTrust.read(v1db, userId)).patterns).toEqual([]);
+  expect((await CoachTrust.read(db, userId)).patterns).toEqual([]);
   expect(enabled.value.revision).toBeGreaterThan(0);
 });

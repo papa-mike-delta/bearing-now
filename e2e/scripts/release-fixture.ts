@@ -3,13 +3,13 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 async function main() {
   // Explicit disposable database only. Never included in application startup/build.
-  const url = process.env.V1_TEST_DATABASE_URL;
+  const url = process.env.TEST_DATABASE_URL;
   if (!url)
     throw new Error(
-      "V1_TEST_DATABASE_URL must point to a disposable release-test database",
+      "TEST_DATABASE_URL must point to a disposable release-test database",
     );
   process.env.DATABASE_URL = url;
-  for (const schema of ["prisma/schema.prisma", "prisma/v1/schema.prisma"])
+  for (const schema of ["prisma/schema.prisma"])
     execFileSync(
       process.execPath,
       [
@@ -24,7 +24,7 @@ async function main() {
   const db = new PrismaClient();
   try {
     // These credentials belong only to this disposable browser fixture.
-    await db.user.upsert({
+    await db.account.upsert({
       where: { email: "demo@gmail.com" },
       update: {},
       create: {

@@ -161,31 +161,3 @@ test("daily weekly and monthly reflections are written through the UI and stay s
     fullPage: true,
   });
 });
-
-test("disabled deployment explains setup instead of exposing the legacy app", async ({
-  page,
-}, info) => {
-  test.skip(
-    !!process.env.RELEASE_BASE_URL,
-    "The flag-off server is a local fixture, not a hosted configuration change",
-  );
-  for (const path of ["/app", "/app/journal"]) {
-    await page.goto(`http://127.0.0.1:3001${path}`);
-    await expect(
-      page.getByRole("heading", {
-        name: "This workspace is waiting for V1 setup",
-        exact: true,
-      }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /Open the deployment runbook/ }),
-    ).toBeVisible();
-    await expect(page.locator("body")).not.toContainText(
-      /Life Domains|New item|Income|Expenses/,
-    );
-  }
-  await page.screenshot({
-    path: info.outputPath("v1-setup-required.png"),
-    fullPage: true,
-  });
-});

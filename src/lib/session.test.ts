@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { createSession, verifySession, sessionCookie } from "./session";
+import { SESSION_COOKIE, createSession, verifySession, sessionCookie } from "./session";
 import { getUserFromRequest } from "./auth";
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -19,7 +19,7 @@ it("pending 2FA cannot authorize a data request and expires in ten minutes", asy
   expect(
     await getUserFromRequest(
       new Request("http://localhost", {
-        headers: { cookie: `lifeos-session=${token}` },
+        headers: { cookie: `${SESSION_COOKIE}=${token}` },
       }),
     ),
   ).toBeNull();

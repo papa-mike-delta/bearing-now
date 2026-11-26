@@ -1,12 +1,12 @@
 import { test, expect } from "./fixtures";
-import { PrismaClient } from "@bearing/v1-client";
+import { PrismaClient } from "@prisma/client";
 import { randomBytes, createHash } from "node:crypto";
 import { generateTOTPCode } from "../src/lib/auth";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() =>
-    localStorage.setItem("lifeos-onboarded", "true"),
+    localStorage.setItem("bearing-onboarded", "true"),
   );
 });
 
@@ -80,7 +80,7 @@ test("pending 2FA stays on verification after reload and cannot read either data
       }),
     ).toBeVisible();
     expect((await page.request.get("/api/v1/items")).status()).toBe(401);
-    expect((await page.request.get("/api/items")).status()).toBe(410);
+    expect((await page.request.get("/api/items")).status()).toBe(401);
     expect(
       (await page.request.post("/api/auth/setup-2fa", { data: {} })).status(),
     ).toBe(401);

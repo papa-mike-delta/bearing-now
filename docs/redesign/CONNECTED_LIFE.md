@@ -101,7 +101,7 @@ PostgreSQL tests cover capture coordinates, People/Me isolation, canonical linke
 work, independent Routine steps/completion, concurrent retries, fresh periods,
 Focus idempotency and multiple check-ins separate from Reviews.
 
-`BEARING_V1_ENABLED=true npm run test:e2e` includes `v1-connected.spec.ts` on desktop
+`npm run test:e2e` includes `v1-connected.spec.ts` on desktop
 Chromium and configured mobile WebKit, alongside existing V1 journeys. The connected
 journeys exercise profile creation and mentions, references to Me, Routine reset,
 permission-gated coordinates, Focus completion, repeated check-ins, Graph navigation

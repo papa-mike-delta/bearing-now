@@ -21,11 +21,9 @@ For an isolated development/preview database:
 
 1. Set `DATABASE_URL` to a disposable PostgreSQL database, never the live database.
 2. Run `npm ci` then `npm run db:generate`.
-3. Run `npx prisma migrate deploy` for the existing shared identity/audit tables.
-4. Review `prisma/v1/migrations/20261025000000_v1_foundations/migration.sql`, then
-   run `BEARING_V1_SCHEMA_REVIEWED=yes npm run db:v1:deploy` on that database.
-5. Set `BEARING_V1_ENABLED=true` and a random `SESSION_SECRET` of at least 32
-   characters. Production refuses the old development secret and short/missing keys.
+3. Run `npx prisma migrate deploy` to apply the single baseline on that empty database.
+4. Set a random `SESSION_SECRET` of at least 32
+   characters. Production refuses the development fallback and short/missing keys.
 6. Create an invitation with `npm run db:invite -- email@example.com`.
    Share the resulting code privately; it is email-bound, expires after seven days,
    is stored only as a SHA-256 digest, and is consumed in the account-creation transaction.
@@ -34,7 +32,7 @@ For an isolated development/preview database:
 
 The schema-review environment variable is an execution guard, not authorization
 for production. Production migration/rollout remains a separate deployment review.
-A rollback disables `BEARING_V1_ENABLED` and rolls back application code; leave the
+A rollback restores the previous application build only when its migration history matches the database; leave the
 additive tables intact. Do not drop V1 tables or reset any live database as rollback.
 Legacy `migrate dev` is not the tool for managing the hand-reviewed V1 constraints.
 
@@ -98,11 +96,11 @@ a stable Activity client key so retries produce one session.
 
 ## Authorization and audit
 
-V1 HTTP handlers are under `/api/v1/*` and return 404 until enabled. Every handler
+HTTP handlers are under `/api/v1/*`. Every handler
 requires a signed, fully 2FA-verified session and an existing account. Ownership and
 actor come from that session, never request JSON. Pending 2FA sessions cannot
-read `/api/v1`, rotate 2FA secrets or confirm QR login. Pre-V1 content routes
-return 410 (`LegacyApi`) and are not a data path. QR challenges require
+read `/api/v1`, rotate 2FA secrets or confirm QR login. Former pre-V1 content
+routes are not registered and return 404. QR challenges require
 verified same-account confirmation and are one use; the existing ephemeral store
 fails closed on expiry/restart and is not a durable multi-worker transport.
 
@@ -170,11 +168,9 @@ so seeding does not overwrite an existing Area. Seed retry does not duplicate ro
 
 - `npm test`: shared contracts, metadata, priorities, templates, date/timezone/DST,
   signed sessions and the existing unit suites.
-- `V1_TEST_DATABASE_URL=postgresql://… npm run test:v1`: creates a randomly named
-  isolated schema, applies both migration sets, tests real PostgreSQL constraints,
+- `TEST_DATABASE_URL=postgresql://… npm run test:integration`: creates a randomly named
+  isolated schema, applies the baseline, tests real PostgreSQL constraints,
   isolation, auth/2FA/invitations, histories, concurrency and backup round trips,
   then drops only that test schema. Use a disposable server/database.
-- `RESTORE_TEST_DATABASE_URL=postgresql://… npm run test:integration`: existing
-  legacy backup/lease/write integration regressions, in their own isolated schema.
 - `npx tsc --noEmit --incremental false`, `npm run build`, and focused browser auth
   checks. Native screen-reader/Safari certification belongs to release validation.

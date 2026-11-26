@@ -1,10 +1,5 @@
-// Life OS — Digital Brain schema
-// SUNSET 2026-10-26 (ADR 0005): Domain, Item, Project, Link, Tag, TagOnItem,
-// HabitLog, Review, ReviewItem and Reminder are unused by the V1 product path.
-// Do not add queries or migrations that extend them. A later PR may DROP these
-// tables on or after 2027-01-26. User, Setting and OperationLedger stay.
-// There is no Item to V1Item conversion.
-
+// Single Bearing schema. Account is stored as "User"; Ledger as "OperationLedger".
+// Product tables keep their V1* names. Legacy content tables are not part of this schema.
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,260 +9,361 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─── User (authentication) ───────────────────────────────────────────────────
-model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
+// Existing shared identity and immutable audit tables; V1 migration does not recreate them.
+model Account {
+  id           String   @id @default(cuid())
+  email        String   @unique
   name         String?
   passwordHash String
-  totpSecret   String?   // encrypted TOTP secret for 2FA
-  totpVerified Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  totpSecret   String?
+  totpVerified Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  settings     Setting[]
+  ledger       Ledger[]
 
-  domains  Domain[]
-  items    Item[]
-  projects Project[]
-  tags     Tag[]
-  reviews  Review[]
-  settings Setting[]
-  ledger   OperationLedger[]
+  @@map("User")
 }
 
-// ─── Life Domains ────────────────────────────────────────────────────────────
-// Eight domains: Mind & Soul, Time & Action, Health & Body, Wealth & Career,
-// Network, Growth, Creativity & Joy, Admin
-model Domain {
-  id          String   @id @default(cuid())
-  key         String
-  name        String
-  description String?
-  icon        String?
-  color       String   @default("#71717a")
-  accent      String?  // tailwind-ish accent token
-  order       Int      @default(0)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Restrict)
-  items       Item[]
-  projects    Project[]
-  createdAt   DateTime @default(now())
-
-  @@unique([userId, key])
-}
-
-// ─── Universal Item (the "Digital Brain" node) ───────────────────────────────
-// A single model represents tasks, notes, journal entries, habits, events,
-// finances, contacts, ideas, goals, documents, bookmarks, milestones, etc.
-// Core query fields are normalized here; other type-specific data lives in `metadata`.
-model Item {
-  id          String   @id @default(cuid())
-  revision    Int      @default(0) // optimistic concurrency token for domain updates
-  type        String   // task | note | journal | habit | event | finance | contact | idea | goal | document | bookmark | milestone | routine | symptom | medication | affirmation | vision
-  title       String
-  content     String?  // markdown / rich text body
-  domainId    String?
-  domain      Domain?  @relation(fields: [domainId], references: [id], onDelete: SetNull)
-  projectId   String?
-  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-
-  status      String   @default("active") // inbox | active | done | archived | snoozed
-  priority    Int      @default(0) // 0 none, 1 low, 2 medium, 3 high, 4 urgent
-  energy      Int      @default(0) // 0 none, 1 low, 2 medium, 3 high
-
-  startDate   DateTime?
-  dueDate     DateTime?
-  scheduledAt DateTime?
-  completedAt DateTime?
-
-  summary          String?   // Note summary
-  relationshipTier String?   // Person: the eight relationship tiers in CONTEXT.md
-  phone            String?   // Person
-  birthday         DateTime? @db.Date // Person: calendar date, without time or timezone
-  startAt          DateTime? // Event
-  endAt            DateTime? // Event
-  frequency        String?   // Habit
-
-  metadata    String?  // JSON string for type-specific fields
-
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Restrict)
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  linksFrom   Link[]   @relation("LinkFrom")
-  linksTo     Link[]   @relation("LinkTo")
-  tags        TagOnItem[]
-  reviewItems ReviewItem[]
-  habitLogs   HabitLog[]
-  reminders   Reminder[]
-
-  @@index([type])
-  @@index([status])
-  @@index([domainId])
-  @@index([projectId])
-  @@index([dueDate])
-  @@index([scheduledAt])
-  @@index([userId])
-}
-
-// ─── Project / Thread ────────────────────────────────────────────────────────
-// A container that aggregates related items into a unified dashboard.
-model Project {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  color       String?
-  icon        String?
-  domainId    String?
-  domain      Domain?  @relation(fields: [domainId], references: [id], onDelete: SetNull)
-  status      String   @default("active") // active | paused | completed | archived
-  progress    Int      @default(0) // 0-100
-  startDate   DateTime?
-  targetDate  DateTime?
-  completedAt DateTime?
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Restrict)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  items       Item[]
-
-  @@index([status])
-  @@index([domainId])
-  @@index([userId])
-}
-
-// ─── Directed, typed Link ────────────────────────────────────────────────────
-model Link {
-  id        String   @id @default(cuid())
-  fromId    String
-  toId      String
-  type      String   @default("related_to") // advances | tracks | related_to | mentions | scheduled_at | located_at; legacy values remain readable
-  note      String?
-  createdAt DateTime @default(now())
-
-  from      Item     @relation("LinkFrom", fields: [fromId], references: [id], onDelete: Cascade)
-  to        Item     @relation("LinkTo", fields: [toId], references: [id], onDelete: Cascade)
-
-  @@unique([fromId, toId, type])
-  @@index([fromId, type])
-  @@index([toId, type])
-  @@index([type, fromId])
-}
-
-// ─── Tags ────────────────────────────────────────────────────────────────────
-model Tag {
-  id        String   @id @default(cuid())
-  name      String
-  color     String   @default("#71717a")
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
-  items     TagOnItem[]
-  createdAt DateTime @default(now())
-
-  @@unique([userId, name])
-}
-
-model TagOnItem {
-  itemId String
-  tagId  String
-  item   Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([itemId, tagId])
-}
-
-// ─── Habit Logs ──────────────────────────────────────────────────────────────
-model HabitLog {
-  id        String   @id @default(cuid())
-  itemId    String
-  date      DateTime
-  value     Int      @default(1)
-  note      String?
-  createdAt DateTime @default(now())
-
-  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
-
-  @@unique([itemId, date])
-  @@index([itemId, date])
-}
-
-// ─── Reviews & Reflections ───────────────────────────────────────────────────
-model Review {
-  id         String   @id @default(cuid())
-  type       String   // daily | weekly | monthly
-  date       DateTime
-  status     String   @default("completed") // pending | in_progress | completed
-  weekStart  DateTime?
-  weekEnd    DateTime?
-
-  wins       String?
-  challenges String?
-  learnings  String?
-  priorities String? // JSON array string
-  gratitude  String?
-  mood       Int?
-  energy     Int?
-  notes      String?
-
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  items      ReviewItem[]
-
-  @@index([type, date])
-  @@index([userId])
-}
-
-model ReviewItem {
-  reviewId String
-  itemId   String
-  note     String?
-  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  item     Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
-
-  @@id([reviewId, itemId])
-}
-
-// ─── Reminders ───────────────────────────────────────────────────────────────
-model Reminder {
-  id        String   @id @default(cuid())
-  itemId    String
-  remindAt  DateTime
-  type      String   @default("notification")
-  sent      Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
-
-  @@index([remindAt])
-}
-
-// ─── Settings (key-value) ────────────────────────────────────────────────────
 model Setting {
-  id     String @id
-  value  String
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  id      String  @id
+  value   String
+  userId  String
+  account Account @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId])
 }
 
-// Durable audit history, independent of Items so reset/restore cannot erase it.
-model OperationLedger {
+model Ledger {
   id        String   @id @default(cuid())
   actor     String
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  account   Account  @relation(fields: [userId], references: [id], onDelete: Restrict)
   operation String
-  payload   String   // JSON request
-  status    String   // success | refused
-  receipt   String   // JSON domain result
+  payload   String
+  status    String
+  receipt   String
   createdAt DateTime @default(now())
 
   @@index([actor, operation, status, createdAt])
   @@index([userId, actor, operation, status, createdAt])
+  @@map("OperationLedger")
+}
+
+model Item {
+  id             String           @id @default(cuid())
+  userId         String
+  revision       Int              @default(0)
+  type           String
+  template       String
+  title          String
+  content        String           @default("")
+  status         String           @default("inbox")
+  priority       Int              @default(0)
+  metadata       Json             @default("{\"version\":1}") @db.JsonB
+  projectId      String?
+  project        Project?         @relation(fields: [userId, projectId], references: [userId, id], onDelete: Restrict)
+  delegateId     String?
+  delegate       Item?            @relation("Delegation", fields: [userId, delegateId], references: [userId, id], onDelete: Restrict)
+  delegatedTasks Item[]           @relation("Delegation")
+  dueAt          DateTime?        @db.Timestamptz(3)
+  scheduledAt    DateTime?        @db.Timestamptz(3)
+  startAt        DateTime?        @db.Timestamptz(3)
+  endAt          DateTime?        @db.Timestamptz(3)
+  followUpAt     DateTime?        @db.Timestamptz(3)
+  completedAt    DateTime?        @db.Timestamptz(3)
+  localDate      String?
+  timezone       String           @default("UTC")
+  demoBatchId    String?
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime         @updatedAt @db.Timestamptz(3)
+  selfProfile    SelfProfile?
+  tags           ItemTag[]
+  linksFrom      Link[]           @relation("From")
+  linksTo        Link[]           @relation("To")
+  activities     Activity[]
+  moments        MomentItem[]
+  reviews        ReviewItem[]
+  recurrences    Recurrence[]
+  occurrences    TaskOccurrence[]
+  leases         Lease[]
+
+  @@unique([userId, id])
+  @@index([userId, type, status])
+  @@index([userId, dueAt])
+  @@index([userId, scheduledAt])
+  @@index([userId, localDate])
+  @@index([userId, startAt, endAt])
+  @@index([userId, projectId])
+  @@map("V1Item")
+}
+
+model SelfProfile {
+  userId String @id
+  itemId String @unique
+  item   Item   @relation(fields: [userId, itemId], references: [userId, id], onDelete: Restrict)
+
+  @@unique([userId, itemId])
+  @@map("V1SelfProfile")
+}
+
+model Project {
+  id          String       @id @default(cuid())
+  userId      String
+  revision    Int          @default(0)
+  name        String
+  description String       @default("")
+  status      String       @default("active")
+  demoBatchId String?
+  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime     @updatedAt @db.Timestamptz(3)
+  items       Item[]
+  tags        ProjectTag[]
+
+  @@unique([userId, id])
+  @@map("V1Project")
+}
+
+model Tag {
+  id          String       @id @default(cuid())
+  userId      String
+  name        String
+  kind        String       @default("tag")
+  demoBatchId String?
+  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
+  items       ItemTag[]
+  projects    ProjectTag[]
+
+  @@unique([userId, id])
+  @@unique([userId, kind, name])
+  @@map("V1Tag")
+}
+
+model ItemTag {
+  userId String
+  itemId String
+  tagId  String
+  item   Item   @relation(fields: [userId, itemId], references: [userId, id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [userId, tagId], references: [userId, id], onDelete: Restrict)
+
+  @@id([userId, itemId, tagId])
+  @@map("V1ItemTag")
+}
+
+model ProjectTag {
+  userId    String
+  projectId String
+  tagId     String
+  project   Project @relation(fields: [userId, projectId], references: [userId, id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [userId, tagId], references: [userId, id], onDelete: Restrict)
+
+  @@id([userId, projectId, tagId])
+  @@map("V1ProjectTag")
+}
+
+model Link {
+  id          String   @id @default(cuid())
+  userId      String
+  fromId      String
+  toId        String
+  type        String
+  note        String   @default("")
+  demoBatchId String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  from        Item     @relation("From", fields: [userId, fromId], references: [userId, id], onDelete: Cascade)
+  to          Item     @relation("To", fields: [userId, toId], references: [userId, id], onDelete: Cascade)
+
+  @@unique([userId, fromId, toId, type])
+  @@index([userId, toId, type])
+  @@map("V1Link")
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  userId      String
+  clientId    String
+  kind        String
+  itemId      String?
+  item        Item?    @relation(fields: [userId, itemId], references: [userId, id], onDelete: Restrict)
+  occurredAt  DateTime @db.Timestamptz(3)
+  localDate   String
+  timezone    String
+  data        Json     @db.JsonB
+  demoBatchId String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([userId, id])
+  @@unique([userId, clientId])
+  @@index([userId, occurredAt])
+  @@map("V1Activity")
+}
+
+model JournalMoment {
+  capturedAt        DateTime     @default(now()) @db.Timestamptz(3)
+  ingestHash        String?
+  id                String       @id @default(cuid())
+  userId            String
+  clientId          String
+  revision          Int          @default(0)
+  text              String
+  occurredAt        DateTime     @db.Timestamptz(3)
+  localDate         String
+  timezone          String
+  needsOrganization Boolean      @default(true)
+  intendedType      String?
+  demoBatchId       String?
+  createdAt         DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime     @updatedAt @db.Timestamptz(3)
+  items             MomentItem[]
+
+  @@unique([userId, id])
+  @@unique([userId, clientId])
+  @@index([userId, localDate, occurredAt])
+  @@map("V1JournalMoment")
+}
+
+model MomentItem {
+  userId   String
+  momentId String
+  itemId   String
+  relation String        @default("mention")
+  moment   JournalMoment @relation(fields: [userId, momentId], references: [userId, id], onDelete: Cascade)
+  item     Item          @relation(fields: [userId, itemId], references: [userId, id], onDelete: Restrict)
+
+  @@id([userId, momentId, itemId, relation])
+  @@map("V1MomentItem")
+}
+
+model Review {
+  id          String       @id @default(cuid())
+  userId      String
+  revision    Int          @default(0)
+  period      String
+  localDate   String
+  timezone    String
+  prompts     Json         @db.JsonB
+  demoBatchId String?
+  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime     @updatedAt @db.Timestamptz(3)
+  items       ReviewItem[]
+
+  @@unique([userId, id])
+  @@unique([userId, period, localDate])
+  @@map("V1Review")
+}
+
+model ReviewItem {
+  userId   String
+  reviewId String
+  itemId   String
+  review   Review @relation(fields: [userId, reviewId], references: [userId, id], onDelete: Cascade)
+  item     Item   @relation(fields: [userId, itemId], references: [userId, id], onDelete: Restrict)
+
+  @@id([userId, reviewId, itemId])
+  @@map("V1ReviewItem")
+}
+
+model Recurrence {
+  id          String           @id @default(cuid())
+  userId      String
+  itemId      String
+  revision    Int              @default(0)
+  rule        Json             @db.JsonB
+  active      Boolean          @default(true)
+  demoBatchId String?
+  item        Item             @relation(fields: [userId, itemId], references: [userId, id], onDelete: Restrict)
+  occurrences TaskOccurrence[]
+
+  @@unique([userId, id])
+  @@unique([userId, itemId])
+  @@map("V1Recurrence")
+}
+
+model TaskOccurrence {
+  id           String     @id @default(cuid())
+  userId       String
+  recurrenceId String
+  itemId       String
+  scheduledAt  DateTime   @db.Timestamptz(3)
+  completedAt  DateTime?  @db.Timestamptz(3)
+  nextItemId   String?    @unique
+  demoBatchId  String?
+  recurrence   Recurrence @relation(fields: [userId, recurrenceId], references: [userId, id], onDelete: Cascade)
+  item         Item       @relation(fields: [userId, itemId], references: [userId, id], onDelete: Restrict)
+
+  @@unique([userId, id])
+  @@unique([userId, itemId])
+  @@unique([userId, recurrenceId, scheduledAt])
+  @@map("V1TaskOccurrence")
+}
+
+model Conversation {
+  id          String     @id @default(cuid())
+  userId      String
+  title       String
+  demoBatchId String?
+  createdAt   DateTime   @default(now()) @db.Timestamptz(3)
+  messages    Message[]
+  proposals   Proposal[]
+
+  @@unique([userId, id])
+  @@map("V1Conversation")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  userId         String
+  conversationId String
+  role           String
+  content        String
+  demoBatchId    String?
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  conversation   Conversation @relation(fields: [userId, conversationId], references: [userId, id], onDelete: Cascade)
+
+  @@map("V1Message")
+}
+
+model Proposal {
+  id             String       @id @default(cuid())
+  userId         String
+  conversationId String
+  revision       Int          @default(0)
+  status         String       @default("pending")
+  operations     Json         @db.JsonB
+  demoBatchId    String?
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  conversation   Conversation @relation(fields: [userId, conversationId], references: [userId, id], onDelete: Cascade)
+
+  @@map("V1Proposal")
+}
+
+model Preference {
+  userId String
+  key    String
+  value  Json   @db.JsonB
+
+  @@id([userId, key])
+  @@map("V1Preference")
+}
+
+model Lease {
+  userId    String
+  itemId    String
+  token     String
+  expiresAt DateTime @db.Timestamptz(3)
+  item      Item     @relation(fields: [userId, itemId], references: [userId, id], onDelete: Cascade)
+
+  @@id([userId, itemId, token])
+  @@map("V1Lease")
+}
+
+model Invitation {
+  id         String    @id @default(cuid())
+  email      String
+  tokenHash  String    @unique
+  expiresAt  DateTime  @db.Timestamptz(3)
+  consumedAt DateTime? @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@map("V1Invitation")
 }

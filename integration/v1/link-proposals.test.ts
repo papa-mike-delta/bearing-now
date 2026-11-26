@@ -5,7 +5,7 @@ import { V1, type Principal } from "@/lib/v1/service";
 import { V1Backup } from "@/lib/v1/service/backup";
 import { LinkProposals } from "@/lib/v1/link-proposals";
 import type { Workspace } from "@/lib/v1/client-model";
-import { v1db } from "@/lib/v1/db";
+import { db } from "@/lib/db";
 
 async function clientWorkspace(userId: string): Promise<Workspace> {
   // Proposal inference consumes the JSON workspace delivered to the browser.
@@ -18,7 +18,7 @@ const userId = "proposal-alice",
   q: Principal = { userId: other, actor: `user:${other}` };
 
 beforeAll(async () => {
-  for (const schema of ["prisma/schema.prisma", "prisma/v1/schema.prisma"])
+  for (const schema of ["prisma/schema.prisma"])
     execFileSync(
       process.execPath,
       [
@@ -30,7 +30,7 @@ beforeAll(async () => {
       ],
       { env: process.env, stdio: "pipe" },
     );
-  await v1db.account.createMany({
+  await db.account.createMany({
     data: [userId, other].map((id) => ({
       id,
       email: `${id}@example.test`,
@@ -42,13 +42,13 @@ afterAll(async () => {
   const schema = new URL(process.env.DATABASE_URL!).searchParams.get("schema")!;
   if (!/^v1_test_[a-f0-9]+$/.test(schema))
     throw new Error("Unsafe test schema");
-  await v1db.$executeRawUnsafe(`DROP SCHEMA "${schema}" CASCADE`);
-  await v1db.$disconnect();
+  await db.$executeRawUnsafe(`DROP SCHEMA "${schema}" CASCADE`);
+  await db.$disconnect();
 });
 beforeEach(async () => {
   for (const person of [p, q]) {
     await V1Backup.reset(person, "RESET V1 DATA");
-    await v1db.ledger.deleteMany({ where: { userId: person.userId } });
+    await db.ledger.deleteMany({ where: { userId: person.userId } });
   }
 });
 
@@ -62,7 +62,7 @@ const capture = (extra: Record<string, unknown> = {}) => ({
 });
 
 async function successCount() {
-  return v1db.ledger.count({
+  return db.ledger.count({
     where: { userId, operation: "v1.link.create", status: "success" },
   });
 }
@@ -83,7 +83,7 @@ it("proposes a mentions Link from an explicit Journal Item and preserves a bare 
         card.accept.kind === "moment" && card.accept.relation === "mention",
     ),
   ).toBe(false);
-  expect(await v1db.link.count({ where: { userId } })).toBe(0);
+  expect(await db.link.count({ where: { userId } })).toBe(0);
 
   const filed = (
     await V1.capture(
@@ -101,11 +101,11 @@ it("proposes a mentions Link from an explicit Journal Item and preserves a bare 
     type: "mentions",
   });
   expect(filed.items.some((ref) => ref.relation === "mention")).toBe(true);
-  const linksBeforeAccept = await v1db.link.count({ where: { userId } });
-  const ledgerBeforeReject = await v1db.ledger.count({ where: { userId } });
+  const linksBeforeAccept = await db.link.count({ where: { userId } });
+  const ledgerBeforeReject = await db.ledger.count({ where: { userId } });
   expect(LinkProposals.reject()).toEqual({ writes: false });
-  expect(await v1db.link.count({ where: { userId } })).toBe(linksBeforeAccept);
-  expect(await v1db.ledger.count({ where: { userId } })).toBe(
+  expect(await db.link.count({ where: { userId } })).toBe(linksBeforeAccept);
+  expect(await db.ledger.count({ where: { userId } })).toBe(
     ledgerBeforeReject,
   );
 });
@@ -119,7 +119,7 @@ it("accepts a health suggestion once, refuses another account, and blocks a stal
       content: "Take with food.",
     })
   ).value;
-  expect(await v1db.link.count({ where: { userId } })).toBe(0);
+  expect(await db.link.count({ where: { userId } })).toBe(0);
   const card = LinkProposals.infer(await clientWorkspace(userId)).find(
     (entry) => entry.id === `health:${note.id}:${me.id}`,
   );
@@ -137,10 +137,10 @@ it("accepts a health suggestion once, refuses another account, and blocks a stal
   const second = await V1.createLink(p, link);
   expect(second.value.id).toBe(first.value.id);
   expect(second.receiptId).toBe(first.receiptId);
-  expect(await v1db.link.count({ where: { userId } })).toBe(1);
+  expect(await db.link.count({ where: { userId } })).toBe(1);
   expect(await successCount()).toBe(1);
   expect(
-    await v1db.ledger.count({
+    await db.ledger.count({
       where: { userId, operation: "v1.link.create", status: "refused" },
     }),
   ).toBe(0);
@@ -148,7 +148,7 @@ it("accepts a health suggestion once, refuses another account, and blocks a stal
   await expect(V1.createLink(q, link)).rejects.toMatchObject({
     status: 404,
   });
-  expect(await v1db.link.count({ where: { userId: other } })).toBe(0);
+  expect(await db.link.count({ where: { userId: other } })).toBe(0);
   await expect(V1.createLink(p, { ...link, userId })).rejects.toMatchObject({
     status: 400,
   });
@@ -175,7 +175,7 @@ it("accepts a health suggestion once, refuses another account, and blocks a stal
     }),
   ).rejects.toMatchObject({ status: 409 });
   expect(
-    await v1db.link.count({
+    await db.link.count({
       where: { userId, fromId: fresh.id, toId: me.id },
     }),
   ).toBe(0);
@@ -198,7 +198,7 @@ it("keeps unrevisioned duplicate Links on the existing refusal path", async () =
     status: 409,
     message: "Record already exists",
   });
-  expect(await v1db.link.count({ where: { userId } })).toBe(1);
+  expect(await db.link.count({ where: { userId } })).toBe(1);
   expect(await successCount()).toBe(1);
 });
 
@@ -272,12 +272,12 @@ it("assigns an inherited Area only through the Item write and leaves GPS and Pro
     }),
   ).rejects.toMatchObject({ status: 409 });
   expect(
-    await v1db.itemTag.count({
+    await db.itemTag.count({
       where: { userId, itemId: current.id, tagId: area.id },
     }),
   ).toBe(1);
   expect(
-    await v1db.link.count({
+    await db.link.count({
       where: { userId, OR: [{ fromId: goal.id }, { toId: goal.id }] },
     }),
   ).toBe(0);
@@ -310,10 +310,10 @@ it("records a derived Journal mention once, and keeps an explicit mention immedi
     relation: "mention",
     revision: named.revision,
   });
-  const ledgerBefore = await v1db.ledger.count({ where: { userId } });
+  const ledgerBefore = await db.ledger.count({ where: { userId } });
   expect(LinkProposals.reject()).toEqual({ writes: false });
-  expect(await v1db.momentItem.count({ where: { userId } })).toBe(0);
-  expect(await v1db.ledger.count({ where: { userId } })).toBe(ledgerBefore);
+  expect(await db.momentItem.count({ where: { userId } })).toBe(0);
+  expect(await db.ledger.count({ where: { userId } })).toBe(ledgerBefore);
   const body = {
     itemId: person.id,
     revision: named.revision,
@@ -325,16 +325,16 @@ it("records a derived Journal mention once, and keeps an explicit mention immedi
   ]);
   expect(second.receiptId).toBe(first.receiptId);
   expect(
-    await v1db.momentItem.count({
+    await db.momentItem.count({
       where: { userId, relation: "mention", itemId: person.id },
     }),
   ).toBe(1);
   expect(
-    await v1db.ledger.count({
+    await db.ledger.count({
       where: { userId, operation: "v1.moment.relate", status: "success" },
     }),
   ).toBe(1);
-  const edited = await v1db.journalMoment.findUniqueOrThrow({
+  const edited = await db.journalMoment.findUniqueOrThrow({
     where: { id: named.id },
   });
   await V1.editMoment(p, named.id, {
@@ -354,7 +354,7 @@ it("records a derived Journal mention once, and keeps an explicit mention immedi
     }),
   ).rejects.toMatchObject({ status: 409 });
   expect(
-    await v1db.momentItem.count({ where: { userId, itemId: otherPerson.id } }),
+    await db.momentItem.count({ where: { userId, itemId: otherPerson.id } }),
   ).toBe(0);
   await expect(
     V1.relateMoment(q, named.id, body),
@@ -408,7 +408,7 @@ it("places a promoted Task in its parent Project only when accepted", async () =
   expect(second.receiptId).toBe(first.receiptId);
   expect((await V1.item(userId, child.id)).projectId).toBe(project.id);
   expect(
-    await v1db.ledger.count({
+    await db.ledger.count({
       where: { userId, operation: "v1.task.place", status: "success" },
     }),
   ).toBe(1);
@@ -471,17 +471,17 @@ it("records that a located capture was at its Place and restores that relation",
   ]);
   expect(second.receiptId).toBe(first.receiptId);
   expect(
-    await v1db.momentItem.count({ where: { userId, relation: "located_at" } }),
+    await db.momentItem.count({ where: { userId, relation: "located_at" } }),
   ).toBe(1);
   expect(
-    await v1db.ledger.count({
+    await db.ledger.count({
       where: { userId, operation: "v1.moment.relate", status: "success" },
     }),
   ).toBe(1);
   expect(
-    await v1db.link.count({ where: { userId, type: "located_at" } }),
+    await db.link.count({ where: { userId, type: "located_at" } }),
   ).toBe(0);
-  const current = await v1db.journalMoment.findUniqueOrThrow({
+  const current = await db.journalMoment.findUniqueOrThrow({
     where: { id: captured.id },
   });
   await expect(
@@ -500,11 +500,11 @@ it("records that a located capture was at its Place and restores that relation",
   ).toBe(true);
   await V1Backup.restore(p, exported, "RESTORE V1 DATA");
   expect(
-    await v1db.momentItem.count({ where: { userId, relation: "located_at" } }),
+    await db.momentItem.count({ where: { userId, relation: "located_at" } }),
   ).toBe(1);
   await V1Backup.restore(p, before, "RESTORE V1 DATA");
   expect(
-    await v1db.momentItem.count({ where: { userId, relation: "located_at" } }),
+    await db.momentItem.count({ where: { userId, relation: "located_at" } }),
   ).toBe(0);
   expect(before.tables.momentItems.every((row) => row.relation !== "located_at")).toBe(
     true,

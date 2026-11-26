@@ -1,10 +1,8 @@
-import { v1Enabled } from "@/lib/v1-enabled";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { verifySession } from "@/lib/session";
+import { SESSION_COOKIE, verifySession } from "@/lib/session";
 import { workflowViews } from "@/lib/v1/workflow-contracts";
 import { WorkflowShell } from "@/components/bearing/workflow/shell";
-import { SetupRequired } from "@/components/bearing/deployment/setup-required";
 import { loginDestination } from "@/lib/app-destination";
 export const dynamic = "force-dynamic";
 export async function generateMetadata({
@@ -24,7 +22,7 @@ export default async function WorkflowPage({
   params: Promise<{ path: string[] }>;
 }) {
   const session = verifySession(
-    (await cookies()).get("lifeos-session")?.value ?? "",
+    (await cookies()).get(SESSION_COOKIE)?.value ?? "",
   );
   const { path } = await params;
   if (!session?.twoFactorVerified) redirect(loginDestination(`/app/${path.join("/")}`));
@@ -34,7 +32,6 @@ export default async function WorkflowPage({
     (path[1] && !["library", "projects", "reviews"].includes(path[0]))
   )
     notFound();
-  if (!v1Enabled()) return <SetupRequired />;
   return (
     <WorkflowShell
       key={session.userId}

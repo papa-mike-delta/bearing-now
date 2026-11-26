@@ -12,7 +12,7 @@ import {
   type Tx,
 } from "../service";
 import { CoachTrust } from "./trust";
-import { v1db } from "../db";
+import { db } from "@/lib/db";
 import { itemInput, projectInput } from "../contracts";
 import { itemDto } from "../client-model";
 import { canonicalJson } from "../json";
@@ -232,7 +232,7 @@ export async function preview(
     arm?: boolean;
   } = {},
 ): Promise<Draft> {
-  return v1db.$transaction(async (tx) => {
+  return db.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(731909)::text`;
     if (context.conversationId)
       await owned(tx, userId, "conversation", context.conversationId);
@@ -332,7 +332,7 @@ export async function proposalDraft(
     plan = stored.plan || stored;
   let result = stored.result;
   if (row.status === "applied" && result) {
-    const receipt = await v1db.ledger.findFirst({
+    const receipt = await db.ledger.findFirst({
       where: {
         userId,
         operation: "v1.coach.apply",
@@ -365,7 +365,7 @@ export async function proposalDraft(
 export async function reject(userId: string, token: string) {
   const value = verify(token, userId);
   if (!value.proposalId) return { status: "rejected" };
-  return v1db.$transaction(async (tx) => {
+  return db.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(731909)::text`;
     const row = await tx.proposal.findFirst({
       where: { userId, id: value.proposalId },
@@ -632,12 +632,12 @@ async function appliedReplay(
   value: z.infer<typeof envelope> & { plan: Plan },
 ): Promise<Draft | null> {
   const key = `coach.applied.${value.proposalId ? `${value.proposalId}_${value.revision}` : value.nonce}`;
-  const row = await v1db.preference.findUnique({
+  const row = await db.preference.findUnique({
     where: { userId_key: { userId, key } },
   });
   const saved = row?.value as { digest?: string; outcome?: any } | undefined;
   if (!saved || saved.digest !== canonicalJson(value.plan)) return null;
-  const receipt = await v1db.ledger.findFirst({
+  const receipt = await db.ledger.findFirst({
     where: {
       userId,
       operation: "v1.coach.apply",
@@ -661,7 +661,7 @@ export async function settle(userId: string, token: string): Promise<Draft> {
   const replayed = await appliedReplay(userId, value);
   if (replayed) return replayed;
   if (!value.settleNonce) return pendingDraft(value);
-  const policy = await CoachTrust.read(v1db, userId);
+  const policy = await CoachTrust.read(db, userId);
   const shape = CoachTrust.patternFor(value.plan);
   if (!shape || !policy.patterns.includes(shape)) {
     await CoachTrust.disarm(userId, value.settleNonce);

@@ -8,7 +8,7 @@ The pre-V1 Coach tool API is removed ([ADR 0005](../adr/0005-sunset-legacy-domai
 
 ## Server configuration and disclosure
 
-Use Node.js 22 or later and install with the committed npm/Bun lockfiles. Coach uses the Vercel AI SDK (`ai`)
+Use Node.js 22 or later and install with the committed npm lockfile. Coach uses the Vercel AI SDK (`ai`)
 for tools, multi-step generation and streaming. Configure a tool-capable model:
 
 ```sh
@@ -19,7 +19,7 @@ OPENROUTER_API_KEY=<server-secret>
 
 Or set `BEARING_COACH_PROVIDER=gateway`, `BEARING_COACH_MODEL=<provider/model-id>`
 and `AI_GATEWAY_API_KEY=<server-secret>` for Vercel AI Gateway. Keys never appear
-in client bundles, JSON responses or prompts. `BEARING_COACH_OPENROUTER_URL` is an
+in client JavaScript, JSON responses or prompts. `BEARING_COACH_OPENROUTER_URL` is an
 optional **trusted server setting**, for a proxy or deterministic test server;
 HTTP clients cannot choose the provider endpoint. The disclosure shows its actual
 host. Missing configuration gives a setup state and leaves keyword Search usable.
@@ -147,7 +147,7 @@ To reproduce the deterministic browser suite, provide a disposable test
 PostgreSQL database, install Playwright Chromium, then run:
 
 ```sh
-V1_TEST_DATABASE_URL=postgresql://... npm run test:e2e:coach
+TEST_DATABASE_URL=postgresql://... npm run test:e2e
 ```
 
 The dedicated config provisions a disposable test-only account and starts `e2e/scripts/coach-provider.mjs` and the app with local

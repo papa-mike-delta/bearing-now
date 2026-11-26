@@ -102,14 +102,11 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 
 // ─── Session management (signed cookie) ───────────────────────────────────
 
-export { createSession, verifySession, type SessionData } from "@/lib/session";
-import { verifySession, type SessionData } from "@/lib/session";
+export { createSession, verifySession, sessionTokenFromCookie, SESSION_COOKIE, type SessionData } from "@/lib/session";
+import { sessionTokenFromCookie, verifySession, type SessionData } from "@/lib/session";
 
 // ─── Helper to get current user from request ──────────────────────────────
 export async function getUserFromRequest(req: Request): Promise<SessionData | null> {
-  const cookie = req.headers.get("cookie") || "";
-  const match = cookie.match(/lifeos-session=([^;]+)/);
-  if (!match) return null;
-  const session = verifySession(match[1]);
+  const session = verifySession(sessionTokenFromCookie(req.headers.get("cookie")));
   return session?.twoFactorVerified ? session : null;
 }

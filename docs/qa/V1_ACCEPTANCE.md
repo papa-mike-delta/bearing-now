@@ -8,7 +8,7 @@ Tracking: [#55](https://github.com/papa-mike-delta/bearing-now/issues/55), [draf
 
 | Finding | Evidence | Resolution |
 | --- | --- | --- |
-| New public page could coexist with legacy sidebar, Finance and 17-type editor | Baseline `/app` selected legacy `Shell` unless `BEARING_V1_ENABLED=true`; `.env.example` defaults false; owner screenshot shows legacy Insights/editor | `/app` no longer mounts legacy `Shell`. Disabled V1 explains setup. Recognized deep routes do the same. The flag is not enabled automatically. |
+| New public page could coexist with legacy sidebar, Finance and 17-type editor | Baseline `/app` could still mount the legacy shell | `/app` always opens the startup surface. There is no setup gate. |
 | Saved deep links lost their destination on sign-in | Proxy/login redirected to `/app` unconditionally | Preserve validated local app path/query through login/2FA; reject external/non-app redirects. |
 | Review data model and read view existed, but there was no V1 writing form | `Reviews` listed saved records; only API could create one | Guided daily/weekly/monthly form, related Items, session-owned drafts, explicit errors, duplicate period/date guard and links from Today/navigation. |
 | Me, Reviews and Graph were hard to discover | Graph accessible from Library; Me required finding the Person; Reviews lacked a clear main entry | Navigation links, scrollable sidebar and keyboard skip link; existing Graph/Focus reused. |
@@ -92,6 +92,6 @@ Run `npm run test:e2e:release` against an isolated database, then repeat on the 
 
 ## How to reproduce and retain evidence
 
-Use the explicit disposable `V1_TEST_DATABASE_URL` fixture from `e2e/README.md`; run build and `npm run test:e2e:release`. It provisions only its test database, starts deterministic Coach and a separate flag-off server, and checks desktop/phone. With `RELEASE_BASE_URL`, the flag-off test skips because changing a hosted environment is not a browser fixture action. Provision hosted identities and provider separately using the release runbook.
+Use the disposable `TEST_DATABASE_URL` fixture from `e2e/README.md`; run build and `npm run test:e2e`. It provisions only its test database, starts deterministic Coach, and checks desktop/phone. With `RELEASE_BASE_URL`, the suite talks to an already running server. Provision hosted identities and provider separately using the release notes.
 
 For a manual hosted result, record: requirement ID, URL/commit, account/device/browser, steps, expected outcome, actual outcome, screenshot/recording, pass/fail/blocked, fix reference and retest. Do not include credentials, live personal records, database dumps or unsanitized tokens in evidence.

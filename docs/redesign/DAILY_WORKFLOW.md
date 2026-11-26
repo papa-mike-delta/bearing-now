@@ -3,11 +3,11 @@
 This slice builds on #44 and reuses the existing Next.js app, shadcn primitives,
 semantic theme layer, Lucide icons, rich-text editor, draft owner, revision errors
 and editor-lease lifecycle. It does not replace the repository or create another
-application framework. The pre-V1 shell has been removed ([ADR 0005](../adr/0005-sunset-legacy-domain-and-coach.md)). Disabled V1 shows setup guidance.
+application framework. The pre-V1 shell has been removed ([ADR 0006](../adr/0006-one-schema-one-runtime.md)).
 
 ## Routes and daily use
 
-With `BEARING_V1_ENABLED=true`, `/app` redirects to the account's startup preference
+`/app` redirects to the account's startup preference
 (default `/app/today`). Today, Journal, Inbox, Projects, Library, Calendar, Search,
 Coach lookup, Settings and Review results have real `/app/*` URLs. Item and Project
 links address canonical records; Search can deep-link to a particular Journal
@@ -112,5 +112,4 @@ remain part of release validation in #48.
 
 For local browser verification, migrate/seed a **disposable** test database first,
 install Playwright's Chromium/WebKit browsers, then run
-`BEARING_V1_ENABLED=true npm run test:e2e`. The Playwright config selects V1 setup
-and journeys when the flag is set. This tree does not contain the pre-V1 shell.
+`TEST_DATABASE_URL=postgresql://… npm run test:e2e`. This tree does not contain the pre-V1 shell.

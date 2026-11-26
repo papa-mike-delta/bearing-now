@@ -1,4 +1,40 @@
--- Requires the legacy schema. Additive opt-in V1 tables; no legacy data conversion.
+-- CreateTable
+CREATE TABLE "User" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "name" TEXT,
+    "passwordHash" TEXT NOT NULL,
+    "totpSecret" TEXT,
+    "totpVerified" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Setting" (
+    "id" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+
+    CONSTRAINT "Setting_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "OperationLedger" (
+    "id" TEXT NOT NULL,
+    "actor" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "operation" TEXT NOT NULL,
+    "payload" TEXT NOT NULL,
+    "status" TEXT NOT NULL,
+    "receipt" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "OperationLedger_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateTable
 CREATE TABLE "V1Item" (
     "id" TEXT NOT NULL,
@@ -114,6 +150,8 @@ CREATE TABLE "V1Activity" (
 
 -- CreateTable
 CREATE TABLE "V1JournalMoment" (
+    "capturedAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "ingestHash" TEXT,
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "clientId" TEXT NOT NULL,
@@ -263,6 +301,18 @@ CREATE TABLE "V1Invitation" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "Setting_userId_idx" ON "Setting"("userId");
+
+-- CreateIndex
+CREATE INDEX "OperationLedger_actor_operation_status_createdAt_idx" ON "OperationLedger"("actor", "operation", "status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "OperationLedger_userId_actor_operation_status_createdAt_idx" ON "OperationLedger"("userId", "actor", "operation", "status", "createdAt");
+
+-- CreateIndex
 CREATE INDEX "V1Item_userId_type_status_idx" ON "V1Item"("userId", "type", "status");
 
 -- CreateIndex
@@ -270,6 +320,9 @@ CREATE INDEX "V1Item_userId_dueAt_idx" ON "V1Item"("userId", "dueAt");
 
 -- CreateIndex
 CREATE INDEX "V1Item_userId_scheduledAt_idx" ON "V1Item"("userId", "scheduledAt");
+
+-- CreateIndex
+CREATE INDEX "V1Item_userId_localDate_idx" ON "V1Item"("userId", "localDate");
 
 -- CreateIndex
 CREATE INDEX "V1Item_userId_startAt_endAt_idx" ON "V1Item"("userId", "startAt", "endAt");
@@ -350,6 +403,12 @@ CREATE UNIQUE INDEX "V1Conversation_userId_id_key" ON "V1Conversation"("userId",
 CREATE UNIQUE INDEX "V1Invitation_tokenHash_key" ON "V1Invitation"("tokenHash");
 
 -- AddForeignKey
+ALTER TABLE "Setting" ADD CONSTRAINT "Setting_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "OperationLedger" ADD CONSTRAINT "OperationLedger_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "V1Item" ADD CONSTRAINT "V1Item_userId_projectId_fkey" FOREIGN KEY ("userId", "projectId") REFERENCES "V1Project"("userId", "id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -409,7 +468,10 @@ ALTER TABLE "V1Proposal" ADD CONSTRAINT "V1Proposal_userId_conversationId_fkey" 
 -- AddForeignKey
 ALTER TABLE "V1Lease" ADD CONSTRAINT "V1Lease_userId_itemId_fkey" FOREIGN KEY ("userId", "itemId") REFERENCES "V1Item"("userId", "id") ON DELETE CASCADE ON UPDATE CASCADE;
 
-
+-- Hand-maintained objects Prisma's datamodel cannot emit.
+-- Owner foreign keys omit ON UPDATE so they match the reviewed V1 SQL.
+-- Checks and the Me triggers are the final post-migration definitions,
+-- including located_at on V1MomentItem.relation.
 ALTER TABLE "V1Item" ADD CONSTRAINT "V1Item_owner_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT;
 
 ALTER TABLE "V1SelfProfile" ADD CONSTRAINT "V1SelfProfile_owner_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT;
@@ -459,7 +521,7 @@ ALTER TABLE "V1Item" ADD CONSTRAINT "V1Item_contract" CHECK (
 ALTER TABLE "V1Tag" ADD CONSTRAINT "V1Tag_kind" CHECK ("kind" IN ('tag','area'));
 ALTER TABLE "V1Review" ADD CONSTRAINT "V1Review_period" CHECK ("period" IN ('daily','weekly','monthly'));
 ALTER TABLE "V1Link" ADD CONSTRAINT "V1Link_type" CHECK ("fromId" <> "toId" AND "type" IN ('advances','tracks','related_to','mentions','scheduled_at','located_at'));
-ALTER TABLE "V1MomentItem" ADD CONSTRAINT "V1MomentItem_relation" CHECK ("relation" IN ('mention','reference'));
+ALTER TABLE "V1MomentItem" ADD CONSTRAINT "V1MomentItem_relation" CHECK ("relation" IN ('mention', 'reference', 'located_at'));
 ALTER TABLE "V1Activity" ADD CONSTRAINT "V1Activity_kind" CHECK ("kind" IN ('check_in','habit_completion','focus','observation','interaction','task_completion'));
 ALTER TABLE "V1Proposal" ADD CONSTRAINT "V1Proposal_status" CHECK ("status" IN ('pending','approved','rejected','applied','failed'));
 ALTER TABLE "V1Message" ADD CONSTRAINT "V1Message_role" CHECK ("role" IN ('user','assistant','system','tool'));
@@ -492,4 +554,3 @@ END; $$;
 CREATE TRIGGER v1_self_immutable BEFORE UPDATE OR DELETE ON "V1SelfProfile" FOR EACH ROW EXECUTE FUNCTION v1_protect_me();
 CREATE TRIGGER v1_me_person BEFORE UPDATE OR DELETE ON "V1Item" FOR EACH ROW EXECUTE FUNCTION v1_protect_me();
 
-CREATE INDEX "V1Item_userId_localDate_idx" ON "V1Item"("userId", "localDate");

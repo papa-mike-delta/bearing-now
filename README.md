@@ -1,10 +1,9 @@
 # Bearing — capture, connect and recall
 
 An open-source, self-hostable personal knowledge workspace built with Next.js 16,
-React 19, TypeScript, Prisma and PostgreSQL. V1 reuses the existing auth, editors,
-audit and draft protections while introducing a connected information model.
+React 19, TypeScript, Prisma and PostgreSQL.
 
-## What works in V1
+## What it does
 
 - Quick Capture, Inbox and a chronological Daily Journal with references to real Items.
 - Seven Item kinds: Task, Note, Habit, Event, Goal, Person and Bookmark. Routine is
@@ -18,21 +17,20 @@ audit and draft protections while introducing a connected information model.
   model: owned-record evidence, clarification, editable approved atomic change batches,
   saved/temporary conversations and explicit editable memory.
 - Invitation-only accounts, revision checks, editor leases, audited writes, per-account
-  optional demo examples and full V1 JSON export/clear/restore in Settings.
+  optional demo examples and full JSON export/clear/restore in Settings.
 
-![Actual V1 Daily Journal with fictional sample data](public/screenshots/v1-journal.png)
+![Daily Journal with fictional sample data](public/screenshots/v1-journal.png)
 
 There is no public shared-demo login. A hosted deployment must be provisioned by its
 operator. Sign in with your own account; a new account requires an invitation.
 After sign-in, Settings → Add demo data explicitly creates examples in your account.
-Repeat setup is idempotent. Remove demo data preserves real/other-account data and
-refuses removal when edited examples or personal references need reconciliation.
 
 ## Local setup
 
-Requires **Node.js 22+**, npm and PostgreSQL 16 (external PostgreSQL for Vercel).
-Use a disposable local database first. This repository has two additive migration
-histories; V1 deployment is deliberately separate from the ordinary build.
+Requires **Node.js 22+**, npm and PostgreSQL 16 or newer. Use a disposable local database.
+CI runs PostgreSQL 18, the client major on the current GitHub runner, so `pg_dump` and the service match.
+This repository has one Prisma schema and one migration baseline, intended for an
+empty database.
 
 ```bash
 git clone https://github.com/papa-mike-delta/bearing-now.git
@@ -43,83 +41,50 @@ cp .env.example .env
 # Generate a secret with: openssl rand -hex 32
 npm run db:generate
 npx prisma migrate deploy
-# Review prisma/v1/migrations before explicitly applying V1 tables:
-BEARING_V1_SCHEMA_REVIEWED=yes npm run db:v1:deploy
-# Set BEARING_V1_ENABLED=true in .env, then:
 npm run db:invite -- you@example.com
 npm run dev
 ```
 
-Open `/login`, choose Create account and use the email-bound invitation. No seed
-runs at boot or failed login. The new account contains only Me. Use Settings for
-optional fictional examples. `/api/seed` always returns 410. Never reset the
-database to repair demo access, and do not convert legacy Item rows into V1.
+Open `/login`, choose Create account and use the email-bound invitation. The new
+account contains only Me. Use Settings for optional fictional examples.
 
-## Configuration and deployment
+## Configuration
 
 | Variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | Private PostgreSQL connection; use TLS as required by your provider |
 | `SESSION_SECRET` | Unique server signing key, minimum 32 characters in production |
-| `BEARING_V1_ENABLED=true` | Enable V1 after both migration sets are applied; otherwise the app shows setup guidance |
 | `BEARING_COACH_PROVIDER` | `openrouter` or `gateway`; optional Coach configuration |
 | `BEARING_COACH_MODEL` | Model identifier supported by the selected provider |
 | `OPENROUTER_API_KEY` / `AI_GATEWAY_API_KEY` | Server-only provider key |
 
-Coach is unavailable until configured. No free built-in model is implied. The
-client discloses provider/model use before sending chat. Read [Coach configuration
-and privacy](docs/redesign/CONVERSATIONAL_COACH.md) before enabling it. Never expose
-keys through `NEXT_PUBLIC_*` or browser settings.
+Coach is unavailable until configured. The client discloses provider and model use
+before sending chat. Read [Coach configuration and privacy](docs/redesign/CONVERSATIONAL_COACH.md)
+before enabling it. Never expose keys through `NEXT_PUBLIC_*`.
 
-For Vercel Hobby, use external PostgreSQL, Node 22+, a production session secret
-and isolated preview environment variables/database. `npm run build:vercel` runs
-the main migration chain, including mirrored V1 foundation/capture migrations.
-An operator must separately apply newer reviewed migrations from `prisma/v1/migrations`
-with `db:v1:deploy` before using features that depend on them. See the
-[deploy/rollback runbook](docs/RELEASE.md). A production
-migration or deployment is a separate, explicitly approved action after preview QA.
-Do not use `db:push`, `migrate dev`, `db:reset` or database drops against live data.
+`npm run build:vercel` generates the client, applies the one baseline with
+`prisma migrate deploy`, and builds Next.js. Do not point that command at a
+database that already has the previous two migration histories. Do not use
+`db:push`, `migrate dev`, `db:reset` or database drops against data you need.
 
-## Privacy, offline and portability
+The session cookie is `bearing-session`.
 
-In-app help is at `/help`; its source is [here](src/app/help/page.tsx).
-Offline support covers text capture, not full editing or AI. A prior authenticated
-visit is required. Browser data can be evicted: do not clear storage with pending
-entries. Logout locks the account queue; sign back into that same account to sync.
-
-Settings exports a private `bearing-v1` JSON backup of all V1 records, associations,
-histories, saved conversations/preferences and audit receipts. Restore validates and
-atomically replaces data in the **same account**. Audit remains append-only. Identity,
-passwords, 2FA secrets, invitation tokens, leases, browser drafts/outbox and legacy
-records are excluded. Sync first and keep a verified backup before clearing.
-[Backup details](docs/backup-restore.md).
-
-QR sign-in uses ephemeral, in-memory challenges: it fails closed on restart or a
-worker mismatch and is not a reliable multi-worker login transport. Email/password
-and verified TOTP remain the normal sign-in path. Notification delivery, uploads,
-external AI research, cross-user collaboration and full offline editing are outside V1.
-
-## Verification and contribution
+## Verification
 
 ```bash
 npm run lint
 npx tsc --noEmit --incremental false
 npm test
-V1_TEST_DATABASE_URL=postgresql://... npm run test:v1
-RESTORE_TEST_DATABASE_URL=postgresql://... npm run test:integration
+TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/bearing npm run test:integration
 npm run build
-# Browser release suite; disposable DB only, see e2e/README.md:
-V1_TEST_DATABASE_URL=postgresql://... npm run test:e2e:release
+TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/bearing npm run test:e2e
 ```
 
-Database suites create and drop randomly named isolated schemas. Browser suites use
-a separately provisioned disposable database and may mutate/reset test accounts.
-Never supply live credentials to test commands. See [CONTRIBUTING](CONTRIBUTING.md),
-[architecture](docs/ARCHITECTURE.md), [release matrix](docs/RELEASE.md), and the
-[approved V1 specification](docs/redesign/BEARING_V1_SPEC.md).
+Database tests create and drop a randomly named schema. The browser suite uses a
+separately provisioned disposable database and may reset test accounts. Never
+supply a live connection string to test commands. See [CONTRIBUTING](CONTRIBUTING.md),
+[architecture](docs/ARCHITECTURE.md), [release notes](docs/RELEASE.md), and
+[ADR 0006](docs/adr/0006-one-schema-one-runtime.md).
 
 MIT licensed. Original project by karim-coder; developed by Bearing contributors.
-
-### V1 UI acceptance
-
-The public page alone does not prove that V1 database setup is complete. Existing accounts are not automatically converted from the legacy schema. Follow the [release runbook](docs/RELEASE.md), then review the [browser acceptance report](docs/qa/V1_ACCEPTANCE.md) and [requirement ledger](docs/qa/V1_REQUIREMENTS.md).
+Copyright (c) 2026 Life OS. Copyright (c) 2026 Bearing contributors.

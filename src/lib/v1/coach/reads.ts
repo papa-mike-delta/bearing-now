@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Workflow } from "../workflow";
 import { V1, Fault, parse } from "../service";
-import { v1db } from "../db";
+import { db } from "@/lib/db";
 import { id } from "../contracts";
 import type { Source } from "./contracts";
 export const readInput = z.strictObject({
@@ -149,7 +149,7 @@ export class CoachReads {
         endAt: row.endAt,
         followUpAt: row.followUpAt,
       };
-      const links = await v1db.link.findMany({
+      const links = await db.link.findMany({
         where: { userId: this.userId, OR: [{ fromId: id }, { toId: id }] },
         take: 6,
         select: { id: true, fromId: true, toId: true, type: true },
@@ -170,7 +170,7 @@ export class CoachReads {
         revision: row.revision,
       };
     } else if (kind === "project") {
-      const row = await v1db.project.findFirst({
+      const row = await db.project.findFirst({
         where: { userId: this.userId, id },
         include: { tags: { include: { tag: true } } },
       });
@@ -193,7 +193,7 @@ export class CoachReads {
         revision: row.revision,
       };
     } else if (kind === "journal") {
-      const row = await v1db.journalMoment.findFirst({
+      const row = await db.journalMoment.findFirst({
         where: { userId: this.userId, id },
         include: { items: true },
       });
@@ -215,7 +215,7 @@ export class CoachReads {
         href: `/app/journal?date=${row.localDate}&moment=${id}`,
       };
     } else if (kind === "tag") {
-      const row = await v1db.tag.findFirst({
+      const row = await db.tag.findFirst({
         where: { userId: this.userId, id },
       });
       if (!row) throw new Fault(404, "Not found");
@@ -227,7 +227,7 @@ export class CoachReads {
         href: `/app/library?${row.kind === "area" ? "area" : "tag"}=${id}`,
       };
     } else if (kind === "activity") {
-      const row = await v1db.activity.findFirst({
+      const row = await db.activity.findFirst({
         where: { userId: this.userId, id },
       });
       if (!row) throw new Fault(404, "Not found");
@@ -245,7 +245,7 @@ export class CoachReads {
         href: `/app/journal?date=${row.localDate}&activity=${id}`,
       };
     } else if (kind === "link") {
-      const row = await v1db.link.findFirst({
+      const row = await db.link.findFirst({
         where: { userId: this.userId, id },
       });
       if (!row) throw new Fault(404, "Not found");
@@ -263,7 +263,7 @@ export class CoachReads {
         href: `/app/library/${row.fromId}`,
       };
     } else {
-      const row = await v1db.review.findFirst({
+      const row = await db.review.findFirst({
         where: { userId: this.userId, id },
       });
       if (!row) throw new Fault(404, "Not found");

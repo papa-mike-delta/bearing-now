@@ -1,8 +1,7 @@
-import { v1Enabled } from "@/lib/v1-enabled";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getUserFromRequest } from "@/lib/auth";
-import { v1db } from "@/lib/v1/db";
+import { db } from "@/lib/db";
 import { V1, Fault, parse, type Principal } from "@/lib/v1/service";
 import { V1Backup } from "@/lib/v1/service/backup";
 import { V1Demo } from "@/lib/v1/service/demo";
@@ -14,8 +13,6 @@ async function handle(
   req: Request,
   context: { params: Promise<{ path: string[] }> },
 ) {
-  if (!v1Enabled())
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
   const session = await getUserFromRequest(req);
   if (!session?.twoFactorVerified)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -23,7 +20,7 @@ async function handle(
     const expected = req.headers.get("X-Bearing-Account");
     if (expected && expected !== session.userId)
       throw new Fault(409, "Account changed; your capture has been retained");
-    if (!(await v1db.account.findUnique({ where: { id: session.userId } })))
+    if (!(await db.account.findUnique({ where: { id: session.userId } })))
       throw new Fault(401, "Unauthorized");
     const p: Principal = {
       userId: session.userId,
@@ -237,24 +234,24 @@ async function handle(
       const where = { userId: p.userId, ...(recordId ? { id: recordId } : {}) };
       const readers = {
         projects: () =>
-          v1db.project.findMany({
+          db.project.findMany({
             where,
             include: { tags: { include: { tag: true } } },
           }),
-        tags: () => v1db.tag.findMany({ where }),
-        links: () => v1db.link.findMany({ where }),
+        tags: () => db.tag.findMany({ where }),
+        links: () => db.link.findMany({ where }),
         journal: () =>
-          v1db.journalMoment.findMany({
+          db.journalMoment.findMany({
             where,
             include: { items: true },
             orderBy: { occurredAt: "desc" },
           }),
         activities: () =>
-          v1db.activity.findMany({ where, orderBy: { occurredAt: "desc" } }),
+          db.activity.findMany({ where, orderBy: { occurredAt: "desc" } }),
         reviews: () =>
-          v1db.review.findMany({ where, include: { items: true } }),
+          db.review.findMany({ where, include: { items: true } }),
         recurrences: () =>
-          v1db.recurrence.findMany({ where, include: { occurrences: true } }),
+          db.recurrence.findMany({ where, include: { occurrences: true } }),
       };
       if (!(resource in readers)) throw new Fault(404, "Not found");
       const rows = await readers[resource as keyof typeof readers]();

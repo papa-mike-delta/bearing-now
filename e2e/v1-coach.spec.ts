@@ -1,4 +1,4 @@
-import { PrismaClient } from "@bearing/v1-client";
+import { PrismaClient } from "@prisma/client";
 import type { Page } from "@playwright/test";
 import { test, expect } from "./fixtures";
 test.skip(
@@ -6,11 +6,11 @@ test.skip(
   "Use the dedicated local-provider Coach test config",
 );
 test.beforeEach(async ({ page }) => {
-  if (!process.env.V1_TEST_DATABASE_URL)
-    throw new Error("Coach tests require a disposable V1_TEST_DATABASE_URL");
+  if (!process.env.TEST_DATABASE_URL)
+    throw new Error("Coach tests require a disposable TEST_DATABASE_URL");
   const account = await (await page.request.get("/api/v1/identity")).json();
   const db = new PrismaClient({
-    datasourceUrl: process.env.V1_TEST_DATABASE_URL,
+    datasourceUrl: process.env.TEST_DATABASE_URL,
   });
   try {
     await db.preference.deleteMany({

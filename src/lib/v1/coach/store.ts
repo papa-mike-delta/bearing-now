@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { v1db } from "../db";
+import { db } from "@/lib/db";
 import { owned, Fault, parse } from "../service";
 import { id } from "../contracts";
 import { z } from "zod";
@@ -13,7 +13,7 @@ const memoryInput = z.strictObject({
 export class CoachStore {
   static async memories(userId: string) {
     return (
-      await v1db.preference.findMany({
+      await db.preference.findMany({
         where: { userId, key: { startsWith: "coach.memory." } },
         take: 10,
       })
@@ -25,7 +25,7 @@ export class CoachStore {
   static async memory(userId: string, raw: unknown) {
     const input = parse(memoryInput, raw);
     const key = `coach.memory.${input.id || crypto.randomUUID()}`;
-    return v1db.$transaction(async (tx) => {
+    return db.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(731909)::text`;
       if (
         !input.id &&
@@ -51,13 +51,13 @@ export class CoachStore {
   }
   static async deleteMemory(userId: string, memoryId: string) {
     parse(id, memoryId);
-    await v1db.preference.deleteMany({
+    await db.preference.deleteMany({
       where: { userId, key: `coach.memory.${memoryId}` },
     });
     return { deleted: true };
   }
   static list(userId: string) {
-    return v1db.conversation.findMany({
+    return db.conversation.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
       take: 50,
@@ -65,14 +65,14 @@ export class CoachStore {
     });
   }
   static async conversation(userId: string, conversationId: string) {
-    await owned(v1db, userId, "conversation", conversationId);
+    await owned(db, userId, "conversation", conversationId);
     const [messages, rows] = await Promise.all([
-      v1db.message.findMany({
+      db.message.findMany({
         where: { userId, conversationId },
         orderBy: { createdAt: "desc" },
         take: 100,
       }),
-      v1db.proposal.findMany({
+      db.proposal.findMany({
         where: { userId, conversationId },
         orderBy: { createdAt: "asc" },
         take: 50,
@@ -102,7 +102,7 @@ export class CoachStore {
     };
   }
   static async remove(userId: string, conversationId: string) {
-    return v1db.$transaction(async (tx) => {
+    return db.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(731909)::text`;
       await owned(tx, userId, "conversation", conversationId);
       const active = await tx.preference.findUnique({
@@ -139,7 +139,7 @@ export class CoachStore {
         }),
       )
       .digest("hex");
-    return v1db.$transaction(async (tx) => {
+    return db.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(731909)::text`;
       const rate = await tx.preference.findUnique({
         where: { userId_key: { userId, key: "coach.rate" } },
@@ -271,7 +271,7 @@ export class CoachStore {
     answer: Answer,
   ) {
     if (!conversationId) return;
-    await v1db.$transaction(async (tx) => {
+    await db.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(731909)::text`;
       const key = `coach.turn.${input.clientId}`;
       const turn = await tx.preference.findUnique({

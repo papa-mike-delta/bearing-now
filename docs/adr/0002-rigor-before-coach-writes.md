@@ -1,6 +1,6 @@
 # Rigor rails before any Coach write
 
-> Superseded for product work on 2026-10-26 by [ADR 0005](0005-sunset-legacy-domain-and-coach.md). The legacy Coach tools and `COACH_TOOLS_ENABLED` flag are removed. V1 Coach approval lives in `src/lib/v1/coach`.
+> Superseded for product work on 2026-10-26 by [ADR 0005](0005-sunset-legacy-domain-and-coach.md), and the schema split in that ADR is superseded by [ADR 0006](0006-one-schema-one-runtime.md). The legacy Coach tools and their enable flag are removed. Coach approval lives in `src/lib/v1/coach`.
 
 The Coach is never allowed to write until three rails are live and tested:
 

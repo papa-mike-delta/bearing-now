@@ -11,10 +11,10 @@ only user-approved batches execute them. Keep keys server-side. No production re
 or migration is implied by a code contribution.
 
 Run `npm run lint`, `npx tsc --noEmit --incremental false`, `npm test`, and
-`npm run build`. For domain/auth/backup changes also run both PostgreSQL integration
-suites. For UI/workflow changes run the relevant Playwright journey on desktop and
-phone, inspect screenshots and keyboard/reduced-motion behavior. See
-[e2e/README.md](e2e/README.md). Tests must use disposable data.
+`npm run build`. For domain/auth/backup changes also run `npm run test:integration`
+with `TEST_DATABASE_URL` pointed at disposable Postgres. For UI/workflow changes run
+`npm run test:e2e` on desktop and phone, inspect screenshots and keyboard/reduced-motion
+behavior. See [e2e/README.md](e2e/README.md). Tests must use disposable data.
 
 Include the problem, resulting behavior, actual checks and outstanding limits in
 PR descriptions. Never describe a fixture-based provider run as live AI verification,

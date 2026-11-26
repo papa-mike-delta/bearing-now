@@ -1,24 +1,24 @@
 # Current project context
 
-Bearing V1 captures, organizes, connects and recalls personal information.
-It builds on the existing Next.js/PostgreSQL application and domain protections.
+Bearing captures, organizes, connects and recalls personal information.
+`/app` and `/api/v1` are the product path. There is one Prisma schema and one
+client. `Account` maps to `"User"`, theme stays on `Setting`, and audit stays on
+`Ledger` mapped to `"OperationLedger"`. Product rows live in `V1*` tables.
+
+There is no feature flag and no second migration chain. The baseline in
+`prisma/migrations` is for an empty database. It is not a conversion of the
+retired content tables, and it is not safe to apply to a database that already
+ran the previous histories.
+
+Coach uses server-side configured providers and approved write batches.
+Optional examples are per-account Settings actions. The session cookie is
+`bearing-session`.
 
 Current entry points:
-- [README](README.md): install, configuration and actual feature boundaries.
-- [Approved V1 specification](docs/redesign/BEARING_V1_SPEC.md): product contract.
+- [README](README.md): install, configuration and feature boundaries.
 - [Architecture](docs/ARCHITECTURE.md): storage, auth, workflow, offline and Coach.
-- [Release runbook](docs/RELEASE.md): scenario matrix, preview/production gates.
+- [Release notes](docs/RELEASE.md): deploy shape and the standalone cutover that is not done yet.
+- [ADR 0006](docs/adr/0006-one-schema-one-runtime.md): the binding schema decision.
 - [Contributing](CONTRIBUTING.md): development and verification expectations.
 
-Seven Item kinds are the V1 model; Areas are classified Tags. `/app` and `/api/v1`
-are the product path. `src/lib/domain` and the legacy Coach tools are removed.
-Pre-V1 content APIs return 410. `User`, `Setting` and `OperationLedger` stay shared.
-Legacy content tables stay until a reviewed drop on or after 2027-01-26.
-Nothing in the repository authorizes a production reset or an Item → V1Item
-conversion. Both Prisma migration histories must be applied explicitly on an
-isolated preview first. The old shared demo is retired; optional examples are
-per-account Settings actions. Coach uses server-side configured providers and
-approved write batches.
-
-[ADR 0005](docs/adr/0005-sunset-legacy-domain-and-coach.md) is binding for new work.
-ADR 0001, ADR 0002 and ADR 0004 are historical and must not be extended.
+ADR 0001, ADR 0002, ADR 0004 and ADR 0005 are historical and must not be extended.

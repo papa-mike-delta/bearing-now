@@ -1,7 +1,6 @@
-import { v1Enabled } from "@/lib/v1-enabled";
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { v1db } from "@/lib/v1/db";
+import { db } from "@/lib/db";
 import { Fault, parse, type Principal } from "@/lib/v1/service";
 import { id } from "@/lib/v1/contracts";
 import { z } from "zod";
@@ -16,8 +15,6 @@ async function handle(
   req: Request,
   context: { params: Promise<{ path: string[] }> },
 ) {
-  if (!v1Enabled())
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
   const session = await getUserFromRequest(req);
   if (!session?.twoFactorVerified)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -27,7 +24,7 @@ async function handle(
       req.headers.get("X-Bearing-Account") !== session.userId
     )
       throw new Fault(409, "Account changed; reload your workspace");
-    if (!(await v1db.account.findUnique({ where: { id: session.userId } })))
+    if (!(await db.account.findUnique({ where: { id: session.userId } })))
       throw new Fault(401, "Unauthorized");
     const userId = session.userId,
       { path } = await context.params,
@@ -101,7 +98,7 @@ async function handle(
       );
       result = await reject(userId, value.token);
     } else if (resource === "receipts" && recordId && req.method === "GET") {
-      result = await v1db.ledger.findFirst({ where: { userId, id: recordId } });
+      result = await db.ledger.findFirst({ where: { userId, id: recordId } });
       if (!result) throw new Fault(404, "Not found");
     } else throw new Fault(404, "Not found");
     return NextResponse.json(result, {

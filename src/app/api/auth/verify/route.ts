@@ -1,4 +1,4 @@
-import { sessionCookie } from "@/lib/session";
+import { sessionCookie, sessionTokenFromCookie } from "@/lib/session";
 import { db } from "@/lib/db";
 import { ok, bad, parseBody, verifyTOTP, verifySession, createSession } from "@/lib/auth-utils";
 import type { NextRequest } from "next/server";
@@ -13,14 +13,10 @@ export async function POST(req: NextRequest) {
   if (!token) return bad("Verification code is required");
 
   // Get session from cookie
-  const cookie = req.headers.get("cookie") || "";
-  const match = cookie.match(/lifeos-session=([^;]+)/);
-  if (!match) return bad("No active session", 401);
-
-  const session = verifySession(match[1]);
+  const session = verifySession(sessionTokenFromCookie(req.headers.get("cookie")));
   if (!session) return bad("Invalid or expired session", 401);
 
-  const user = await db.user.findUnique({ where: { id: session.userId } });
+  const user = await db.account.findUnique({ where: { id: session.userId } });
   if (!user) return bad("User not found", 401);
 
   if (!user.totpSecret) return bad("2FA is not set up. Please set up 2FA first.");
