@@ -27,7 +27,8 @@ After sign-in, Settings → Add demo data explicitly creates examples in your ac
 
 ## Local setup
 
-Requires **Node.js 22+**, npm and PostgreSQL 16. Use a disposable local database.
+Requires **Node.js 22+**, npm and PostgreSQL 16 or newer. Use a disposable local database.
+CI runs PostgreSQL 18, the client major on the current GitHub runner, so `pg_dump` and the service match.
 This repository has one Prisma schema and one migration baseline, intended for an
 empty database.
 
